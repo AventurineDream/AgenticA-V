@@ -105,9 +105,10 @@ def _request(session: Session, width: int, height: int, *, mode: str = "play") -
 
     Preview sessions are paused, so the step is zero and `--at` stays put.
     Reduced motion continues from that time instead of rescaling it.
+    Still motion keeps the program selected at the held picture.
     """
     position = session.playhead.position
-    index, program = session.show.program_at(position)
+    index, program = session.visual_program()
     return FrameRequest(
         show=session.show,
         palette=session.palette,

@@ -1,7 +1,9 @@
 """Run the player in an alternate-screen TTY with no runtime dependencies.
 
 The terminal is returned to its prior mode even when rendering or key handling
-raises. This module is the sole terminal I/O boundary; paint remains pure.
+raises, and when SIGTERM asks the process to stop. Cleanup restores canonical
+mode, echo, the cursor, and the primary screen, then puts the previous SIGTERM
+handler back. This module is the sole terminal I/O boundary; paint remains pure.
 Incomplete CSI sequences are held across reads; a lone Escape waits out a
 short silence so a split arrow is not Escape plus a letter.
 """
@@ -11,6 +13,7 @@ from __future__ import annotations
 import fcntl
 import os
 import select
+import signal
 import struct
 import sys
 import termios
@@ -195,9 +198,13 @@ def _terminal_frame(frame: str) -> str:
 
 
 def _draw(session: Session, width: int, height: int) -> str:
-    """Compose one full-screen frame from current session state."""
+    """Compose one full-screen frame from current session state.
+
+    Still motion paints the held program. The playhead may already be in the
+    next chapter; that position still drives the meter, not the picture.
+    """
     position = session.playhead.position
-    program_index, program = session.show.program_at(position)
+    program_index, program = session.visual_program()
     # Commit once per frame. Scaling absolute position would rewind reduced motion.
     field_time = session.advance_visual_time()
     request = FrameRequest(
@@ -272,9 +279,11 @@ def _handle(session: Session, key: str) -> bool:
     """Apply one key action; return False only when the player should quit.
 
     q and Ctrl-C quit from the stage, help, and the gallery. Esc returns to
-    the stage and does not quit. Space in still mode toggles transport without
-    replacing the held picture. A negative gallery index is no built-in
-    selection: Enter leaves without applying a palette.
+    the stage and does not quit. Leaving the gallery restores the cycle index
+    to the active palette, so a canceled card is not the next theme. Space in
+    still mode toggles transport without replacing the held picture. A negative
+    gallery index is no built-in selection: Enter leaves without applying a
+    palette.
 
     Args:
         session: Active playback and display state.
@@ -287,6 +296,10 @@ def _handle(session: Session, key: str) -> bool:
     if key in ("q", "quit"):
         return False
     if key in ("esc", "backspace"):
+        # Gallery browsing is not a theme change. A canceled card must not
+        # become the index the next `t` cycles from.
+        if session.mode == "gallery":
+            session.align_gallery_index()
         session.mode = "play"
         return True
     if session.mode == "gallery":
@@ -332,8 +345,30 @@ def _handle(session: Session, key: str) -> bool:
     return True
 
 
+class _PlayerTerminatedError(BaseException):
+    """SIGTERM arrived while the terminal may be in raw mode.
+
+    A ``BaseException``, not a failure: the name ends in Error so the naming
+    lint accepts a class in the exception hierarchy. A broad ``except Exception``
+    cannot swallow it and skip the restoration in ``run_player``.
+    """
+
+
+def _on_sigterm(_signum: int, _frame: object) -> None:
+    """Unwind raw mode through ``run_player``'s finally block.
+
+    The default SIGTERM action ends the process without running ``finally``,
+    which leaves echo off, the cursor hidden, and the alternate screen up.
+    """
+    raise _PlayerTerminatedError
+
+
 def run_player(session: Session, *, input_stream=None, output_stream=None) -> int:
     """Run the interactive player until Q or Ctrl-C, including from help and gallery.
+
+    SIGTERM is catchable around raw mode so it also leaves through cleanup.
+    Canonical mode, echo, the cursor, and the primary screen are restored,
+    and the previous SIGTERM handler is put back afterward.
 
     Args:
         session: Prepared session with palette, show, and transport.
@@ -341,7 +376,7 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
         output_stream: Optional TTY stream for isolated integration tests.
 
     Returns:
-        Zero after orderly terminal restoration.
+        Zero after orderly terminal restoration, including after SIGTERM.
 
     Raises:
         RuntimeError: Input or output is not an interactive terminal.
@@ -352,9 +387,12 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
         raise RuntimeError("interactive play needs a TTY; use `aav preview` for captured output")
     fd = source.fileno()
     original = termios.tcgetattr(fd)
+    previous_sigterm = signal.getsignal(signal.SIGTERM)
     last_sync = 0.0
     decoder = KeyDecoder()
     try:
+        # Before setraw: the default SIGTERM action would skip the finally below.
+        signal.signal(signal.SIGTERM, _on_sigterm)
         tty.setraw(fd)
         target.write("\x1b[?1049h\x1b[?25l")
         target.flush()
@@ -387,8 +425,16 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
                 if not _handle(session, key):
                     active = False
                     break
+    except _PlayerTerminatedError:
+        pass
     finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, original)
-        target.write("\x1b[0m\x1b[?25h\x1b[?1049l")
-        target.flush()
+        # The handler raises. Ignore a second SIGTERM until the screen and
+        # attributes are back, or that raise would skip the rest of cleanup.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        try:
+            termios.tcsetattr(fd, termios.TCSADRAIN, original)
+            target.write("\x1b[0m\x1b[?25h\x1b[?1049l")
+            target.flush()
+        finally:
+            signal.signal(signal.SIGTERM, previous_sigterm)
     return 0
