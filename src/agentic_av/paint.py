@@ -5,8 +5,9 @@ layout identical. Frames are fixed-size, single-column character grids.
 Color stages paint two field samples per cell; no-color stages use density
 glyphs only. The key legend is reserved in the row budget so it is not
 clipped off a full frame. Show text is normalized before cells are built:
-controls become spaces, combining marks are removed, and wide or fullwidth
-characters become one cell, so a title cannot steer the cursor or wrap a row.
+controls become spaces, combining marks and zero-width Hangul jamo are
+removed, and wide, fullwidth, and regional-indicator characters become one
+cell, so a title cannot steer the cursor, stall a row, or wrap it.
 """
 
 from __future__ import annotations
@@ -33,8 +34,9 @@ _BAYER = (
 class Cell:
     """One terminal column and its optional foreground/background colors.
 
-    ``char`` is one column. Wide characters and combining marks are
-    normalized away before a cell is built.
+    ``char`` is one column. Wide characters, regional indicators, and
+    combining marks are normalized before a cell is built. Zero-width Hangul
+    jamo are removed rather than stored.
     """
 
     char: str = " "
@@ -88,17 +90,33 @@ def _single_column(text: str) -> str:
     """Map text onto one column per cell before either text path builds cells.
 
     Both ``_text_row`` and ``_put`` call this, so a positioned title cannot
-    bypass it. Combining marks are dropped. East Asian wide and fullwidth
-    characters, including CJK and emoji, become one placeholder. Ambiguous
-    UI glyphs (box drawing, density, arrows, middle dot) stay themselves.
+    bypass it. Combining marks and class-0 variation selectors are dropped.
+    Zero-width Hangul jamo are dropped too: U+1160-U+11FF, U+D7B0-U+D7C6,
+    U+D7CB-U+D7FB, and the halfwidth filler U+FFA0. They are printable and
+    not combining, but a terminal gives them no column and stops the rest
+    of the text run. East Asian wide and fullwidth characters become one
+    placeholder. Regional indicators U+1F1E6-U+1F1FF are East Asian Width
+    Neutral, but each is two columns (a pair is a flag), so they use the
+    same placeholder. Ambiguous UI glyphs (box drawing, density, arrows,
+    middle dot) stay themselves. Controls are already spaces.
     """
     normalized: list[str] = []
     for char in _printable(text):
         category = unicodedata.category(char)
         if unicodedata.combining(char) or category in _COMBINING_CATEGORIES:
             continue
-        if unicodedata.east_asian_width(char) in {"W", "F"}:
+        # EAW misses regional indicators (Neutral, wcwidth 2). A pair is a flag.
+        if unicodedata.east_asian_width(char) in {"W", "F"} or "\U0001f1e6" <= char <= "\U0001f1ff":
             normalized.append(_WIDE_PLACEHOLDER)
+            continue
+        # wcwidth 0 and combining class 0, so the mark check misses them.
+        # pyte stops draw() on that combination and truncates the row.
+        if (
+            "\u1160" <= char <= "\u11ff"
+            or "\ud7b0" <= char <= "\ud7c6"
+            or "\ud7cb" <= char <= "\ud7fb"
+            or char == "\uffa0"
+        ):
             continue
         normalized.append(char)
     return "".join(normalized)
@@ -107,8 +125,8 @@ def _single_column(text: str) -> str:
 def _text_row(text: str, width: int, fg: str, bg: str) -> list[Cell]:
     """Fit one-column text into a row, padding with background.
 
-    Width and combining marks are normalized first, so a clipped title
-    cannot wrap the row or inject escapes.
+    The single-column normalizer runs first, so a clipped title cannot
+    wrap the row, stall the cursor, or inject escapes.
     """
     clipped = _single_column(text)[: max(width, 0)]
     return [Cell(char, fg, bg) for char in clipped] + [Cell(" ", fg, bg)] * max(
