@@ -24,5 +24,5 @@ All notable changes to this project are documented here.
 - Seeks and chapter skips keep their direction on short shows and one-program reels. Unseeked loop wraps still advance forward.
 - 256-color output is used only when `TERM` advertises `256color`.
 - Show titles and details cannot inject terminal control characters into preview or raw-mode output.
-- Wide and combining characters in a show title or detail stay on the fixed grid. CJK and emoji become one cell; combining marks are removed.
+- Wide and combining characters in a show title or detail stay on the fixed grid. CJK, emoji, and regional indicators become one cell; combining marks and zero-width Hangul jamo are removed.
 - Restore the project roadmap at `docs/plans/PROJECT-ROADMAP.md`.
