@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Pre-commit gate (Aven Code Standard §6.6). Install once per clone with bash tools/install_hooks.sh.
+# Fast offline checks on staged files; the full suite is run separately before handoff.
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
+((${#staged[@]})) || exit 0
+
+py=()
+for file in "${staged[@]}"; do
+  [[ $file == *.py ]] && py+=("$file")
+done
+
+status=0
+run() {
+  if command -v "$1" >/dev/null 2>&1; then
+    "$@" || status=1
+  else
+    echo "SKIP: $1 not installed (install per AGENTS.md)" >&2
+  fi
+}
+
+if ((${#py[@]})); then
+  run ruff format --check "${py[@]}"
+  run ruff check "${py[@]}"
+fi
+exit "$status"

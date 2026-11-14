@@ -1,0 +1,6 @@
+# Abstract demonstration only; project-specific bands, albums, and recordings stay private.
+title = "A Field of Signals"
+detail = "an abstract terminal study"
+duration = 96.0
+tempo = 96
+programs = ["garden", "aperture", "scan", "tide"]
