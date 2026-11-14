@@ -7,13 +7,36 @@ from agentic_av.palette import builtin_palette, builtin_palettes, palette_from_o
 from agentic_av.session import Session
 from agentic_av.show import Show
 from agentic_av.transport import Playhead
-from agentic_av.tty import _handle, _terminal_frame, parse_keys
+from agentic_av.tty import ESCAPE_HOLD_S, KeyDecoder, _handle, _terminal_frame, parse_keys
 
 
 def test_parse_keys_handles_navigation_and_multiple_actions() -> None:
     assert parse_keys(b" \x1b[D\x1b[Ct?q\x03") == [" ", "left", "right", "t", "?", "q", "quit"]
     assert parse_keys(b"\x1b[A\x1b[B\r") == ["up", "down", "enter"]
     assert parse_keys(b"\x1b") == ["esc"]
+
+
+def test_split_csi_resolves_to_navigation_not_escape() -> None:
+    """ESC [ then C across reads is right, not Escape plus a printable C."""
+    clock = {"now": 0.0}
+    decoder = KeyDecoder(clock=lambda: clock["now"])
+    assert decoder.feed(b"\x1b[") == []
+    clock["now"] += 0.01
+    assert decoder.feed(b"C") == ["right"]
+    assert decoder.feed(b"\x1b") == []
+    assert decoder.feed(b"[C") == ["right"]
+
+
+def test_standalone_escape_waits_for_silence() -> None:
+    """A lone Escape is held until the silence timeout, then does not swallow the next key."""
+    clock = {"now": 0.0}
+    decoder = KeyDecoder(clock=lambda: clock["now"])
+    assert decoder.feed(b"\x1b") == []
+    clock["now"] = ESCAPE_HOLD_S - 0.001
+    assert decoder.flush() == []
+    clock["now"] = ESCAPE_HOLD_S
+    assert decoder.flush() == ["esc"]
+    assert decoder.feed(b"C") == ["C"]
 
 
 def test_tty_frame_uses_carriage_return_line_feeds() -> None:

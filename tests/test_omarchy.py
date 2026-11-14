@@ -70,6 +70,48 @@ def test_generation_token_changes_on_color_update(tmp_path: Path) -> None:
     assert generation_token(state) != before
 
 
+def test_user_fallback_edit_changes_generation_token(tmp_path: Path) -> None:
+    """Editing a user fallback palette must move the token the live sync compares."""
+    state = tmp_path / "state" / "omarchy" / "current"
+    state.mkdir(parents=True)
+    (state / "theme.name").write_text("Flexoki Light\n", encoding="utf-8")
+    colors = tmp_path / "config" / "omarchy" / "themes" / "flexoki-light" / "colors.toml"
+    colors.parent.mkdir(parents=True)
+    shutil.copyfile(FIXTURE / "partial.toml", colors)
+    env = {
+        "XDG_CONFIG_HOME": str(tmp_path / "config"),
+        "OMARCHY_PATH": str(tmp_path / "missing-stock"),
+    }
+    before = load_omarchy(state_dir=state, env=env)
+    assert before.colors_path == colors
+    direct = generation_token(state, env=env)
+    assert direct == before.generation
+    colors.write_text(colors.read_text(encoding="utf-8") + "\n# edited\n", encoding="utf-8")
+    after = load_omarchy(state_dir=state, env=env)
+    assert after.colors_path == colors
+    assert after.generation != before.generation
+    assert generation_token(state, env=env) == after.generation
+
+
+def test_stock_fallback_edit_changes_generation_token(tmp_path: Path) -> None:
+    """A stock fallback is part of the token when no applied or user palette exists."""
+    state = tmp_path / "state" / "omarchy" / "current"
+    state.mkdir(parents=True)
+    (state / "theme.name").write_text("aav-stock-fixture\n", encoding="utf-8")
+    colors = tmp_path / "share" / "themes" / "aav-stock-fixture" / "colors.toml"
+    colors.parent.mkdir(parents=True)
+    shutil.copyfile(FIXTURE / "partial.toml", colors)
+    env = {
+        "XDG_CONFIG_HOME": str(tmp_path / "config"),
+        "OMARCHY_PATH": str(tmp_path / "share"),
+    }
+    before = load_omarchy(state_dir=state, env=env)
+    assert before.colors_path == colors
+    colors.write_text(colors.read_text(encoding="utf-8") + "\n# stock edit\n", encoding="utf-8")
+    after = load_omarchy(state_dir=state, env=env)
+    assert after.generation != before.generation
+
+
 def test_slugify_display_name() -> None:
     assert slugify("Tokyo Night") == "tokyo-night"
     assert slugify(" take3 ") == "take3"

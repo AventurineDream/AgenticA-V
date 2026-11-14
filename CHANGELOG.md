@@ -25,4 +25,7 @@ All notable changes to this project are documented here.
 - 256-color output is used only when `TERM` advertises `256color`.
 - Show titles and details cannot inject terminal control characters into preview or raw-mode output.
 - Wide and combining characters in a show title or detail stay on the fixed grid. CJK, emoji, and regional indicators become one cell; combining marks and zero-width Hangul jamo are removed.
+- Arrow keys split across terminal reads resolve to navigation instead of Escape plus a letter. A lone Escape still closes overlays after a short silence.
+- 256-color quantization uses the xterm cube levels (0, 95, 135, 175, 215, 255) and gray ramp (8 through 238). Black and white stay indexes 16 and 231 when those are nearer.
+- Live Omarchy sync notices edits to the resolved palette, including a user or stock fallback, not only the applied state file.
 - Restore the project roadmap at `docs/plans/PROJECT-ROADMAP.md`.
