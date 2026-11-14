@@ -1,7 +1,8 @@
 """Read Omarchy's active merged theme without changing desktop configuration.
 
-The player uses the applied `colors.toml` first; Omarchy merges stock colors
-and user overlays into that file when a theme is set. This module is read-only.
+The player uses the applied `colors.toml` first. If that file is absent, the
+slug's user or stock `colors.toml` is read instead. The resolved path is part
+of the live-sync token, so a fallback edit is observed. This module is read-only.
 """
 
 from __future__ import annotations
@@ -52,20 +53,53 @@ def _candidate_paths(slug: str, state: Path, env: dict[str, str] | None) -> tupl
     )
 
 
-def generation_token(state_dir: Path | None = None) -> str:
-    """Return a lightweight token that changes with Omarchy theme switches."""
-    state = _state_dir() if state_dir is None else state_dir
-    name = state / "theme.name"
-    generation = state / "theme.generation"
-    color_file = state / "theme" / "colors.toml"
-    pieces: list[str] = []
-    for path in (name, generation, color_file):
-        try:
-            stat = path.stat()
-            value = path.read_text(encoding="utf-8").strip() if path.is_file() else ""
-            pieces.append(f"{value}:{stat.st_mtime_ns}:{stat.st_size}")
-        except OSError:
-            pieces.append("missing")
+def _fingerprint(path: Path) -> str:
+    """Return content, mtime, and size, or ``missing`` if the path cannot be read."""
+    try:
+        stat = path.stat()
+        value = path.read_text(encoding="utf-8").strip() if path.is_file() else ""
+        return f"{value}:{stat.st_mtime_ns}:{stat.st_size}"
+    except OSError:
+        return "missing"
+
+
+def _resolved_colors_path(state: Path, env: dict[str, str] | None) -> Path | None:
+    """Return the first existing applied, user, or stock palette, or None."""
+    try:
+        slug = slugify((state / "theme.name").read_text(encoding="utf-8"))
+    except OSError:
+        slug = "current"
+    return next((path for path in _candidate_paths(slug, state, env) if path.is_file()), None)
+
+
+def generation_token(
+    state_dir: Path | None = None,
+    *,
+    colors_path: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> str:
+    """Return a token that changes when the resolved Omarchy palette changes.
+
+    Args:
+        state_dir: Optional `current` state directory. Defaults to XDG state.
+        colors_path: Palette file actually read. When omitted, applied, user,
+            and stock candidates are searched in that order.
+        env: Optional environment for XDG and ``OMARCHY_PATH`` overrides.
+
+    Returns:
+        Theme name, generation, and the resolved palette's path, content, and
+        metadata. Editing a user or stock fallback changes the token even when
+        ``theme/colors.toml`` is absent.
+    """
+    state = _state_dir(env) if state_dir is None else state_dir
+    resolved = colors_path if colors_path is not None else _resolved_colors_path(state, env)
+    source = "missing" if resolved is None else f"{resolved}:{_fingerprint(resolved)}"
+    pieces = [
+        _fingerprint(state / "theme.name"),
+        _fingerprint(state / "theme.generation"),
+        _fingerprint(state / "theme" / "colors.toml"),
+        source,
+    ]
     return "|".join(pieces)
 
 
@@ -103,4 +137,6 @@ def load_omarchy(
         palette = palette_from_omarchy(colors, slug)
     except PaletteError as error:
         raise PaletteError(f"invalid Omarchy theme {slug}: {error}") from error
-    return OmarchyTheme(palette, slug, colors_path, generation_token(state))
+    return OmarchyTheme(
+        palette, slug, colors_path, generation_token(state, colors_path=colors_path, env=env)
+    )

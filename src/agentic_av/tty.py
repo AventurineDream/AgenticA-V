@@ -2,17 +2,21 @@
 
 The terminal is returned to its prior mode even when rendering or key handling
 raises. This module is the sole terminal I/O boundary; paint remains pure.
+Incomplete CSI sequences are held across reads; a lone Escape waits out a
+short silence so a split arrow is not Escape plus a letter.
 """
 
 from __future__ import annotations
 
 import fcntl
+import os
 import select
 import struct
 import sys
 import termios
 import time
 import tty
+from collections.abc import Callable
 
 from agentic_av.omarchy import load_omarchy
 from agentic_av.paint import FrameRequest, compose, render_ansi
@@ -20,55 +24,155 @@ from agentic_av.palette import PaletteError
 from agentic_av.session import Session
 
 _ESC = "\x1b"
+# 50 ms joins a CSI split across read(fd, 64) without making a lone Escape
+# wait through the 250 ms idle poll. ncurses' 1 s ESCDELAY would feel stuck.
+ESCAPE_HOLD_S = 0.05
+_CSI = {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end"}
+
+
+def _take_one(text: str) -> tuple[str | None, int, bool]:
+    """Take one action from the front of `text`.
+
+    Returns:
+        Key or None, characters consumed, and whether the remainder is an
+        incomplete escape prefix that must be held.
+    """
+    char = text[0]
+    if char == _ESC:
+        if len(text) == 1 or (text[1] == "[" and not _csi_final(text)):
+            return None, 0, True
+        if text[1] != "[":
+            return "esc", 1, False
+        end = _csi_end(text)
+        return _CSI.get(text[end], "unknown"), end + 1, False
+    if char == "\x03":
+        return "quit", 1, False
+    if char in ("\r", "\n"):
+        return "enter", 1, False
+    if char in ("\x7f", "\x08"):
+        return "backspace", 1, False
+    if char.isprintable():
+        return char, 1, False
+    return None, 1, False
+
+
+def _csi_end(text: str) -> int:
+    """Return the index of the CSI final byte, or the length if it is absent."""
+    end = 2
+    while end < len(text) and not text[end].isalpha() and text[end] != "~":
+        end += 1
+    return end
+
+
+def _csi_final(text: str) -> bool:
+    """Report whether `text` contains a finished CSI sequence."""
+    end = _csi_end(text)
+    return end < len(text) and (text[end].isalpha() or text[end] == "~")
+
+
+class KeyDecoder:
+    """Join escape sequences split across raw ``read(fd, 64)`` calls.
+
+    ``ESC [`` then ``C`` becomes ``right``. A lone Escape is emitted only after
+    ``hold_s`` seconds of silence, so the gallery still closes.
+    """
+
+    def __init__(
+        self, *, clock: Callable[[], float] | None = None, hold_s: float = ESCAPE_HOLD_S
+    ) -> None:
+        """Hold incomplete escapes until more bytes arrive or silence elapses.
+
+        Args:
+            clock: Monotonic time source in seconds. Tests inject this.
+            hold_s: Silence, in seconds, before a lone Escape is emitted.
+        """
+        self._clock = clock or time.monotonic
+        self._hold_s = hold_s
+        self._pending = ""
+        self._held_since: float | None = None
+
+    def feed(self, data: bytes, *, now: float | None = None) -> list[str]:
+        """Append one read and return actions that are now complete.
+
+        Args:
+            data: Next raw chunk. Empty input does not restart the silence timer.
+            now: Optional monotonic time in seconds. Overrides `clock`.
+
+        Returns:
+            Named actions. An incomplete escape prefix is retained.
+        """
+        moment = self._moment(now)
+        if data:
+            self._pending += data.decode("utf-8", errors="ignore")
+            # Silence is measured from the latest byte, not the first ESC.
+            self._held_since = moment
+        return self._take_complete()
+
+    def flush(self, *, now: float | None = None) -> list[str]:
+        """Emit a held Escape once `hold_s` has elapsed with no continuation.
+
+        Args:
+            now: Optional monotonic time in seconds. Overrides `clock`.
+
+        Returns:
+            ``['esc']`` after the hold, else an empty list. An unfinished CSI
+            is dropped rather than replayed as digits, which would change themes.
+        """
+        moment = self._moment(now)
+        if not self._pending or self._held_since is None:
+            return []
+        if moment - self._held_since < self._hold_s or not _take_one(self._pending)[2]:
+            return []
+        self._pending = ""
+        self._held_since = None
+        return ["esc"]
+
+    def hold_remaining(self, *, now: float | None = None) -> float | None:
+        """Return seconds until a held Escape should be flushed.
+
+        Args:
+            now: Optional monotonic time in seconds. Overrides `clock`.
+
+        Returns:
+            Remaining silence in seconds, or None when no escape prefix is held.
+        """
+        if self._held_since is None or not self._pending.startswith(_ESC):
+            return None
+        return max(0.0, self._hold_s - (self._moment(now) - self._held_since))
+
+    def _moment(self, now: float | None) -> float:
+        return self._clock() if now is None else now
+
+    def _take_complete(self) -> list[str]:
+        keys: list[str] = []
+        while self._pending:
+            key, consumed, incomplete = _take_one(self._pending)
+            if incomplete:
+                break
+            if key is not None:
+                keys.append(key)
+            self._pending = self._pending[consumed:]
+        if not self._pending:
+            self._held_since = None
+        return keys
 
 
 def parse_keys(data: bytes) -> list[str]:
-    """Parse available raw terminal bytes into named actions.
+    """Parse a finished chunk into named actions.
+
+    A trailing Escape is resolved immediately. Interactive reads must use
+    `KeyDecoder` so a sequence split across ``read(fd, 64)`` is not treated
+    as Escape plus the next chunk.
 
     Args:
-        data: Bytes read from a raw terminal, potentially containing multiple keys.
+        data: Bytes from one complete read, possibly containing several keys.
 
     Returns:
         Key names for letters, controls, and common CSI navigation keys.
     """
-    text = data.decode("utf-8", errors="ignore")
-    keys: list[str] = []
-    index = 0
-    while index < len(text):
-        char = text[index]
-        if char == _ESC:
-            if index + 1 == len(text):
-                keys.append("esc")
-                break
-            if text[index + 1] != "[":
-                keys.append("esc")
-                index += 1
-                continue
-            end = index + 2
-            while end < len(text) and not text[end].isalpha() and text[end] != "~":
-                end += 1
-            if end >= len(text):
-                keys.append("esc")
-                break
-            sequence = text[index + 2 : end + 1]
-            keys.append(
-                {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end"}.get(
-                    sequence[-1], "unknown"
-                )
-            )
-            index = end + 1
-            continue
-        if char == "\x03":
-            keys.append("quit")
-        elif char in ("\r", "\n"):
-            keys.append("enter")
-        elif char in ("\x7f", "\x08"):
-            keys.append("backspace")
-        elif char == "\x1b":
-            keys.append("esc")
-        elif char.isprintable():
-            keys.append(char)
-        index += 1
+    decoder = KeyDecoder()
+    keys = decoder.feed(data, now=0.0)
+    keys.extend(decoder.flush(now=ESCAPE_HOLD_S))
     return keys
 
 
@@ -249,6 +353,7 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
     fd = source.fileno()
     original = termios.tcgetattr(fd)
     last_sync = 0.0
+    decoder = KeyDecoder()
     try:
         tty.setraw(fd)
         target.write("\x1b[?1049h\x1b[?25l")
@@ -271,13 +376,17 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
                     session.omarchy_note = "unavailable"
                 last_sync = now
             timeout = 1 / 12 if session.playhead.playing or session.mode != "play" else 0.25
+            # Wake for a lone Escape before the frame poll, or a 250 ms idle
+            # select would both delay Esc and flush a split CSI too early.
+            remaining = decoder.hold_remaining()
+            if remaining is not None:
+                timeout = min(timeout, remaining)
             readable, _, _ = select.select([fd], [], [], timeout)
-            if readable:
-                data = __import__("os").read(fd, 64)
-                for key in parse_keys(data):
-                    if not _handle(session, key):
-                        active = False
-                        break
+            keys = decoder.feed(os.read(fd, 64)) if readable else decoder.flush()
+            for key in keys:
+                if not _handle(session, key):
+                    active = False
+                    break
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, original)
         target.write("\x1b[0m\x1b[?25h\x1b[?1049l")

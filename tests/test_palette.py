@@ -13,6 +13,14 @@ def test_color_helpers_normalize_and_quantize() -> None:
     assert to_xterm256("#ffffff") == 231
 
 
+def test_xterm256_uses_real_cube_and_gray_levels() -> None:
+    """Cube and gray indexes follow xterm's levels, not a uniform 0..255 scale."""
+    assert to_xterm256("#5f0000") == 52
+    assert to_xterm256("#eeeeee") == 255
+    assert to_xterm256("#ffffff") == 231
+    assert to_xterm256("#000000") == 16
+
+
 def test_builtin_palettes_have_distinct_roles_and_readable_chrome() -> None:
     palettes = builtin_palettes()
     assert len(palettes) == 9

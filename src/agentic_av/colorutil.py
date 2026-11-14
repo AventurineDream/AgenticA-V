@@ -1,7 +1,8 @@
 """Hex color math for palettes and the stage painter.
 
-paint and palette call this. No I/O. Every color that leaves this module is
-lowercase ``#rrggbb``. Three-digit hex is rejected: Omarchy themes use six.
+paint and palette call this. No I/O. Hex colors that leave this module are
+lowercase ``#rrggbb``; ``to_xterm256`` is the index exception. Three-digit hex
+is rejected: Omarchy themes use six.
 """
 
 from __future__ import annotations
@@ -105,21 +106,50 @@ def contrast_ratio(a: str, b: str) -> float:
 def to_xterm256(value: str) -> int:
     """Quantize ``#rrggbb`` to an xterm-256 color index.
 
-    The 6x6x6 cube plus the grayscale ramp. Used only when the terminal is
-    not truecolor. Raises ValueError on a bad token.
+    Cube channels snap to ``0, 95, 135, 175, 215, 255``, not a uniform
+    ``0..255 / 5`` scale (that maps ``#5f0000`` to 88 instead of 52). The gray
+    ramp is ``8, 18, ..., 238``. Cube black (16) and white (231) win when they
+    are nearer than that ramp. Raises ValueError on a bad token.
+
+    Args:
+        value: A ``#rrggbb`` color.
+
+    Returns:
+        An index from 16 to 255. ANSI colors 0-15 are not used.
+
+    Raises:
+        ValueError: `value` is not six-digit hex.
     """
     parsed = parse_hex(value)
     if parsed is None:
         raise ValueError(f"to_xterm256() needs #rrggbb, got {value!r}")
-    r, g, b = parsed
-    if abs(r - g) < 8 and abs(g - b) < 8:
-        if r < 8:
-            return 16
-        if r > 248:
-            return 231
-        return 232 + round((r - 8) / 247 * 23)
+    red, green, blue = parsed
+    cube_index = tuple(_nearest_level(channel, _CUBE_LEVELS) for channel in (red, green, blue))
+    cube_rgb = tuple(_CUBE_LEVELS[index] for index in cube_index)
+    cube_color = 16 + 36 * cube_index[0] + 6 * cube_index[1] + cube_index[2]
+    cube_dist = _sq_dist((red, green, blue), cube_rgb)
+    gray_slot = min(
+        range(len(_GRAY_LEVELS)),
+        key=lambda index: _sq_dist((red, green, blue), (_GRAY_LEVELS[index],) * 3),
+    )
+    gray_level = _GRAY_LEVELS[gray_slot]
+    gray_dist = _sq_dist((red, green, blue), (gray_level, gray_level, gray_level))
+    # Strictly nearer gray keeps an exact cube color, including black and white.
+    if gray_dist < cube_dist:
+        return 232 + gray_slot
+    return cube_color
 
-    def cube(channel: int) -> int:
-        return round(channel / 255 * 5)
 
-    return 16 + 36 * cube(r) + 6 * cube(g) + cube(b)
+# xterm's cube is 0, then 95, then +40. Dividing by 51 rounds 95 onto 135.
+_CUBE_LEVELS = (0, 95, 135, 175, 215, 255)
+# Indexes 232-255. Not 23 even steps across 8..255; 238 is the last ramp value.
+_GRAY_LEVELS = tuple(8 + 10 * step for step in range(24))
+
+
+def _nearest_level(channel: int, levels: tuple[int, ...]) -> int:
+    """Return the index of the closest level. Ties prefer the darker level."""
+    return min(range(len(levels)), key=lambda index: (abs(channel - levels[index]), index))
+
+
+def _sq_dist(left: tuple[int, int, int], right: tuple[int, int, int]) -> int:
+    return (left[0] - right[0]) ** 2 + (left[1] - right[1]) ** 2 + (left[2] - right[2]) ** 2
