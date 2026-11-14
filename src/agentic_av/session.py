@@ -2,7 +2,9 @@
 
 Gallery selection is a built-in index, or -1 when the active palette is not
 in that list. Known seeks apply a signed delta so short shows keep direction;
-the half-show adjustment is only for unseeked loop wraps.
+the half-show adjustment is only for unseeked loop wraps. Still motion holds
+field time and the selected program; transport may cross a chapter without
+changing the picture.
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ class Session:
 
     Field time is seconds of visual sampling, not wall time. Reduced motion
     continues from the current picture; it does not rescale the show position.
+    Still motion freezes field time and the program that was on screen.
     ``gallery_index`` is aligned to the active built-in on init, or -1 for a
     live palette that is not in the built-in list.
     """
@@ -43,11 +46,18 @@ class Session:
     field_time_s: float = 0.0
     # Playhead seconds when field_time_s was last committed.
     motion_anchor_s: float = 0.0
+    # Show seconds of the program painted while still. Field time is the
+    # sampling clock and can diverge under reduced motion, so it must not
+    # choose the program.
+    program_hold_s: float = 0.0
     omarchy: OmarchyTheme | None = None
     omarchy_note: str = ""
 
     def __post_init__(self) -> None:
         self.align_gallery_index()
+        # A session can start already still. Hold the program at the initial
+        # playhead before transport advances, or the first frame follows it.
+        self.program_hold_s = self.playhead.position
 
     def align_gallery_index(self) -> None:
         """Point gallery selection at the active built-in, or clear it.
@@ -62,12 +72,26 @@ class Session:
                 self.gallery_index = index
                 return
 
+    def visual_program(self) -> tuple[int, str]:
+        """Return the program painted on the stage.
+
+        Still motion keeps the program selected when the picture was held.
+        Transport crossing a chapter does not change it. A seek, a chapter
+        skip, or leaving still selects again from the playhead.
+
+        Returns:
+            Zero-based program index and its id.
+        """
+        position = self.program_hold_s if self.motion == "still" else self.playhead.position
+        return self.show.program_at(position)
+
     def advance_visual_time(self) -> float:
         """Commit unseeked playhead movement into the field clock and return it.
 
         Full and reduced motion update ``field_time_s`` and ``motion_anchor_s``.
         Still motion returns the held time and leaves the anchor alone, so a
         later mode change resumes from this frame instead of skipping ahead.
+        The painted program is held separately; this clock does not select it.
         Known seeks apply a signed delta and reset the anchor first, so the
         half-show adjustment below only sees unseeked loop wraps.
 
@@ -93,6 +117,9 @@ class Session:
     def commit_motion(self, motion: str) -> None:
         """Switch motion mode without jumping the current picture.
 
+        Entering still freezes the program on screen. Leaving still resumes
+        program selection from the playhead without skipping field time.
+
         Args:
             motion: ``full``, ``reduced``, or ``still``.
         """
@@ -100,16 +127,22 @@ class Session:
             self.motion_anchor_s = self.playhead.position
         else:
             self.advance_visual_time()
+        if motion == "still":
+            self.program_hold_s = self.playhead.position
         self.motion = motion
 
     def hold_visual_time(self, time_s: float) -> None:
         """Hold the picture at `time_s` seconds while scrubbing a still.
+
+        The held program follows the playhead after the seek, not the
+        sampling clock. Transport movement alone does not call this.
 
         Args:
             time_s: Field time in seconds, usually the playhead after a seek.
         """
         self.field_time_s = time_s
         self.motion_anchor_s = self.playhead.position
+        self.program_hold_s = self.playhead.position
 
     def seek_field(self, delta_s: float) -> None:
         """Seek by ``delta_s`` seconds and move the picture in that direction.
@@ -117,7 +150,8 @@ class Session:
         Ordinary playback is committed before the playhead jumps. The known
         delta is then scaled into field time and the anchor is reset to the
         wrapped position, so the loop heuristic never classifies this seek.
-        Still motion holds the picture at the new playhead position instead.
+        Still motion holds the picture and its program at the new playhead
+        position instead.
 
         Args:
             delta_s: Signed show seconds. Positive is forward, including a wrap.
@@ -132,6 +166,9 @@ class Session:
 
     def seek_chapter(self, step: int) -> None:
         """Jump to another program and follow that key's direction.
+
+        Still motion holds the picture and its program at the new program
+        start. Transport movement alone does not.
 
         Args:
             step: ``-1`` for the previous program, ``+1`` for the next. The

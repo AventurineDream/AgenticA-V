@@ -14,12 +14,12 @@ Color stages sample two field rows per terminal cell and paint them as a half-bl
 
 ## Transport and motion
 
-The transport is a monotonic visual clock in seconds. Pause, seek, and rate changes preserve the anchor; the show loops at its declared duration. `full` tracks playhead movement. `reduced` keeps the current picture and then advances field time at 0.22×, so selecting it does not rewind the frame; shimmer is omitted. `still` freezes field time while transport remains seekable. Arrow seeks and chapter skips apply their signed delta, including across a wrap, so a short show does not reverse them; the half-show adjustment is only for unseeked loop wraps. This initial player does not decode or play audio and does not claim score-synchronized behavior. Audio and score mappings remain separate implementation decisions.
+The transport is a monotonic visual clock in seconds. Pause, seek, and rate changes preserve the anchor; the show loops at its declared duration. `full` tracks playhead movement. `reduced` keeps the current picture and then advances field time at 0.22×, so selecting it does not rewind the frame; shimmer is omitted. `still` freezes field time and the selected visual program while transport remains seekable. A seek, a chapter skip, or leaving still updates that program; crossing a chapter does not. Arrow seeks and chapter skips apply their signed delta, including across a wrap, so a short show does not reverse them; the half-show adjustment is only for unseeked loop wraps. This initial player does not decode or play audio and does not claim score-synchronized behavior. Audio and score mappings remain separate implementation decisions.
 
 ## Files
 
 - `palette.py` and `omarchy.py`: role definitions and read-only theme resolution.
 - `field.py`: deterministic abstract luminance/hue samples.
 - `paint.py`: fixed-grid composition, half-block stage, theme-atlas cards, and ANSI serialization.
-- `tty.py`: alternate-screen terminal runner and key handling. Incomplete escape sequences are buffered across reads; a lone Escape waits out a short silence.
+- `tty.py`: alternate-screen terminal runner and key handling. Incomplete escape sequences are buffered across reads; a lone Escape waits out a short silence. SIGTERM leaves through the same cleanup as a normal exit, then the previous handler is restored.
 - `show.py` and `transport.py`: minimal TOML show and clock.

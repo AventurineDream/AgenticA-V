@@ -17,6 +17,9 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- Still motion keeps the selected visual program when transport crosses a chapter. A seek, chapter skip, or leaving still updates it.
+- Canceling the theme gallery with Escape no longer changes the next theme cycle.
+- SIGTERM restores canonical mode, echo, the cursor, and the primary screen.
 - Reduced and still motion changes no longer rewind or skip the picture. Reduced motion continues from the current frame at 0.22×.
 - Theme cycling and the gallery follow the active built-in. A live Omarchy palette is not treated as the last built-in, and Enter does not apply one until a built-in is chosen.
 - Quit and Ctrl-C leave help and the theme gallery. Esc still returns to the stage.

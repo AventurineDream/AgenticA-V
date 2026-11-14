@@ -33,8 +33,8 @@ uv run aav play
 - `j` / `k`: previous/next visual program.
 - `t`: cycle palette; `Shift-T`: open the visual theme gallery; `1`–`9`: select a built-in palette.
 - `o`: read and apply the current Omarchy palette now.
-- `m`: cycle full, reduced, and still motion. Reduced continues from the current picture at a slower rate. `[` / `]`: change playback rate.
-- `?`: help; `Esc`: return to the stage; `q`: quit.
+- `m`: cycle full, reduced, and still motion. Reduced continues from the current picture at a slower rate. Still holds that picture and its program until a seek, chapter skip, or another motion mode. `[` / `]`: change playback rate.
+- `?`: help; `Esc`: return to the stage without applying a gallery browse; `q`: quit.
 
 ### Theme and preview examples
 
