@@ -1,10 +1,10 @@
 # Terminally Agentic A/V — Agent Guide
 
-<!-- Owner: Aven. Maintained by: Malachite. Last verified: 2026-11-13. -->
+<!-- Owner: Aven. Maintained by: Malachite. Last verified: 2026-11-14. -->
 
 ## Purpose and sources of truth
 
-This repository contains reusable terminal-friendly visual player tooling. Project direction and scope are in `docs/plans/PROJECT-ROADMAP.md`; implementation contracts are in `docs/architecture.md`. The project's vault note is `10_Projects/Active/Terminally Agentic AV.md`.
+This repository contains the terminal album library and reusable visual player tooling. Project direction and scope are in `docs/plans/PROJECT-ROADMAP.md`; implementation contracts are in `docs/architecture.md`. The project's vault note is `10_Projects/Active/Terminally Agentic AV.md`.
 
 ## Setup
 
@@ -33,19 +33,24 @@ uv sync --group dev
 
 ## Conventions
 
-- The terminal player contains abstract reusable visual programs only. Band identities, album titles, audio, artwork, and production media stay outside this repository.
+- The four completed A-01 albums under `src/agentic_av/albums/` are authorized for public bundling. All rights remain reserved. Do not add other albums, in-progress work, archives, or private material.
+- Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
+- Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
+- `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.
 - `colors.toml` is read-only. Omarchy theme changes are discovered from its applied state; the player never edits desktop configuration.
 - Time values are seconds, terminal dimensions are character cells, and palettes are immutable role sets.
 - Motion modes are `full`, `reduced`, and `still`; always preserve the no-color renderer.
+- The browser page is the full synchronized album. Autoplay is blocked, so the listener clicks Play.
 
 ## Boundaries
 
-Do not add private band content or choose a code/media license on Aven's behalf. Do not edit Omarchy configuration from this repository. Avoid compatibility aliases that hide a changed CLI contract.
+Do not add private band content or choose a code/media license on Aven's behalf. Do not edit Omarchy configuration from this repository. Do not overwrite the bundled album archives. Avoid compatibility aliases that hide a changed CLI contract.
 
 ## Repository map
 
-- `src/agentic_av/` — CLI, palettes, field programs, TTY runtime, and renderer.
-- `tests/` — isolated palette, layout, CLI, transport, and input tests.
+- `src/agentic_av/` — CLI, album catalog, palettes, field programs, TTY runtime, and renderer.
+- `src/agentic_av/albums/` — authorized public album HTML archives. Do not overwrite them.
+- `tests/` — isolated palette, layout, CLI, transport, library, and input tests.
 - `docs/` — architecture and decision records.
 - `docs/plans/` — project roadmap.
 

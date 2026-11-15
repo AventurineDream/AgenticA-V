@@ -14,7 +14,7 @@ Build a reusable creative recipe and player tools for making audio-visual band w
 4. Build the CLI player around those interpretations.
 5. Once the process is refined, open-source the reusable recipe and tell the project story.
 
-The open-source scope is the recipe and reusable tooling. Individual band details and albums are outside that release.
+The open-source scope is the recipe and reusable tooling. Four completed A-01 albums are now bundled in the player; all rights remain reserved. Other band details and albums stay outside that release.
 
 ## CLI invitation and contribution policy
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "agentic-av"
 version = "0.1.0"
-description = "Terminal player for Terminally Agentic A/V. Themes, including live Omarchy sync. No album media."
+description = "Terminal album library and abstract visual player. All rights reserved."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "All rights reserved" }
@@ -25,7 +25,7 @@ aav = "agentic_av.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentic_av = ["demo/*.toml"]
+agentic_av = ["demo/*.toml", "albums/*.html.gz"]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.8", "pyte>=0.8.2"]

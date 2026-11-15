@@ -1,7 +1,8 @@
 """Small TOML show description used by the CLI and the bundled abstract demo.
 
-The format contains only reusable metadata and program IDs; media assets stay
-outside this repository. TOML decoding is strict to catch typos early.
+The show format contains only reusable metadata and program IDs. Authorized
+album HTML lives under ``agentic_av/albums`` and is not referenced by shows.
+TOML decoding is strict to catch typos early.
 """
 
 from __future__ import annotations
