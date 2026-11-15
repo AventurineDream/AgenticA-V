@@ -1,7 +1,9 @@
-"""Command-line interface for themes, still previews, and live terminal play.
+"""Command-line interface for the album library, themes, and visual play.
 
-`themes` and `preview` work without a TTY. `play` delegates terminal control
-to tty.py and never writes Omarchy configuration or media files.
+`tracks` prints the public catalog without a TTY. Bare `play` opens the
+album library. `demo`, and `play` with `--show` or `--scene`, keep the
+abstract visual player. The library never rewrites bundled album archives
+or Omarchy configuration.
 """
 
 from __future__ import annotations
@@ -66,11 +68,22 @@ def _make_parser() -> argparse.ArgumentParser:
     """Build the CLI parser with shared options and focused subcommands."""
     parser = argparse.ArgumentParser(
         prog="aav",
-        description="Terminally Agentic A/V — a terminal player for abstract visual programs.",
-        epilog="Keys: space play/pause · arrows seek · t themes · m motion · ? help · q quit",
+        description=(
+            "Terminally Agentic A/V. Open a bundled album in the browser, "
+            "or play abstract visual programs."
+        ),
+        epilog=(
+            "Library: j/k select, enter opens the browser (click Play there), "
+            "? help, q quit. Visual: space play/pause, arrows seek, t themes, "
+            "m motion, ? help, q quit."
+        ),
     )
     parser.add_argument(
-        "command", nargs="?", choices=("play", "themes", "preview", "gallery"), default="play"
+        "command",
+        nargs="?",
+        choices=("play", "demo", "tracks", "themes", "preview", "gallery"),
+        default="play",
+        help="play opens the album library unless --show or --scene is set",
     )
     parser.add_argument(
         "--theme",
@@ -78,10 +91,14 @@ def _make_parser() -> argparse.ArgumentParser:
         help="theme name, or omarchy for live sync",
     )
     parser.add_argument(
-        "--show", type=Path, help="TOML show file (defaults to the media-free demo)"
+        "--show",
+        type=Path,
+        help="TOML show for the visual player; with play, skips the album library",
     )
     parser.add_argument(
-        "--scene", choices=sorted(PROGRAMS), help="force one abstract visual program"
+        "--scene",
+        choices=sorted(PROGRAMS),
+        help="force one abstract visual program; with play, skips the album library",
     )
     parser.add_argument("--at", type=float, default=0.0, help="preview position in seconds")
     parser.add_argument("--width", type=int, default=80, help="preview columns")
@@ -136,7 +153,7 @@ def _session(args: argparse.Namespace, show) -> Session:
     if args.no_color:
         mode = "none"
     playhead = Playhead(show.duration, position_s=args.at % show.duration, playing=False)
-    if args.command == "play":
+    if args.command in {"play", "demo"}:
         playhead.toggle()
     if args.scene:
         show = type(show)(show.title, show.detail, show.duration, show.tempo, (args.scene,))
@@ -199,6 +216,43 @@ def _preview(session: Session, args: argparse.Namespace, *, gallery: bool = Fals
     return 0
 
 
+def _uses_album_library(args: argparse.Namespace) -> bool:
+    """Return whether this invocation opens the album library.
+
+    Bare `play` is the library. `--show` and `--scene` stay on the visual
+    player so an existing show file keeps its contract.
+    """
+    return args.command == "play" and args.show is None and args.scene is None
+
+
+def _open_library(args: argparse.Namespace) -> int:
+    """Resolve the palette and run the interactive album library.
+
+    Args:
+        args: Parsed CLI arguments. `--theme` and `--no-color` apply.
+
+    Returns:
+        Zero after the library restores the terminal.
+
+    Raises:
+        PaletteError: The requested theme name is unknown.
+        RuntimeError: Standard input or output is not a TTY.
+    """
+    palette, _theme_id, _omarchy, _note = _resolve_theme(args.theme)
+    mode = "none" if args.no_color else color_mode()
+    from agentic_av.library import run_library
+
+    return run_library(palette, mode, theme_label=palette.name)
+
+
+def _tracks() -> int:
+    """Print the sorted public catalog without a TTY or a browser launch."""
+    from agentic_av.catalog import format_catalog
+
+    print(format_catalog())
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch `aav` commands; return a process exit code.
 
@@ -211,6 +265,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = _make_parser()
     args = parser.parse_args(argv)
     try:
+        if args.command == "tracks":
+            return _tracks()
+        if _uses_album_library(args):
+            return _open_library(args)
         show = _load_requested_show(args.show)
         session = _session(args, show)
         if args.command == "themes":

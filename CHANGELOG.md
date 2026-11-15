@@ -6,10 +6,15 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Add an album library. Bare `aav play` selects a movement from the four authorized public albums and opens that movement in the default browser. Click Play there; autoplay is blocked. The browser page is the full synchronized album.
+- Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
+- Bundle the four completed A-01 album players as gzip HTML. All rights remain reserved.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
 
 ### Changed
+
+- The abstract visual player is `aav demo`. `aav play --show` and `aav play --scene` keep the previous visual behavior. `preview`, `themes`, and `gallery` are unchanged.
 
 - Color stages sample both halves of each cell, and the four scenes use distinct motifs instead of similar bands.
 - The in-player theme gallery shows labeled cards with role chips and miniature field art. `aav gallery` prints one stage frame per built-in theme.
