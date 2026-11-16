@@ -74,8 +74,10 @@ from agentic_av.tty import (
     _terminal_frame,
 )
 
-# Bump when the decoded cache layout changes. The filename already hashes
-# the gzip source bytes, so this only separates old cache generations.
+# Bump whenever extraction output changes: the cache layout or anything stored
+# in the score sidecar (scene mapping, labels, offsets, event normalization).
+# Warm plays read only the sidecar, so without a bump a parser fix never
+# reaches existing caches. The filename already hashes the archive bytes.
 EXTRACT_REVISION = "1"
 
 _MPVPOLL_S = 1.0 / 15.0
@@ -328,12 +330,12 @@ def extract_album(
     """Decode one bundled album's audio and visuals data into the cache.
 
     The first call decodes the MP3s and writes a JSON sidecar with each
-    movement's scene, offset, and normalized events. Later calls read only
-    that sidecar: the archives are 70-112 MB of HTML, and re-parsing them
-    froze the library for up to ~2 s per Enter. Cache names hash the gzip
-    source bytes, so a changed archive misses the cache. Movements that
-    share one payload (Coupon) share one file. `source` lets tests pass a
-    tiny gzip instead of the bundled archives.
+    movement's scene, offset, and normalized events. Later calls hash the
+    archive bytes to find the sidecar, then skip decompression and parsing:
+    the archives are 70-112 MB of HTML, and re-parsing them froze the
+    library for up to ~2 s per Enter. A changed archive misses the cache.
+    Movements that share one payload (Coupon) share one file. `source` lets
+    tests pass a tiny gzip instead of the bundled archives.
 
     Args:
         asset: Album asset basename from the public catalog.
@@ -669,14 +671,14 @@ def _status_line(
     """Fit the status text so state, clock, and a way out stay visible.
 
     Bundled titles make the full line ~110 columns, so at 80 the middle
-    (title and scene) is truncated first. A note replaces the key hint
-    instead of pushing the clock off-screen.
+    (title and scene) is truncated first. A note replaces the key hint and
+    gives way to plain `q back` before it can push the clock off-screen.
     """
     left = f" {state}  {clock}"
     middle = f"  {title} · {scene}"
     if motion != "full":
         middle += f" · motion {motion}"
-    rights = (f"{note}  q back",) if note else _KEY_HINTS
+    rights = (f"{note}  q back", "q back") if note else _KEY_HINTS
     right = rights[-1]
     for candidate in rights:
         if len(left) + len(candidate) + 4 <= width:
@@ -878,8 +880,12 @@ def play_native(
                     player.set_pause(not playing)
                     note = ""
                 elif key in ("m", "M"):
-                    anchor_scene, anchor_clock = scene_s, elapsed
                     motion = moving if motion == "still" else "still"
+                    # Back to full motion rejoins the audio clock so note
+                    # pulses line up again; reduced continues from the held
+                    # picture, as the visual player's reduced mode does.
+                    anchor_clock = elapsed
+                    anchor_scene = elapsed if motion == "full" else scene_s
                     note = ""
                 elif key in ("left", "right"):
                     delta = _SEEK_STEP_S if key == "right" else -_SEEK_STEP_S

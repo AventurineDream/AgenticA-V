@@ -208,6 +208,14 @@ def test_status_line_keeps_clock_and_way_out_at_80_columns() -> None:
     assert "q back" in _status_line(12, "PLAYING", "0:12 / 1:56", title, "x", "full", "")
 
 
+def test_a_long_note_gives_way_before_the_clock() -> None:
+    note = "ffplay cannot seek; choose another movement"
+    line = _status_line(60, "PAUSED", "0:12 / 1:56", "Rain Has Teeth", "rain", "full", note)
+    assert len(line) <= 60
+    assert line.startswith(" PAUSED  0:12 / 1:56")
+    assert line.rstrip().endswith("q back")
+
+
 # --- playback loop -------------------------------------------------------------
 
 
@@ -254,18 +262,19 @@ class _Pipe:
 
 
 class _Sink:
-    """Output that keeps frames and can queue a key after the Nth frame."""
+    """Output that keeps frames and queues scripted keys after given frames."""
 
-    def __init__(self, write_fd: int, quit_after: int | None) -> None:
+    def __init__(self, write_fd: int, script: dict[int, bytes]) -> None:
         self.frames: list[str] = []
         self.write_fd = write_fd
-        self.quit_after = quit_after
+        self.script = script
 
     def write(self, text: str) -> int:
         self.frames.append(text)
         # The first write is the loading line, not a playback frame.
-        if self.quit_after is not None and len(self.frames) - 1 == self.quit_after:
-            os.write(self.write_fd, b"q")
+        keys = self.script.get(len(self.frames) - 1)
+        if keys:
+            os.write(self.write_fd, keys)
         return len(text)
 
     def flush(self) -> None:
@@ -281,6 +290,7 @@ def _play(
     *,
     after_switch: bytes = b"",
     quit_after_frames: int | None = None,
+    keys_after_frames: dict[int, bytes] | None = None,
     motion: str = "full",
     late_s: float = 0.0,
     tick_s: float = 0.0,
@@ -288,15 +298,19 @@ def _play(
     """Run `play_native` on a pipe preloaded with `keys`.
 
     `after_switch` is written when the second player starts: a quit in the
-    same read as a track key returns before the switch. `late_s` starts only
-    the first player that far into its movement. Returns the players and
-    the frames written after the loading line.
+    same read as a track key returns before the switch. `keys_after_frames`
+    maps a playback frame number (from 1) to keys queued once it is drawn.
+    `late_s` starts only the first player that far into its movement.
+    Returns the players and the frames written after the loading line.
     """
     entries = [CatalogEntry(album, track) for track in album.tracks]
     players: list[FakePlayer] = []
     read_fd, write_fd = os.pipe()
     os.write(write_fd, keys)
-    sink = _Sink(write_fd, quit_after_frames)
+    script = dict(keys_after_frames or {})
+    if quit_after_frames is not None:
+        script[quit_after_frames] = script.get(quit_after_frames, b"") + b"q"
+    sink = _Sink(write_fd, script)
     timed_out = threading.Event()
 
     def rescue() -> None:
@@ -398,6 +412,25 @@ def test_motion_modes_hold_or_move_the_picture(
         tick_s=7.0,
     )
     assert (_scene_part(frames[1]) == _scene_part(frames[2])) is held
+
+
+def test_leaving_still_rejoins_the_audio_clock(tmp_path: Path) -> None:
+    """Hold for two frames, release: frame 4 matches plain full motion's."""
+    _, plain = _play(
+        tmp_path, _forest_html(), 1, FOREST_ALBUM, b"", quit_after_frames=4, tick_s=7.0
+    )
+    _, toggled = _play(
+        tmp_path,
+        _forest_html(),
+        1,
+        FOREST_ALBUM,
+        b"",
+        keys_after_frames={1: b"m", 3: b"m", 4: b"q"},
+        tick_s=7.0,
+    )
+    assert _scene_part(toggled[1]) == _scene_part(toggled[2])
+    assert _scene_part(toggled[3]) == _scene_part(plain[3])
+    assert _scene_part(toggled[3]) != _scene_part(toggled[2])
 
 
 # --- players -----------------------------------------------------------------

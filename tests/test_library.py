@@ -520,12 +520,10 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
 
     def fake_opener(url: str) -> bool:
         calls.append("browser")
-        os.write(master, b"\r")
         return True
 
     monkeypatch.setattr("agentic_av.native.play_native", fake_native)
     output = bytearray()
-    done = threading.Event()
 
     first = catalog_entries()[0].track.title
     # A fresh PTY is 0x0; give it a real size so the library draws its list.
@@ -533,15 +531,18 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
 
     def drain() -> None:
         # The PTY buffer is small; frames must be read or the library blocks.
-        # Raw mode flushes pending input, so the first Enter waits for a frame.
-        started = False
-        while not done.is_set():
+        # Entering raw mode flushes pending input (TCSAFLUSH), so each Enter
+        # waits for a frame drawn after raw mode is back: the list, then the
+        # browser note. Reading until EIO keeps the last frame.
+        cues = [first.encode("utf-8"), b"click Play in the browser"]
+        while True:
             try:
                 output.extend(os.read(master, 65536))
             except OSError:
                 return
-            if not started and first.encode("utf-8") in output:
-                started = True
+            if cues and cues[0] in output:
+                cues.pop(0)
+                del output[:]  # the next cue must come from a later frame
                 os.write(master, b"\r")
 
     reader = threading.Thread(target=drain, daemon=True)
@@ -564,8 +565,8 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
             )
     finally:
         watchdog.cancel()
-        done.set()
         os.close(slave)
+        reader.join(timeout=2)
         os.close(master)
     assert result == 0
     assert calls == [f"native:{first}:reduced", "browser", f"native:{first}:reduced"]
