@@ -484,24 +484,24 @@ def _blank(width: int, palette: Palette) -> list[Cell]:
     return _text_row("", width, palette.foreground, palette.background)
 
 
-def _chrome(height: int, *, has_note: bool) -> tuple[int, int, int, int]:
-    """Reserve header, context, note, and hint rows without consuming the selection.
+def _chrome(height: int, *, has_note: bool) -> tuple[int, int, int]:
+    """Reserve header, note, and hint rows without consuming the selection.
+
+    The album heading sits in the track list, so no pinned row is reserved.
 
     Returns:
-        Header, context, note, and hint row counts. The remaining rows are
-        the track window, and it is at least one when `height` is positive.
+        Header, note, and hint row counts. The remaining rows are the track
+        window, and it is at least one when `height` is positive.
     """
     if height <= 1:
-        return 0, 0, 0, 0
+        return 0, 0, 0
     spare = height - 1
     hint = 1 if spare >= 1 else 0
     spare -= hint
     header = 1 if spare >= 1 else 0
     spare -= header
-    context = 1 if spare >= 1 else 0
-    spare -= context
     note = 1 if has_note and spare >= 1 else 0
-    return header, context, note, hint
+    return header, note, hint
 
 
 def _display_lines(entries: Sequence[CatalogEntry]) -> list[tuple[str, int]]:
@@ -610,11 +610,16 @@ def _header_row(
     return row
 
 
-def _context_row(width: int, palette: Palette, entry: CatalogEntry) -> list[Cell]:
-    """Paint the selected album credit and its duration."""
-    row = _text_row(f" {credit_line(entry.album)}", width, palette.foreground, palette.background)
+def _group_row(width: int, palette: Palette, entry: CatalogEntry) -> list[Cell]:
+    """Paint an album heading: credit on the left, album duration on the right.
+
+    The heading is the only place an album is named, so the duration rides on
+    it. A separate pinned row repeated the same credit above the list.
+    """
+    text = f" {credit_line(entry.album)}"
+    row = _text_row(text, width, palette.accent, palette.background)
     duration = format_clock(entry.album.duration_s)
-    used = len(_single_column(f" {credit_line(entry.album)}"))
+    used = len(_single_column(text))
     if width - used >= len(duration) + 2:
         _put(row, width - len(duration) - 1, duration, palette.muted, palette.background)
     return row
@@ -701,7 +706,7 @@ def compose_library(
         return _help_frame(width, height, palette)
     count = len(entries)
     index = 0 if count == 0 else selected % count
-    header, context, note_rows, hint = _chrome(height, has_note=bool(note))
+    header, note_rows, hint = _chrome(height, has_note=bool(note))
     rows: list[list[Cell]] = []
     if header:
         rows.append(
@@ -713,11 +718,9 @@ def compose_library(
                 theme_label=theme_label or palette.name,
             )
         )
-    if context and count:
-        rows.append(_context_row(width, palette, entries[index]))
-    elif context:
+    if not count:
         rows.append(_text_row(" No public albums", width, palette.muted, palette.background))
-    body = height - header - context - note_rows - hint
+    body = height - header - note_rows - hint
     lines = _display_lines(entries)
     focus = 0
     for line_index, (kind, entry_index) in enumerate(lines):
@@ -729,14 +732,7 @@ def compose_library(
     for kind, entry_index in visible:
         entry = entries[entry_index]
         if kind == "group":
-            rows.append(
-                _text_row(
-                    f" {credit_line(entry.album)}",
-                    width,
-                    palette.accent,
-                    palette.background,
-                )
-            )
+            rows.append(_group_row(width, palette, entry))
         else:
             rows.append(_track_row(width, palette, entry, selected=entry_index == index))
     while len(rows) < height - note_rows - hint:
