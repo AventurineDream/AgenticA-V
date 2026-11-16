@@ -406,7 +406,8 @@ class LibraryState:
     Attributes:
         selected: Index into the sorted catalog. Wrapped by key handling.
         show_help: Whether the help plate covers the list.
-        note: Status line, usually the result of the last browser launch.
+        note: Status line: the last browser launch, or why native playback
+            stopped.
     """
 
     selected: int = 0
@@ -805,6 +806,7 @@ def run_library(
     color_mode: str,
     *,
     theme_label: str = "",
+    motion: str = "full",
     input_stream: object | None = None,
     output_stream: object | None = None,
     opener: Callable[[str], object] | None = None,
@@ -823,6 +825,7 @@ def run_library(
             whether those colors are emitted.
         color_mode: ``truecolor``, ``256``, or ``none``.
         theme_label: Header label. Defaults to the palette name.
+        motion: ``full``, ``reduced``, or ``still`` for native playback.
         input_stream: Optional TTY for tests.
         output_stream: Optional TTY for tests.
         opener: Browser launcher override.
@@ -901,6 +904,7 @@ def run_library(
                                 catalog,
                                 palette,
                                 color_mode,
+                                motion=motion,
                                 input_stream=source,
                                 output_stream=target,
                                 cache_home=cache_home,

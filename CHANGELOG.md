@@ -6,7 +6,7 @@ All notable changes to this project are documented here.
 
 ### Added
 
-- Add an album library. Bare `aav play` selects a movement from the four authorized public albums. Enter plays it in the terminal: the album's original code-only glyph scenes, driven by its scored notes, with audio through mpv (or ffplay) from that movement's start. Space pauses, ←/→ seek, n/p change movement, and q returns to the library.
+- Add an album library. Bare `aav play` selects a movement from the four authorized public albums. Enter plays it in the terminal: the album's original code-only glyph scenes, driven by its scored notes, with audio through mpv (or ffplay) from that movement's start. Space pauses, ←/→ seek, n/p change movement, m holds or releases the picture, and q returns to the library. `--motion reduced` or `still` applies to the album picture too. Later plays of an album reuse a cached score and start without re-reading the archive.
 - `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
 - Bundle the four completed A-01 album players as gzip HTML. All rights remain reserved.

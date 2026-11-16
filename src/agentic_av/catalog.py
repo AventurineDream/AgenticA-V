@@ -289,7 +289,8 @@ def movement_duration_s(album: Album, track: Track) -> float:
     """Return the movement length in seconds.
 
     The last movement runs to the album duration. Earlier movements run to
-    the next listed start. This is display-only; seeking uses `track.start_s`.
+    the next listed start. The library shows it; native playback also uses
+    it to clamp seeks and to end a movement in a shared album mix.
 
     Args:
         album: Album that owns the movement.
@@ -336,5 +337,5 @@ def format_catalog(entries: tuple[CatalogEntry, ...] | None = None) -> str:
         clock = format_clock(entry.track.start_s)
         lines.append(f"  {entry.track.number:02d}  {clock:>7}  {entry.track.title}")
     lines.append("")
-    lines.append("Open a movement with `aav play`, then click Play in the browser.")
+    lines.append("Play a movement with `aav play` and Enter, or press o there for the browser.")
     return "\n".join(lines)

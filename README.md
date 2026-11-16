@@ -40,6 +40,7 @@ uv run aav demo
 
 - `Space`: pause or resume. `←` / `→`: seek 10 seconds.
 - `n` / `p` (or `j` / `k`): next or previous movement. Playback continues into the next movement on its own.
+- `m`: hold the picture (still) or let it move again. `aav play --motion reduced` slows the picture to 0.22×, and `--motion still` starts held. Audio is unaffected.
 - `q` / `Esc`: back to the library.
 
 `aav tracks` prints the same catalog without a TTY, sorted by album artist, band, album title, then track number and title. Band is the album-artist credit. There are no separate per-track musician credits.

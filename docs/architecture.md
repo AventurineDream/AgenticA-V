@@ -12,9 +12,9 @@ Four completed public albums are bundled as self-contained HTML players. All rig
 
 ## Native album playback
 
-`native.py` decodes each album once into the same versioned cache directory: its base64 MP3 audio and the per-movement scene names and scored note events. Coupon Seance embeds one album mix and a `const tracks` array with each movement's start, and carries no events. The other three embed one MP3 per movement plus `window.<NAME>` JSON; Drowning Collective keys its track audio into a `band02-assets` manifest. A movement therefore plays from its own file at zero, or from the shared mix at its start. Audio plays through mpv JSON IPC; mpv's `time-pos` is the clock. Without mpv, ffplay plays from the requested start and the clock is wall time, which cannot seek. The child gets no stdin and is terminated on every exit path; SIGTERM still exits the whole library.
+`native.py` decodes each album once into the same versioned cache directory: its base64 MP3 audio, plus a JSON sidecar with each movement's scene, offset, and normalized note events. Later plays read only the sidecar and skip the 70–112 MB archive; it is written after every MP3 is published, so a present sidecar always points at complete audio. Coupon Seance embeds one album mix and a `const tracks` array with each movement's start, and carries no events. The other three embed one MP3 per movement plus `window.<NAME>` JSON; Drowning Collective keys its track audio into a `band02-assets` manifest. A movement therefore plays from its own file at zero, or from the shared mix at its start. Audio plays through mpv JSON IPC; mpv's `time-pos` is the clock. Without mpv, ffplay plays from the requested start, the clock is wall time, seeking is unavailable, and pause stops the process with SIGSTOP. The child gets no stdin and is terminated on every exit path, including a SIGTERM that lands while it is still starting; SIGTERM still exits the whole library.
 
-`scenes.py` is a port of the original A/V.html terminal player's four glyph families: coupon (orbit), aquatic, forest, and rooms. The glyphs, geometry, motion rates, and xterm-256 palettes are unchanged; only the drawing target changed, from curses to `Cell` rows for the shared renderer. Motion is a function of the movement position and the scored note activity at that time. Nothing analyses the audio output.
+`scenes.py` is a port of the original A/V.html terminal player's four glyph families: coupon (orbit), aquatic, forest, and rooms. The glyphs, geometry, motion rates, and xterm-256 palettes are unchanged; only the drawing target changed, from curses to `Cell` rows for the shared renderer. Motion is a function of the picture's time and the scored note activity at that time. Nothing analyses the audio output. The picture's time follows the movement clock under `full`, advances at 0.22× under `reduced`, and holds under `still` (the `m` key toggles still); seeks and movement changes re-anchor it. The status line keeps state, clock, and `q back` visible, truncating the title and scene first.
 
 Bundled assets are `.html.gz` package data and are never rewritten. Materialization decompresses into `$XDG_CACHE_HOME/agentic-av/<version>/track-start-<revision>/` (or `~/.cache/agentic-av/...`), injects a small script immediately before `</body>`, and publishes the file with an atomic rename. The script reads a numeric `start` query parameter, sets `#audio` `currentTime` after metadata loads, and updates `#seek` when that element exists. It does not call `play()`.
 
@@ -37,7 +37,9 @@ The transport is a monotonic visual clock in seconds. Pause, seek, and rate chan
 ## Files
 
 - `catalog.py`: typed public albums, sort order, and the plain `tracks` listing.
-- `library.py`: library frame, versioned cache materialization, and browser deep link.
+- `library.py`: library frame, Enter/`o` dispatch, versioned cache materialization, and browser deep link.
+- `native.py`: album audio and score extraction with a JSON score cache, the mpv/ffplay players, and the playback loop.
+- `scenes.py`: the original player's code-only glyph scenes, palettes, and score activity.
 - `albums/*.html.gz`: authorized public album players. Read-only package data.
 - `palette.py` and `omarchy.py`: role definitions and read-only theme resolution.
 - `field.py`: deterministic abstract luminance/hue samples.

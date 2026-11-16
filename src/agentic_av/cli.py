@@ -69,13 +69,14 @@ def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="aav",
         description=(
-            "Terminally Agentic A/V. Open a bundled album in the browser, "
-            "or play abstract visual programs."
+            "Terminally Agentic A/V. Play a bundled album in the terminal, "
+            "open it in the browser, or play abstract visual programs."
         ),
         epilog=(
-            "Library: j/k select, enter opens the browser (click Play there), "
-            "? help, q quit. Visual: space play/pause, arrows seek, t themes, "
-            "m motion, ? help, q quit."
+            "Library: j/k select, enter plays in the terminal, o opens the browser "
+            "(click Play there), ? help, q quit. Album: space pause, arrows seek, "
+            "n/p movement, m motion, q back. Visual: space play/pause, arrows seek, "
+            "t themes, m motion, ? help, q quit."
         ),
     )
     parser.add_argument(
@@ -229,7 +230,8 @@ def _open_library(args: argparse.Namespace) -> int:
     """Resolve the palette and run the interactive album library.
 
     Args:
-        args: Parsed CLI arguments. `--theme` and `--no-color` apply.
+        args: Parsed CLI arguments. `--theme`, `--no-color`, and `--motion`
+            apply; motion sets native album playback's picture speed.
 
     Returns:
         Zero after the library restores the terminal.
@@ -242,7 +244,7 @@ def _open_library(args: argparse.Namespace) -> int:
     mode = "none" if args.no_color else color_mode()
     from agentic_av.library import run_library
 
-    return run_library(palette, mode, theme_label=palette.name)
+    return run_library(palette, mode, theme_label=palette.name, motion=args.motion)
 
 
 def _tracks() -> int:

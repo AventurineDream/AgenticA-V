@@ -29,6 +29,7 @@ from agentic_av.library import (
     inject_track_start,
     materialize_html,
     open_selected_and_resume,
+    run_library,
     track_start_script,
     track_url,
 )
@@ -240,7 +241,7 @@ def test_library_title_controls_cannot_break_the_grid() -> None:
 
 
 def test_keys_select_wrap_and_do_not_open_from_help() -> None:
-    """j/k and arrows move; Enter opens only when help is closed."""
+    """j/k and arrows move; Enter plays and o opens only when help is closed."""
     state = LibraryState()
     assert apply_library_key(state, "k", count=25) == "stay"
     assert state.selected == 24
@@ -257,11 +258,13 @@ def test_keys_select_wrap_and_do_not_open_from_help() -> None:
     held = state.selected
     assert apply_library_key(state, "j", count=25) == "stay"
     assert apply_library_key(state, "enter", count=25) == "stay"
+    assert apply_library_key(state, "o", count=25) == "stay"
     assert state.selected == held
     assert state.show_help
     assert apply_library_key(state, "esc", count=25) == "stay"
     assert not state.show_help
     assert apply_library_key(state, "enter", count=25) == "open"
+    assert apply_library_key(state, "o", count=25) == "open_browser"
     assert apply_library_key(state, "q", count=25) == "quit"
     state.show_help = True
     assert apply_library_key(state, "quit", count=25) == "quit"
@@ -473,3 +476,97 @@ def test_library_and_visual_tty_errors_name_the_fallback(capsys) -> None:
     assert "aav preview" in capsys.readouterr().err
     assert main(["play", "--scene", "tide", "--no-color"]) == 2
     assert "aav preview" in capsys.readouterr().err
+
+
+def test_motion_flag_reaches_native_playback(monkeypatch) -> None:
+    """`aav play --motion still` holds the native picture, not just the demo's."""
+    seen: list[str] = []
+
+    def library(*_args, **kwargs) -> int:
+        seen.append(kwargs["motion"])
+        return 0
+
+    monkeypatch.setattr("agentic_av.library.run_library", library)
+    assert main(["play", "--motion", "still", "--no-color"]) == 0
+    assert main(["play", "--no-color"]) == 0
+    assert seen == ["still", "full"]
+
+
+def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Path) -> None:
+    """Drive `run_library` on a real PTY and check which path each key takes.
+
+    The library drops the rest of a read after dispatching, so each fake
+    queues the next key only once it has been called.
+    """
+    import fcntl
+    import os
+    import pty
+    import struct
+    import termios
+    import threading
+
+    from agentic_av.native import NativeError
+
+    master, slave = pty.openpty()
+    calls: list[str] = []
+
+    def fake_native(entry, *_args, **kwargs) -> str:
+        calls.append(f"native:{entry.track.title}:{kwargs['motion']}")
+        if len(calls) == 1:
+            os.write(master, b"o")
+            return "quit"
+        os.write(master, b"q")
+        raise NativeError("no audio player found; install mpv or ffplay")
+
+    def fake_opener(url: str) -> bool:
+        calls.append("browser")
+        os.write(master, b"\r")
+        return True
+
+    monkeypatch.setattr("agentic_av.native.play_native", fake_native)
+    output = bytearray()
+    done = threading.Event()
+
+    first = catalog_entries()[0].track.title
+    # A fresh PTY is 0x0; give it a real size so the library draws its list.
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 100, 0, 0))
+
+    def drain() -> None:
+        # The PTY buffer is small; frames must be read or the library blocks.
+        # Raw mode flushes pending input, so the first Enter waits for a frame.
+        started = False
+        while not done.is_set():
+            try:
+                output.extend(os.read(master, 65536))
+            except OSError:
+                return
+            if not started and first.encode("utf-8") in output:
+                started = True
+                os.write(master, b"\r")
+
+    reader = threading.Thread(target=drain, daemon=True)
+    reader.start()
+    watchdog = threading.Timer(5.0, lambda: os.write(master, b"q"))
+    watchdog.start()
+    try:
+        with (
+            open(slave, "rb", buffering=0, closefd=False) as tty_in,
+            open(slave, "w", encoding="utf-8", closefd=False) as tty_out,
+        ):
+            result = run_library(
+                builtin_palettes()[0],
+                "none",
+                motion="reduced",
+                input_stream=tty_in,
+                output_stream=tty_out,
+                opener=fake_opener,
+                cache_home=tmp_path,
+            )
+    finally:
+        watchdog.cancel()
+        done.set()
+        os.close(slave)
+        os.close(master)
+    assert result == 0
+    assert calls == [f"native:{first}:reduced", "browser", f"native:{first}:reduced"]
+    assert b"install mpv or ffplay" in bytes(output)
