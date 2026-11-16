@@ -212,8 +212,8 @@ def test_library_frame_bounds_keep_the_selection_visible() -> None:
     assert len(help_rows) == 16
     assert all(len(row) == 80 for row in help_rows)
     help_text = render_plain(help_rows)
-    assert "Click Play in the browser" in help_text
-    assert "full synchronized album" in help_text
+    assert "code-only visuals" in help_text
+    assert "click Play" in help_text
     assert "j / down" in help_text
     assert "enter" in help_text
     assert "q" in help_text

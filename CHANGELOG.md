@@ -6,7 +6,8 @@ All notable changes to this project are documented here.
 
 ### Added
 
-- Add an album library. Bare `aav play` selects a movement from the four authorized public albums and opens that movement in the default browser. Click Play there; autoplay is blocked. The browser page is the full synchronized album.
+- Add an album library. Bare `aav play` selects a movement from the four authorized public albums. Enter plays it in the terminal: the album's original code-only glyph scenes, driven by its scored notes, with audio through mpv (or ffplay) from that movement's start. Space pauses, ←/→ seek, n/p change movement, and q returns to the library.
+- `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
 - Bundle the four completed A-01 album players as gzip HTML. All rights remain reserved.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.

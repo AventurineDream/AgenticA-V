@@ -2,13 +2,19 @@
 
 `aav play` with no show or scene opens the album library. `aav demo`, and `aav play` with `--show` or `--scene`, render abstract terminal programs. `preview`, `themes`, and `gallery` stay on that visual path.
 
-Four completed public albums are bundled as self-contained HTML players. All rights remain reserved. The terminal does not decode audio. It selects a movement and opens the cached HTML in the default browser at that movement's start. The page keeps its own controls. Browser autoplay is blocked, so the listener clicks Play. That page is the full synchronized A/V experience.
+Four completed public albums are bundled as self-contained HTML players. All rights remain reserved. Enter plays a movement in the terminal: the album's original code-only scene plus its audio. `o` opens the cached HTML in the default browser at that movement's start instead; the page keeps its own controls, and browser autoplay requires the listener to click Play.
 
 ## Album library
 
 `catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums belong in the catalog.
 
-`library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. Enter restores canonical terminal mode before the browser launch, then returns to the library.
+`library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
+
+## Native album playback
+
+`native.py` decodes each album once into the same versioned cache directory: its base64 MP3 audio and the per-movement scene names and scored note events. Coupon Seance embeds one album mix and a `const tracks` array with each movement's start, and carries no events. The other three embed one MP3 per movement plus `window.<NAME>` JSON; Drowning Collective keys its track audio into a `band02-assets` manifest. A movement therefore plays from its own file at zero, or from the shared mix at its start. Audio plays through mpv JSON IPC; mpv's `time-pos` is the clock. Without mpv, ffplay plays from the requested start and the clock is wall time, which cannot seek. The child gets no stdin and is terminated on every exit path; SIGTERM still exits the whole library.
+
+`scenes.py` is a port of the original A/V.html terminal player's four glyph families: coupon (orbit), aquatic, forest, and rooms. The glyphs, geometry, motion rates, and xterm-256 palettes are unchanged; only the drawing target changed, from curses to `Cell` rows for the shared renderer. Motion is a function of the movement position and the scored note activity at that time. Nothing analyses the audio output.
 
 Bundled assets are `.html.gz` package data and are never rewritten. Materialization decompresses into `$XDG_CACHE_HOME/agentic-av/<version>/track-start-<revision>/` (or `~/.cache/agentic-av/...`), injects a small script immediately before `</body>`, and publishes the file with an atomic rename. The script reads a numeric `start` query parameter, sets `#audio` `currentTime` after metadata loads, and updates `#seek` when that element exists. It does not call `play()`.
 
