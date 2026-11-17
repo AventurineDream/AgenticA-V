@@ -15,7 +15,7 @@ uv run aav play
 uv run aav demo
 ```
 
-`play` with no `--show` or `--scene` needs an interactive TTY. It lists the bundled albums. Enter opens the selected movement in the default browser at that movement's start. Click Play there: browser autoplay is blocked. The browser page is the full synchronized album; the terminal does not play the audio.
+`play` with no `--show` or `--scene` needs an interactive TTY. It lists the bundled albums. Enter plays the selected movement right in the terminal: the album's original code-only scene, driven by its scored notes, with the audio from that movement's start. Playback needs `mpv` (preferred; it is the clock) or `ffplay`. `o` opens the synchronized web page in the default browser instead; click Play there, since browser autoplay is blocked.
 
 `aav demo` is the abstract visual player. `aav play --show /path/to/show.toml` and `aav play --scene garden` stay on that visual player too.
 
@@ -32,8 +32,16 @@ uv run aav demo
 ### Library controls
 
 - `j` / `k` or `↑` / `↓`: select a track. The list wraps.
-- `Enter`: open that movement in the default browser. Click Play on the page.
+- `Enter`: play that movement in the terminal.
+- `o`: open the album's web page in the default browser at that movement. Click Play on the page.
 - `?`: help. `Esc`: close help. `q`: leave the library.
+
+### Album playback controls
+
+- `Space`: pause or resume. `←` / `→`: seek 10 seconds.
+- `n` / `p` (or `j` / `k`): next or previous movement. Playback continues into the next movement on its own.
+- `m`: hold the picture (still) or let it move again. `aav play --motion reduced` slows the picture to 0.22×, and `--motion still` starts held. Audio is unaffected.
+- `q` / `Esc`: back to the library.
 
 `aav tracks` prints the same catalog without a TTY, sorted by album artist, band, album title, then track number and title. Band is the album-artist credit. There are no separate per-track musician credits.
 

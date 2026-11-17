@@ -40,7 +40,8 @@ uv sync --group dev
 - `colors.toml` is read-only. Omarchy theme changes are discovered from its applied state; the player never edits desktop configuration.
 - Time values are seconds, terminal dimensions are character cells, and palettes are immutable role sets.
 - Motion modes are `full`, `reduced`, and `still`; always preserve the no-color renderer.
-- The browser page is the full synchronized album. Autoplay is blocked, so the listener clicks Play.
+- Enter in the library plays the movement natively: `native.py` decodes the album's embedded audio and score data into the cache and runs `scenes.py`, the restored code-only visuals from the original A/V.html terminal player. mpv's `time-pos` is the clock; ffplay is the fallback. Keep those scenes faithful to the originals: same glyphs, geometry, rates, and palettes.
+- `o` opens the browser page, the full synchronized web album. Autoplay is blocked there, so the listener clicks Play.
 
 ## Boundaries
 
