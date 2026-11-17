@@ -16,7 +16,7 @@ classifiers = [
     "Environment :: Console",
     "Private :: Do Not Upload",
 ]
-dependencies = []
+dependencies = ["numpy>=2.0"]
 
 [project.scripts]
 aav = "agentic_av.cli:main"
