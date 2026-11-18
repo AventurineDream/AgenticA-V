@@ -64,6 +64,7 @@ class _Room(Scene):
         self.signals = np.zeros(6, dtype=np.float32)
         self.notes = dict.fromkeys(_PARTS, _EMPTY)
         self.audio_t = 0.0
+        self._score = None
         self._features = None
         self._initialized = False
 
