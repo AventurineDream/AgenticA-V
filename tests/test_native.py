@@ -20,6 +20,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -222,13 +223,22 @@ def test_a_long_note_gives_way_before_the_clock() -> None:
 class FakePlayer:
     """Stand-in for mpv: `time-pos` is the clock; records seeks and close."""
 
-    def __init__(self, media: Path, offset: float, *, late_s: float, tick_s: float) -> None:
+    def __init__(
+        self,
+        media: Path,
+        offset: float,
+        *,
+        late_s: float,
+        tick_s: float,
+        exit_code: int | None = None,
+    ) -> None:
         self.media = media
         self.offset = offset
         self.time_pos = offset + late_s
         self.tick_s = tick_s
         self.seeks: list[float] = []
         self.closed = False
+        self.proc = None if exit_code is None else SimpleNamespace(poll=lambda: exit_code)
 
     def get(self, name: str) -> Any:
         """Report `time-pos` like mpv IPC, advancing `tick_s` per read."""
@@ -264,17 +274,30 @@ class _Pipe:
 class _Sink:
     """Output that keeps frames and queues scripted keys after given frames."""
 
-    def __init__(self, write_fd: int, script: dict[int, bytes]) -> None:
+    def __init__(
+        self,
+        write_fd: int,
+        script: dict[int, Any],
+        loading_seen: threading.Event | None = None,
+    ) -> None:
         self.frames: list[str] = []
         self.write_fd = write_fd
         self.script = script
+        self.loading_seen = loading_seen
+        self.loading_count = 0
 
     def write(self, text: str) -> int:
         self.frames.append(text)
         assert isinstance(text, str)
+        if self.loading_seen is not None and "Listening…" in text:
+            self.loading_count += 1
+            if self.loading_count >= 2:
+                self.loading_seen.set()
         # The first write is the loading line, not a playback frame.
         keys = self.script.get(len(self.frames) - 1)
-        if keys:
+        if callable(keys):
+            keys(self.write_fd)
+        elif keys:
             os.write(self.write_fd, keys)
         return len(text)
 
@@ -291,12 +314,14 @@ def _play(
     *,
     after_switch: bytes = b"",
     quit_after_frames: int | None = None,
-    keys_after_frames: dict[int, bytes] | None = None,
+    keys_after_frames: dict[int, Any] | None = None,
     motion: str = "full",
     late_s: float = 0.0,
     tick_s: float = 0.0,
     glyphs: str = "half",
     color_mode: str = "none",
+    player_exit_code: int | None = None,
+    loading_seen: threading.Event | None = None,
 ) -> tuple[list[FakePlayer], list[str]]:
     """Run `play_native` on a pipe preloaded with `keys`.
 
@@ -313,7 +338,7 @@ def _play(
     script = dict(keys_after_frames or {})
     if quit_after_frames is not None:
         script[quit_after_frames] = script.get(quit_after_frames, b"") + b"q"
-    sink = _Sink(write_fd, script)
+    sink = _Sink(write_fd, script, loading_seen)
     timed_out = threading.Event()
 
     def rescue() -> None:
@@ -322,7 +347,9 @@ def _play(
 
     def factory(media: Path, offset: float) -> FakePlayer:
         late = late_s if not players else 0.0
-        players.append(FakePlayer(media, offset, late_s=late, tick_s=tick_s))
+        players.append(
+            FakePlayer(media, offset, late_s=late, tick_s=tick_s, exit_code=player_exit_code)
+        )
         if len(players) == 2 and after_switch:
             os.write(write_fd, after_switch)
         return players[-1]
@@ -504,6 +531,19 @@ def test_ffplay_pause_stops_the_audio_process(
         player.close()
     # A stopped child still ends on SIGTERM rather than waiting out the kill.
     assert spawned[0].returncode == -signal.SIGTERM
+
+
+def test_nonzero_audio_process_exit_is_reported_before_auto_advance(tmp_path: Path) -> None:
+    """A failed player reports an error instead of silently cycling the album."""
+    with pytest.raises(NativeError, match="audio player exited with status 1"):
+        _play(
+            tmp_path,
+            _forest_html(),
+            1,
+            FOREST_ALBUM,
+            b"",
+            player_exit_code=1,
+        )
 
 
 def test_sigterm_during_mpv_startup_leaves_no_child(
@@ -819,6 +859,67 @@ def test_background_analysis_never_delays_quit(
     finally:
         release.set()
         assert finished.wait(2)
+
+
+def test_quit_remains_responsive_while_foreground_analysis_waits_for_prefetch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A cold-cache n press still accepts q while serialized analysis is busy."""
+    prefetch_waiting = threading.Event()
+    loading_line = threading.Event()
+    release = threading.Event()
+    prefetch_timed_out = threading.Event()
+    calls = []
+    features = analyze(np.zeros((2205, 2), dtype=np.float32))
+
+    def load(*_args):
+        calls.append(True)
+        if len(calls) == 2:
+            prefetch_waiting.set()
+            if not release.wait(2):
+                prefetch_timed_out.set()
+        return features
+
+    monkeypatch.setattr("agentic_av.native.load_features", load)
+
+    def switch_then_quit(write_fd):
+        os.write(write_fd, b"n")
+
+        def quit_when_loading_line():
+            if prefetch_waiting.wait(2):
+                loading_line.wait(0.5)
+                os.write(write_fd, b"q")
+
+        threading.Thread(target=quit_when_loading_line, daemon=True).start()
+
+    start = time.monotonic()
+    try:
+        players, _ = _play(
+            tmp_path,
+            _forest_html(),
+            1,
+            FOREST_ALBUM,
+            b"",
+            keys_after_frames={1: switch_then_quit},
+            loading_seen=loading_line,
+        )
+        elapsed = time.monotonic() - start
+    finally:
+        release.set()
+        deadline = time.monotonic() + 2
+        while (
+            any(
+                thread.name in {"aav-analysis", "aav-current-analysis"} and thread.is_alive()
+                for thread in threading.enumerate()
+            )
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.01)
+    assert prefetch_waiting.is_set()
+    assert loading_line.is_set()
+    assert elapsed < 1.0
+    assert not prefetch_timed_out.is_set()
+    assert players[0].closed
 
 
 def test_section_and_hairline_are_visible_in_transport(tmp_path: Path) -> None:

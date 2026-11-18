@@ -463,6 +463,40 @@ def movement_signals(album: NativeAlbum, index: int) -> tuple[Features | None, S
         return result
 
 
+@dataclass(slots=True)
+class _AnalysisRequest:
+    """Carry a foreground analysis result without blocking the terminal loop."""
+
+    index: int
+    done: threading.Event = field(default_factory=threading.Event)
+    result: tuple[Features | None, Score] | None = None
+    error: Exception | None = None
+
+
+def _start_analysis_request(album: NativeAlbum, index: int) -> _AnalysisRequest:
+    """Run one foreground signal lookup on a daemon thread.
+
+    Args:
+        album: Extracted album whose shared analysis lock may be held by prefetch.
+        index: Zero-based movement being prepared.
+
+    Returns:
+        Request populated with signals or an exception once ``done`` is set.
+    """
+    request = _AnalysisRequest(index)
+
+    def load() -> None:
+        try:
+            request.result = movement_signals(album, index)
+        except Exception as error:
+            request.error = error
+        finally:
+            request.done.set()
+
+    threading.Thread(target=load, name="aav-current-analysis", daemon=True).start()
+    return request
+
+
 def _mpv_available() -> bool:
     return shutil.which("mpv") is not None
 
@@ -903,6 +937,7 @@ def play_native(
     dirty = True
     pending_open = True
     prefetch: threading.Thread | None = None
+    analysis_request: _AnalysisRequest | None = None
     previous_sigterm = signal.getsignal(signal.SIGTERM)
     signal.signal(signal.SIGTERM, _on_sigterm)
     try:
@@ -910,7 +945,61 @@ def play_native(
             started = time.monotonic()
             data = album.tracks[index]
             if pending_open:
-                features, score = movement_signals(album, index)
+                signal_data = album._signals.get(index)
+                if (
+                    signal_data is None
+                    and analysis_request is not None
+                    and analysis_request.done.is_set()
+                ):
+                    request, analysis_request = analysis_request, None
+                    if request.index == index:
+                        if request.error is not None:
+                            raise request.error
+                        signal_data = request.result
+                if signal_data is None:
+                    if analysis_request is None:
+                        analysis_request = _start_analysis_request(album, index)
+                    if analysis_request.index != index or not analysis_request.done.is_set():
+                        loading = _terminal_frame(
+                            render_ansi(
+                                [
+                                    _text_row(
+                                        f" Listening… {entries[index].track.title}",
+                                        width,
+                                        palette.foreground,
+                                        palette.background,
+                                    )
+                                ],
+                                color_mode,
+                            )
+                        )
+                        _write_output(
+                            target, SYNC_BEGIN + ("\x1b[1;1H" + loading).encode() + SYNC_END
+                        )
+                        timeout = 0.05
+                        remaining = decoder.hold_remaining()
+                        if remaining is not None:
+                            timeout = min(timeout, remaining)
+                        readable, _, _ = select.select([fd], [], [], timeout)
+                        keys = decoder.feed(os.read(fd, 64)) if readable else decoder.flush()
+                        step = 0
+                        for key in keys:
+                            if key in ("q", "Q", "esc", "quit"):
+                                return "quit"
+                            if key in ("n", "j", "down"):
+                                step += 1
+                            elif key in ("p", "k", "up"):
+                                step -= 1
+                        if step:
+                            index = (index + step) % len(entries)
+                        continue
+                    request, analysis_request = analysis_request, None
+                    if request.error is not None:
+                        raise request.error
+                    signal_data = request.result
+                if signal_data is None:
+                    raise NativeError("movement analysis completed without a result")
+                features, score = signal_data
                 movement = _movement(entries[index], album.family, data, index, len(entries))
                 stage.open(movement, features, score)
                 note = "" if features is not None else "audio analysis unavailable · quiet visuals"
@@ -1013,7 +1102,14 @@ def play_native(
                     step -= 1
             if step == 0:
                 proc = getattr(player, "proc", None)
-                if (proc is not None and proc.poll() is not None) or elapsed >= duration:
+                returncode = proc.poll() if proc is not None else None
+                if returncode is not None:
+                    if returncode != 0:
+                        raise NativeError(
+                            f"audio player exited with status {returncode}; playback stopped"
+                        )
+                    step = 1
+                elif elapsed >= duration:
                     step = 1
             if step:
                 index = (index + step) % len(entries)
