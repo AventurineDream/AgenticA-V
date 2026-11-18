@@ -40,7 +40,11 @@ uv sync --group dev
 - `colors.toml` is read-only. Omarchy theme changes are discovered from its applied state; the player never edits desktop configuration.
 - Time values are seconds, terminal dimensions are character cells, and palettes are immutable role sets.
 - Motion modes are `full`, `reduced`, and `still`; always preserve the no-color renderer.
-- The browser page is the full synchronized album. Autoplay is blocked, so the listener clicks Play.
+- Enter in the library plays natively: `native.py` extracts cached audio and normalized scores, loads audio features, and drives `viz/stage.py`. New numpy scenes in `viz/albums/` replace the legacy faithful glyph port (ADR 0004). mpv's `time-pos` is the clock; ffplay is the fallback. Preserve input, seek, exact held pictures, cleanup, no-color output, and quiet-analysis failure notes.
+- `o` opens the browser page, the full synchronized web album. Autoplay is blocked there, so the listener clicks Play.
+- Native images are linear RGB numpy surfaces, fitted to width-one mosaic cells and encoded as bytes. Keep one synchronized output write per frame; never clear the canvas per frame. Tier detection and sub-pixel budgeting belong in `viz/caps.py`.
+- Audio moves geometry, not beat-synchronized light. `FlashMeter` is a conservative regional regression heuristic with viewing assumptions, not WCAG certification. Preserve reduced/still controls and test visible behavior rather than pinning art glyphs.
+- For parallel work, format/lint/test only owned files; the integration owner runs the full gate after all slices land. Scene changes require deterministic, silent, motion, timing, and rendered-image review.
 
 ## Boundaries
 

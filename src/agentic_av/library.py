@@ -1,14 +1,15 @@
-"""Interactive album library and browser deep link.
+"""Interactive album library, native playback dispatch, and browser deep link.
 
 `cli.py` calls `run_library` for bare `aav play`. The frame is a fixed
 character grid painted with the active palette; `NO_COLOR` is the renderer's
 no-color mode, and a `>` mark keeps the selection visible without color.
-Enter restores canonical terminal mode, materializes one bundled `.html.gz`
-into the versioned XDG cache, and opens that copy in the default browser.
-The compressed package asset is never rewritten. The injected script seeks
+Enter hands the selected movement to `native.play_native`, which plays the
+album's audio-reactive mosaic scene and audio in this terminal. `o` instead restores
+canonical terminal mode, materializes one bundled `.html.gz` into the
+versioned XDG cache, and opens that copy in the default browser. The
+compressed package asset is never rewritten. The injected script seeks
 `#audio` from a numeric `start` query after metadata loads and does not
-call `play()`; browser autoplay policy still requires a Play click. That
-page, not the terminal, is the synchronized album.
+call `play()`; browser autoplay policy still requires a Play click.
 """
 
 from __future__ import annotations
@@ -405,7 +406,8 @@ class LibraryState:
     Attributes:
         selected: Index into the sorted catalog. Wrapped by key handling.
         show_help: Whether the help plate covers the list.
-        note: Status line, usually the result of the last browser launch.
+        note: Status line: the last browser launch, or why native playback
+            stopped.
     """
 
     selected: int = 0
@@ -425,6 +427,7 @@ _KEY_ACTIONS = {
     "end": "last",
     "G": "last",
     "enter": "open",
+    "o": "open_browser",
     "?": "help",
     "esc": "esc",
     "q": "quit",
@@ -436,10 +439,11 @@ _KEY_ACTIONS = {
 def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
     """Apply one library key.
 
-    j/k and the arrow keys move the selection and wrap. Enter asks the caller
-    to open the selected movement, but not while help is open. Help is modal:
-    movement keys do not change the selection underneath it. q and Ctrl-C
-    quit even from help. Escape closes help and does not quit the list.
+    j/k and the arrow keys move the selection and wrap. Enter asks the
+    caller to play the selected movement natively; `o` asks for the browser
+    page. Neither fires while help is open. Help is modal: movement keys do
+    not change the selection underneath it. q and Ctrl-C quit even from
+    help. Escape closes help and does not quit the list.
 
     Args:
         state: Selection and overlay, mutated in place.
@@ -447,7 +451,7 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
         count: Number of movements. Zero disables open and movement.
 
     Returns:
-        ``quit``, ``open``, or ``stay``.
+        ``quit``, ``open``, ``open_browser``, or ``stay``.
     """
     action = _KEY_ACTIONS.get(key)
     if action is None:
@@ -466,9 +470,9 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
     if count <= 0:
         state.selected = 0
         return "stay"
-    if action == "open":
+    if action in {"open", "open_browser"}:
         state.selected %= count
-        return "open"
+        return action
     if action == "next":
         state.selected = (state.selected + 1) % count
     elif action == "prev":
@@ -542,21 +546,22 @@ def _window_start(focus: int, size: int, total: int) -> int:
 
 
 def _help_lines() -> tuple[str, ...]:
-    """Return help text, with the Play instruction before the key list.
+    """Return help text, with the playback summary before the key list.
 
-    Short terminals top-align this list, so the browser contract stays on
+    Short terminals top-align this list, so what Enter and `o` do stays on
     screen when the key column does not fit.
     """
     return (
         "LIBRARY",
         "",
-        "Click Play in the browser. Autoplay is blocked.",
-        "That page is the full synchronized album.",
+        "Enter plays the album's code-only visuals and audio here.",
+        "o opens the synchronized web page instead; click Play there.",
         "",
         "j / down      next track",
         "k / up        previous track",
         "home / end    first or last track",
-        "enter         open the selected movement",
+        "enter         play the selected movement in the terminal",
+        "o             open the album page in the browser",
         "?             this guide",
         "esc           close this guide",
         "q             leave the library",
@@ -574,7 +579,7 @@ def _help_frame(width: int, height: int, palette: Palette) -> list[list[Cell]]:
         text = lines[index]
         if text == "LIBRARY":
             color = palette.accent
-        elif text.startswith("Click Play"):
+        elif "click Play" in text:
             color = palette.warning
         elif not text.strip():
             color = palette.background
@@ -658,9 +663,9 @@ def _track_row(
 
 def _hint_text(width: int) -> str:
     """Choose a key legend that fits without clipping the quit key."""
-    wide = "j/k or arrows select    enter open    ? help    q quit"
-    mid = "j/k select  enter open  ? help  q quit"
-    short = "j/k enter ? q"
+    wide = "j/k or arrows select    enter play    o browser    ? help    q quit"
+    mid = "j/k select  enter play  o web  ? help  q quit"
+    short = "j/k enter o ? q"
     if width >= len(wide):
         return wide
     if width >= len(mid):
@@ -801,6 +806,8 @@ def run_library(
     color_mode: str,
     *,
     theme_label: str = "",
+    motion: str = "full",
+    glyphs: str = "auto",
     input_stream: object | None = None,
     output_stream: object | None = None,
     opener: Callable[[str], object] | None = None,
@@ -809,15 +816,18 @@ def run_library(
 ) -> int:
     """Run the album library until q or Ctrl-C.
 
-    SIGTERM leaves through the same cleanup as a normal exit. Enter restores
-    the terminal before the browser launch and returns to the library
-    afterward, with a note telling the listener to click Play.
+    SIGTERM leaves through the same cleanup as a normal exit, including
+    from native playback. Enter plays the movement in the terminal and
+    returns here on q. `o` restores the terminal before the browser launch
+    and returns afterward, with a note telling the listener to click Play.
 
     Args:
         palette: Active palette. Roles color the frame; `color_mode` decides
             whether those colors are emitted.
         color_mode: ``truecolor``, ``256``, or ``none``.
         theme_label: Header label. Defaults to the palette name.
+        motion: ``full``, ``reduced``, or ``still`` for native playback.
+        glyphs: Native mosaic tier; ``auto`` honors AAV_GLYPHS and terminal hints.
         input_stream: Optional TTY for tests.
         output_stream: Optional TTY for tests.
         opener: Browser launcher override.
@@ -831,6 +841,9 @@ def run_library(
         RuntimeError: Input or output is not an interactive terminal.
         CatalogError: The bundled catalog is inconsistent.
     """
+    # Imported here: `native` imports this module for its cache helpers.
+    from agentic_av.native import NativeError, play_native
+
     source = input_stream or sys.stdin
     target = output_stream or sys.stdout
     if not source.isatty() or not target.isatty():
@@ -876,17 +889,31 @@ def run_library(
                 if action == "quit":
                     active = False
                     break
-                if action == "open":
+                if action in {"open", "open_browser"}:
                     entry = catalog[state.selected]
                     try:
-                        open_selected_and_resume(
-                            term,
-                            entry,
-                            cache_home=cache_home,
-                            opener=opener,
-                        )
-                        state.note = f"Opened {entry.track.title} - click Play in the browser"
-                    except (AlbumError, OSError) as error:
+                        if action == "open_browser":
+                            open_selected_and_resume(
+                                term,
+                                entry,
+                                cache_home=cache_home,
+                                opener=opener,
+                            )
+                            state.note = f"Opened {entry.track.title} - click Play in the browser"
+                        else:
+                            play_native(
+                                entry,
+                                catalog,
+                                palette,
+                                color_mode,
+                                motion=motion,
+                                glyphs=glyphs,
+                                input_stream=source,
+                                output_stream=target,
+                                cache_home=cache_home,
+                            )
+                            state.note = ""
+                    except (AlbumError, NativeError, OSError) as error:
                         state.note = str(error)
                     last_size = (-1, -1)
                     break

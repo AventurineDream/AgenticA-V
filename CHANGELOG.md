@@ -6,13 +6,20 @@ All notable changes to this project are documented here.
 
 ### Added
 
-- Add an album library. Bare `aav play` selects a movement from the four authorized public albums and opens that movement in the default browser. Click Play there; autoplay is blocked. The browser page is the full synchronized album.
+- Add an album library. Bare `aav play` selects from four authorized public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
+- `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
 - Bundle the four completed A-01 album players as gzip HTML. All rights remain reserved.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
 
 ### Changed
+
+- Replace the legacy glyph port with 25 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
+- Add automatic terminal glyph selection, `--glyphs`, `AAV_GLYPHS`, and runtime `g` cycling. Large canvases step down their sub-pixel tier.
+- Native playback targets 30 fps (5 transport updates/s when paused or still), batches one synchronized write per frame, and skips unchanged canvas rows. Add section names, progress, and section ticks to transport.
+- Add scene previews, benchmarks, and a conservative regional flash-risk regression meter. This is not flash-safety certification.
+- Replace extraction sidecar revision 2 with revision 3, retaining full normalized scores and removing obsolete simplified event rows.
 
 - The abstract visual player is `aav demo`. `aav play --show` and `aav play --scene` keep the previous visual behavior. `preview`, `themes`, and `gallery` are unchanged.
 
