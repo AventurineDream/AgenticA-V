@@ -81,3 +81,17 @@ def test_preview_strips_control_characters_from_show_text(tmp_path, capsys) -> N
     assert "\r" not in frame
     assert "bad" in frame and "title" in frame
     assert "has" in frame and "tab" in frame
+
+
+def test_glyph_tier_reaches_library_without_overriding_auto_environment(monkeypatch) -> None:
+    """Explicit CLI tiers win; auto leaves environment detection to native playback."""
+    seen = []
+
+    def library(*_args, **kwargs):
+        seen.append(kwargs["glyphs"])
+        return 0
+
+    monkeypatch.setattr("agentic_av.library.run_library", library)
+    assert main(["play", "--glyphs", "ascii", "--theme", "void"]) == 0
+    assert main(["play", "--theme", "void"]) == 0
+    assert seen == ["ascii", "auto"]

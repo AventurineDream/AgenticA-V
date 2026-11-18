@@ -75,7 +75,7 @@ def _make_parser() -> argparse.ArgumentParser:
         epilog=(
             "Library: j/k select, enter plays in the terminal, o opens the browser "
             "(click Play there), ? help, q quit. Album: space pause, arrows seek, "
-            "n/p movement, m motion, q back. Visual: space play/pause, arrows seek, "
+            "n/p movement, m motion, g glyphs, q back. Visual: space play/pause, arrows seek, "
             "t themes, m motion, ? help, q quit."
         ),
     )
@@ -108,7 +108,13 @@ def _make_parser() -> argparse.ArgumentParser:
         "--motion", choices=("full", "reduced", "still"), default="full", help="visual motion level"
     )
     parser.add_argument(
-        "--no-color", action="store_true", help="use density glyphs without ANSI colors"
+        "--no-color", action="store_true", help="use monochrome glyphs without ANSI colors"
+    )
+    parser.add_argument(
+        "--glyphs",
+        choices=("auto", "octant", "sextant", "quadrant", "half", "braille", "ascii"),
+        default="auto",
+        help="album mosaic tier; auto honors AAV_GLYPHS, then terminal capabilities",
     )
     return parser
 
@@ -230,8 +236,8 @@ def _open_library(args: argparse.Namespace) -> int:
     """Resolve the palette and run the interactive album library.
 
     Args:
-        args: Parsed CLI arguments. `--theme`, `--no-color`, and `--motion`
-            apply; motion sets native album playback's picture speed.
+        args: Parsed CLI arguments. Theme, no-color, motion, and glyph tier
+            apply to the library and its native album playback.
 
     Returns:
         Zero after the library restores the terminal.
@@ -244,7 +250,9 @@ def _open_library(args: argparse.Namespace) -> int:
     mode = "none" if args.no_color else color_mode()
     from agentic_av.library import run_library
 
-    return run_library(palette, mode, theme_label=palette.name, motion=args.motion)
+    return run_library(
+        palette, mode, theme_label=palette.name, motion=args.motion, glyphs=args.glyphs
+    )
 
 
 def _tracks() -> int:

@@ -512,6 +512,7 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
 
     def fake_native(entry, *_args, **kwargs) -> str:
         calls.append(f"native:{entry.track.title}:{kwargs['motion']}")
+        assert kwargs["glyphs"] == "braille"
         if len(calls) == 1:
             os.write(master, b"o")
             return "quit"
@@ -558,6 +559,7 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
                 builtin_palettes()[0],
                 "none",
                 motion="reduced",
+                glyphs="braille",
                 input_stream=tty_in,
                 output_stream=tty_out,
                 opener=fake_opener,

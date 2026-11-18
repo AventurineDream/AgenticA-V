@@ -15,7 +15,7 @@ uv run aav play
 uv run aav demo
 ```
 
-`play` with no `--show` or `--scene` needs an interactive TTY. It lists the bundled albums. Enter plays the selected movement right in the terminal: the album's original code-only scene, driven by its scored notes, with the audio from that movement's start. Playback needs `mpv` (preferred; it is the clock) or `ffplay`. `o` opens the synchronized web page in the default browser instead; click Play there, since browser autoplay is blocked.
+`play` with no `--show` or `--scene` needs an interactive TTY. Enter plays a movement with a new numpy-painted, audio-reactive mosaic scene. Playback needs `mpv` (preferred; its media position is the clock) or `ffplay`. `ffmpeg` enables cached audio analysis; without it, audio still plays and the transport explicitly reports quiet visuals. `o` opens the synchronized web page instead; click Play there, since browser autoplay is blocked.
 
 `aav demo` is the abstract visual player. `aav play --show /path/to/show.toml` and `aav play --scene garden` stay on that visual player too.
 
@@ -42,8 +42,22 @@ uv run aav demo
 - `n` / `p` (or `j` / `k`): next or previous movement. Playback continues into the next movement on its own.
 - `m`: hold the picture (still) or let it move again. `aav play --motion reduced` slows the picture to 0.22×, and `--motion still` starts held. Audio is unaffected.
 - `q` / `Esc`: back to the library.
+- `g`: cycle octant, sextant, quadrant, half-block, braille, and ASCII mosaics.
 
 `aav tracks` prints the same catalog without a TTY, sorted by album artist, band, album title, then track number and title. Band is the album-artist credit. There are no separate per-track musician credits.
+
+`aav play --glyphs half` selects a tier; `--glyphs auto` (the default) honors
+`AAV_GLYPHS`, otherwise selects octants for kitty, ASCII for Linux consoles/dumb
+terminals, and half-blocks elsewhere. Font support varies: cycle with `g` if a
+glyph is missing. Large canvases step down sampling resolution to bound work.
+Playing targets 30 fps; paused or still pictures are held at 5 transport updates
+per second. Slow frames are dropped rather than queued. Reduced motion uses
+0.22× picture time and gentler reactivity. `--no-color` preserves geometry with
+ordered monochrome dithering; cursor positioning remains necessary in the TTY.
+
+See the [scene guide](docs/visuals.md) for all 25 movements and preview commands.
+The regional flash meter is a conservative regression heuristic, not a
+certification of flash safety; use reduced/still motion as needed.
 
 ### Visual player controls
 
@@ -64,7 +78,7 @@ uv run aav gallery --theme tungsten --width 80 --height 24
 uv run aav play --theme phosphor
 ```
 
-Nine built-ins are included: tungsten, phosphor, broadcast, newsprint, signal, glacier, carbon, marigold, and void. `omarchy`, `sync`, and `system` load the active Omarchy theme. If Omarchy is unavailable, playback falls back to tungsten. `AAV_THEME` sets the default; `--theme` overrides it. `NO_COLOR`, `TERM=dumb`, a `TERM` that does not advertise `256color` or truecolor, and `--no-color` avoid ANSI output. The library uses the same palette and no-color rules.
+Nine built-ins are included: tungsten, phosphor, broadcast, newsprint, signal, glacier, carbon, marigold, and void. `omarchy`, `sync`, and `system` load the active Omarchy theme read-only. If unavailable, playback falls back to tungsten. `AAV_THEME` sets the default; `--theme` overrides it. `NO_COLOR`, `TERM=dumb`, a terminal without advertised color, and `--no-color` disable color escapes. Interactive output still uses cursor/control sequences. Native scenes use album palettes; the active theme colors their transport.
 
 Color frames sample the field twice per cell. `aav gallery` prints one stage frame for each built-in theme.
 

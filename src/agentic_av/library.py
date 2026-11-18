@@ -4,7 +4,7 @@
 character grid painted with the active palette; `NO_COLOR` is the renderer's
 no-color mode, and a `>` mark keeps the selection visible without color.
 Enter hands the selected movement to `native.play_native`, which plays the
-album's code-only scene and audio in this terminal. `o` instead restores
+album's audio-reactive mosaic scene and audio in this terminal. `o` instead restores
 canonical terminal mode, materializes one bundled `.html.gz` into the
 versioned XDG cache, and opens that copy in the default browser. The
 compressed package asset is never rewritten. The injected script seeks
@@ -807,6 +807,7 @@ def run_library(
     *,
     theme_label: str = "",
     motion: str = "full",
+    glyphs: str = "auto",
     input_stream: object | None = None,
     output_stream: object | None = None,
     opener: Callable[[str], object] | None = None,
@@ -826,6 +827,7 @@ def run_library(
         color_mode: ``truecolor``, ``256``, or ``none``.
         theme_label: Header label. Defaults to the palette name.
         motion: ``full``, ``reduced``, or ``still`` for native playback.
+        glyphs: Native mosaic tier; ``auto`` honors AAV_GLYPHS and terminal hints.
         input_stream: Optional TTY for tests.
         output_stream: Optional TTY for tests.
         opener: Browser launcher override.
@@ -905,6 +907,7 @@ def run_library(
                                 palette,
                                 color_mode,
                                 motion=motion,
+                                glyphs=glyphs,
                                 input_stream=source,
                                 output_stream=target,
                                 cache_home=cache_home,

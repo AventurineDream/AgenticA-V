@@ -14,6 +14,7 @@ import base64
 import gzip
 import json
 import os
+import re
 import signal
 import subprocess
 import threading
@@ -21,6 +22,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pytest
 
 from agentic_av.catalog import Album, CatalogEntry, Track
@@ -30,15 +32,16 @@ from agentic_av.native import (
     Mpv,
     NativeError,
     _player_for,
-    _scene_rows,
     _status_line,
+    _write_output,
     extract_album,
+    movement_signals,
     play_native,
 )
-from agentic_av.paint import render_ansi
 from agentic_av.palette import builtin_palettes
-from agentic_av.scenes import FAMILIES, EventIndex, normalize_events
 from agentic_av.tty import _PlayerTerminatedError
+from agentic_av.viz.audio import AudioError, Segment, analyze
+from agentic_av.viz.score import NOTE
 
 FOREST = "nurse-log-ground-moves-anyway.html.gz"
 AQUATIC = "drowning-collective-are-we-fish.html.gz"
@@ -47,6 +50,13 @@ ROOMS = "quiet-machinery-atlas-unlit-rooms.html.gz"
 
 # Distinct payloads prove each movement gets its own file.
 NAMES = (b"ONE", b"TWO", b"THREE")
+
+
+@pytest.fixture(autouse=True)
+def _synthetic_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep playback tests independent of ffmpeg and actual audio payloads."""
+    features = analyze(np.zeros((2205, 2), dtype=np.float32))
+    monkeypatch.setattr("agentic_av.native.load_features", lambda *_args: features)
 
 
 def _b64(data: bytes) -> str:
@@ -65,6 +75,7 @@ def _forest_html(count: int = 2) -> str:
             "number": index + 1,
             "scene": scenes[index],
             "events": [["harp", 0.0, 1.0, 60, 0.5, 0.0]] if index == 0 else [],
+            "sections": [{"name": "Ground", "start": 0, "end": 60, "intensity": 0.5}],
             "audio": f"data:audio/mpeg;base64,{_b64(NAMES[index])}",
         }
         for index in range(count)
@@ -125,15 +136,14 @@ def test_per_movement_audio_gets_its_own_file(tmp_path: Path) -> None:
     assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
     assert [t.offset_s for t in native.tracks] == [0.0, 0.0]
     assert [t.scene for t in native.tracks] == ["root", "rain"]
-    assert native.tracks[0].events[0][:4] == ["harp", 0.0, 1.0, 0.5]
+    assert native.tracks[0].score["events"]["harp"][0][:5] == [0, 1, 60, 0.5, 0]
 
 
 def test_drowning_audio_resolves_through_asset_manifest(tmp_path: Path) -> None:
     native = extract_album(AQUATIC, tmp_path, _gz(_aquatic_html()))
     assert native.family == "aquatic"
     assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
-    # The archive names no scenes; the original player's order applies.
-    assert native.tracks[0].scene == "tidal seed"
+    assert native.tracks[0].scene == "kindness"
 
 
 def test_coupon_movements_share_one_mix_at_their_start(tmp_path: Path) -> None:
@@ -155,6 +165,7 @@ def test_repeat_plays_read_the_score_cache_not_the_archive(
 
     monkeypatch.setattr("agentic_av.native.gzip.decompress", no_decompress)
     assert extract_album(FOREST, tmp_path, source) == first
+    assert first.tracks[0].score["events"]["harp"]
 
 
 def test_missing_cached_audio_forces_a_fresh_extraction(tmp_path: Path) -> None:
@@ -184,17 +195,6 @@ def test_extraction_fails_cleanly_without_data_or_audio(tmp_path: Path, html: st
 
 
 # --- frames ------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("family", FAMILIES)
-@pytest.mark.parametrize("mode", ["truecolor", "256", "none"])
-def test_scene_frames_fill_the_grid_in_every_color_mode(family: str, mode: str) -> None:
-    events = EventIndex.build(normalize_events({"bass": [[0.0, 2.0, 30, 0.8, 0.0, 0]]}))
-    rows = _scene_rows(40, 10, family, "", 1.0, events)
-    assert len(rows) == 10
-    assert all(len(row) == 40 for row in rows)
-    # Blank cells once carried an empty fg that the 256/truecolor paths rejected.
-    assert len(render_ansi(rows, mode).split("\n")) == 10
 
 
 def test_status_line_keeps_clock_and_way_out_at_80_columns() -> None:
@@ -271,6 +271,7 @@ class _Sink:
 
     def write(self, text: str) -> int:
         self.frames.append(text)
+        assert isinstance(text, str)
         # The first write is the loading line, not a playback frame.
         keys = self.script.get(len(self.frames) - 1)
         if keys:
@@ -294,6 +295,8 @@ def _play(
     motion: str = "full",
     late_s: float = 0.0,
     tick_s: float = 0.0,
+    glyphs: str = "half",
+    color_mode: str = "none",
 ) -> tuple[list[FakePlayer], list[str]]:
     """Run `play_native` on a pipe preloaded with `keys`.
 
@@ -331,10 +334,11 @@ def _play(
             entries[number - 1],
             entries,
             builtin_palettes()[0],
-            "none",
+            color_mode,
             motion=motion,
             input_stream=_Pipe(read_fd),
             output_stream=sink,
+            glyphs=glyphs,
             cache_home=tmp_path,
             source=_gz(html),
             player_factory=factory,
@@ -388,9 +392,29 @@ def test_previous_movement_is_not_skipped_by_a_stale_position(tmp_path: Path) ->
     assert [p.offset for p in players] == [77.5, 0.0]
 
 
-def _scene_part(frame: str) -> list[str]:
-    """Frame lines without the status row, whose clock always moves."""
-    return frame.split("\n")[:-1]
+def _pictures(frames: list[str]) -> list[tuple[str, ...]]:
+    """Interpret cursor writes into the consumer's canvas, retaining skipped rows."""
+    grid = [[" "] * 80 for _ in range(24)]
+    pictures = []
+    token = re.compile(r"\x1b\[([0-9;?]*)([A-Za-z])|([^\x1b]+)")
+    for frame in frames:
+        row = col = 0
+        for match in token.finditer(frame):
+            if match[2] == "H":
+                fields = match[1].split(";")
+                row = int(fields[0] or 1) - 1
+                col = int(fields[1] or 1) - 1 if len(fields) > 1 else 0
+            elif match[3]:
+                for char in match[3]:
+                    if char == "\r":
+                        col = 0
+                    elif char == "\n":
+                        row += 1
+                    elif 0 <= row < 24 and 0 <= col < 80:
+                        grid[row][col] = char
+                        col += 1
+        pictures.append(tuple("".join(line) for line in grid[:-2]))
+    return pictures
 
 
 @pytest.mark.parametrize(
@@ -411,7 +435,8 @@ def test_motion_modes_hold_or_move_the_picture(
         motion=motion,
         tick_s=7.0,
     )
-    assert (_scene_part(frames[1]) == _scene_part(frames[2])) is held
+    pictures = _pictures(frames)
+    assert (pictures[1] == pictures[2]) is held
 
 
 def test_leaving_still_rejoins_the_audio_clock(tmp_path: Path) -> None:
@@ -428,9 +453,10 @@ def test_leaving_still_rejoins_the_audio_clock(tmp_path: Path) -> None:
         keys_after_frames={1: b"m", 3: b"m", 4: b"q"},
         tick_s=7.0,
     )
-    assert _scene_part(toggled[1]) == _scene_part(toggled[2])
-    assert _scene_part(toggled[3]) == _scene_part(plain[3])
-    assert _scene_part(toggled[3]) != _scene_part(toggled[2])
+    held = _pictures(toggled)
+    assert held[1] == held[2]
+    assert held[3] == _pictures(plain)[3]
+    assert held[3] != held[2]
 
 
 # --- players -----------------------------------------------------------------
@@ -508,3 +534,335 @@ def test_missing_players_raise_a_listener_facing_error(
     monkeypatch.setattr("agentic_av.native._ffplay_available", lambda: False)
     with pytest.raises(NativeError, match="install mpv or ffplay"):
         _player_for(tmp_path / "a.mp3", 0.0)
+
+
+def test_movement_signals_share_analysis_and_cache_score(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One mix is analyzed with all movement hints; views reset the time base."""
+    import numpy as np
+
+    from agentic_av.native import NativeAlbum, TrackData
+
+    audio = tmp_path / "mix.mp3"
+    native = NativeAlbum(
+        (
+            TrackData(audio, 0, score={"bpm": 120, "duration": 1}),
+            TrackData(audio, 1, score={"bpm": 150, "duration": 2}),
+        ),
+        "coupon",
+    )
+    analyzed = analyze(np.zeros((3 * 22050, 2), dtype=np.float32))
+    calls = []
+
+    def load(path, segments):
+        calls.append((path, segments))
+        return analyzed
+
+    monkeypatch.setattr("agentic_av.native.load_features", load)
+    first = movement_signals(native, 0)
+    second = movement_signals(native, 1)
+    assert movement_signals(native, 1) is second
+    assert first[0].duration_s == 1
+    assert second[0].duration_s == 2
+    assert second[0].sample(0).travel == 0
+    assert second[1].bpm == 150
+    assert calls == [(audio, [Segment(0, 1, 120), Segment(1, 3, 150)])]
+    assert second[1].recent("unknown", 0, 1).dtype == NOTE
+
+
+def test_movement_signals_cache_audio_error_without_losing_score(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from agentic_av.native import NativeAlbum, TrackData
+
+    calls = []
+
+    def fail(path, segments):
+        calls.append(path)
+        raise AudioError("ffmpeg missing")
+
+    monkeypatch.setattr("agentic_av.native.load_features", fail)
+    native = NativeAlbum((TrackData(tmp_path / "audio.mp3", score={"bpm": 84}),), "aquatic")
+    features, score = movement_signals(native, 0)
+    assert features is None and score.bpm == 84
+    assert movement_signals(native, 0) == (features, score)
+    assert len(calls) == 1
+
+
+def test_frames_are_single_sync_wrapped_writes_without_canvas_clear(tmp_path: Path) -> None:
+    """Incremental canvas rows and transport arrive inside one synchronized write."""
+    _, frames = _play(
+        tmp_path, _forest_html(), 1, FOREST_ALBUM, b"", quit_after_frames=3, tick_s=0.1
+    )
+    for frame in frames:
+        assert frame.startswith("\x1b[?2026h")
+        assert frame.endswith("\x1b[?2026l")
+        assert frame.count("\x1b[?2026h") == 1
+        assert "\x1b[J" not in frame and "\x1b[2J" not in frame
+        assert not re.search(r"\x1b\[[0-9;]*m", frame)
+
+
+def test_pause_holds_display_even_if_player_clock_advances(tmp_path: Path) -> None:
+    """Hold the last pixels, rather than merely freezing geometric tau."""
+    _, frames = _play(
+        tmp_path,
+        _forest_html(),
+        1,
+        FOREST_ALBUM,
+        b" ",
+        quit_after_frames=3,
+        tick_s=7,
+    )
+    pictures = _pictures(frames)
+    assert pictures[0] == pictures[1] == pictures[2]
+    assert "PAUSED" in frames[1]
+
+
+def test_paused_tier_redraw_reuses_the_captured_visual_clock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A held tier change redraws at the displayed instant, not before its visual lead."""
+    from agentic_av import native
+
+    real_stage = native.Stage
+    clocks: list[tuple[float, float]] = []
+
+    class RecordingStage:
+        def __init__(self, *args, **kwargs):
+            self.stage = real_stage(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.stage, name)
+
+        def frame(self, t, tau, *, motion):
+            clocks.append((t, tau))
+            return self.stage.frame(t, tau, motion=motion)
+
+    monkeypatch.setattr(native, "Stage", RecordingStage)
+    _play(
+        tmp_path,
+        _forest_html(),
+        1,
+        FOREST_ALBUM,
+        b"",
+        keys_after_frames={1: b" ", 2: b"g"},
+        quit_after_frames=4,
+        tick_s=0.5,
+    )
+    assert len(clocks) == 2
+    assert clocks[0] == clocks[1]
+
+
+def test_g_cycles_tier_and_explicit_tier_overrides_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The actual consumer sees the tier selection and its runtime replacement."""
+    monkeypatch.setenv("AAV_GLYPHS", "invalid-but-ignored-by-explicit")
+    _, frames = _play(
+        tmp_path,
+        _forest_html(),
+        1,
+        FOREST_ALBUM,
+        b"g",
+        quit_after_frames=2,
+        glyphs="half",
+    )
+    assert "half" in frames[0]
+    assert "braille" in frames[1]
+    assert _pictures(frames)[0] != _pictures(frames)[1]
+
+
+def test_auto_tier_honors_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Native auto selects AAV_GLYPHS before consulting the terminal hint."""
+    monkeypatch.setenv("AAV_GLYPHS", "ascii")
+    _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q", glyphs="auto")
+    assert "ascii" in frames[0]
+
+
+def test_analysis_failure_is_visible_and_audio_still_starts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A quiet scene is an explicit degraded mode, not fabricated live analysis."""
+
+    def fail(*_args):
+        raise AudioError("ffmpeg unavailable")
+
+    monkeypatch.setattr("agentic_av.native.load_features", fail)
+    players, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q")
+    assert players[0].closed
+    assert "analysis unavailable" in frames[0]
+    assert any(char.strip() for row in _pictures(frames)[0] for char in row)
+
+
+def test_output_boundary_writes_utf8_bytes_to_binary_buffer() -> None:
+    """Text streams decode explicitly; a real TextIOWrapper uses its byte buffer."""
+    import io
+
+    buffer = io.BytesIO()
+    stream = io.TextIOWrapper(buffer, encoding="utf-8")
+    payload = "─ mosaic".encode()
+    _write_output(stream, payload)
+    assert buffer.getvalue() == payload
+
+
+def test_output_boundary_rejects_short_writes() -> None:
+    """Transport errors must propagate instead of silently losing half a frame."""
+
+    class Short:
+        def write(self, value):
+            return len(value) - 1
+
+        def flush(self):
+            pass
+
+    with pytest.raises(OSError, match="short terminal"):
+        _write_output(Short(), b"frame")
+
+
+def test_analysis_is_single_flight_across_simultaneous_movements(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A next-movement prefetch and foreground open share one cache publication."""
+    from agentic_av.native import NativeAlbum, TrackData
+
+    entered = threading.Event()
+    release = threading.Event()
+    features = analyze(np.zeros((2205, 2), dtype=np.float32))
+    calls = []
+
+    def load(*_args):
+        calls.append(True)
+        entered.set()
+        assert release.wait(2)
+        return features
+
+    monkeypatch.setattr("agentic_av.native.load_features", load)
+    album = NativeAlbum((TrackData(tmp_path / "mix.mp3"),) * 2, "coupon")
+    first = threading.Thread(target=movement_signals, args=(album, 0))
+    second = threading.Thread(target=movement_signals, args=(album, 1))
+    first.start()
+    assert entered.wait(2)
+    second.start()
+    release.set()
+    first.join(2)
+    second.join(2)
+    assert not first.is_alive() and not second.is_alive()
+    assert len(calls) == 1
+
+
+def test_seeking_updates_a_held_picture(tmp_path: Path) -> None:
+    """Still mode holds between seeks, but a successful seek captures a new instant."""
+    _, frames = _play(
+        tmp_path,
+        _forest_html(),
+        1,
+        FOREST_ALBUM,
+        b"",
+        keys_after_frames={1: b"\x1b[C", 3: b"q"},
+        motion="still",
+    )
+    pictures = _pictures(frames)
+    assert pictures[0] != pictures[1]
+    assert pictures[1] == pictures[2]
+
+
+def test_large_terminal_applies_tier_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The native caller budgets the actual canvas, not just the detection default."""
+    monkeypatch.setattr("agentic_av.native._size", lambda _fd: (300, 80))
+    _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q", glyphs="octant")
+    assert "quadrant" in frames[0]
+
+
+@pytest.mark.parametrize("size", [(1, 1), (12, 4), (40, 10)])
+@pytest.mark.parametrize("mode", ["truecolor", "256", "none"])
+def test_small_terminal_frames_keep_exit_and_valid_color_transport(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, size: tuple[int, int], mode: str
+) -> None:
+    """Native output remains drawable across short/narrow grids and color modes."""
+    monkeypatch.setattr("agentic_av.native._size", lambda _fd: size)
+    _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q", color_mode=mode)
+    assert frames[0].startswith("\x1b[?2026h")
+    assert frames[0].endswith("\x1b[?2026l")
+    if size[0] >= 12:
+        assert "q back" in frames[0]
+    if mode == "none":
+        assert not re.search(r"\x1b\[[0-9;]*m", frames[0])
+
+
+def test_background_analysis_never_delays_quit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The next movement can remain in analysis after the audio controller closes."""
+    started = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    features = analyze(np.zeros((2205, 2), dtype=np.float32))
+    calls = []
+
+    def load(*_args):
+        calls.append(True)
+        if len(calls) > 1:
+            started.set()
+            assert release.wait(3)
+            finished.set()
+        return features
+
+    monkeypatch.setattr("agentic_av.native.load_features", load)
+    try:
+        players, _ = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"", quit_after_frames=2)
+        assert started.wait(1)
+        assert players[0].closed
+        assert not finished.is_set()
+    finally:
+        release.set()
+        assert finished.wait(2)
+
+
+def test_section_and_hairline_are_visible_in_transport(tmp_path: Path) -> None:
+    """The source score reaches listener-visible section text and progress ticks."""
+    _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q")
+    assert "Ground" in frames[0]
+    assert "\x1b[23;1H" in frames[0]
+    assert "│" in frames[0] and "─" in frames[0]
+
+
+@pytest.mark.parametrize(
+    ("motion", "cost_s", "expected_s"),
+    [("full", 0.01, 1 / 30 - 0.01), ("still", 0.01, 0.19), ("full", 0.1, 0)],
+)
+def test_frame_deadlines_drop_slow_work_without_queued_catchup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    motion: str,
+    cost_s: float,
+    expected_s: float,
+) -> None:
+    """Each loop subtracts only this frame's measured cost from its own cadence."""
+    from types import SimpleNamespace
+
+    ticks = iter(index * cost_s for index in range(20))
+    monkeypatch.setattr("agentic_av.native.time", SimpleNamespace(monotonic=lambda: next(ticks)))
+    import select
+
+    real_select = select.select
+    waits = []
+
+    def observe(read, write, error, timeout):
+        waits.append(timeout)
+        return real_select(read, write, error, timeout)
+
+    monkeypatch.setattr("agentic_av.native.select.select", observe)
+    _play(
+        tmp_path,
+        _forest_html(),
+        1,
+        FOREST_ALBUM,
+        b"",
+        quit_after_frames=2,
+        motion=motion,
+        tick_s=0.1,
+    )
+    assert waits == pytest.approx([expected_s, expected_s])
