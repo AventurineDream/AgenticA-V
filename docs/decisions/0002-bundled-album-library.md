@@ -21,3 +21,13 @@ Aven approved public bundling of Nurse Log, *The Forest Has a Pocket* (A-02). Th
 ## Amendment: selected cover for A-02
 
 Aven directly approved public bundling of the selected cover for A-02 with the album, on 2026-11-18. The package adds `artwork/nurse-log-the-forest-has-a-pocket.jpg`: the selected JPEG `05_Selected-Artwork_Photo-3.jpg` from the A-02 album folder, 1024×1024 pixels, 370,848 bytes, SHA-256 `e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6`, verified against the selection receipt. Its bytes stay identical to the receipt. EXIF metadata contains orientation, resolution, sRGB color space, and pixel dimensions; there is no GPS, XMP, or ICC data. The catalog records this cover on A-02 alone. This amendment grants no approval for candidate artwork, the source archive, stems, or other images. The four A-01 selected cover images were not available to this build, so their artwork remains unbundled.
+
+## Amendment 2026-11-18: CC0 for bundled albums, MIT for code
+
+Aven decided the repository license on 2026-11-18: code under the MIT License
+(LICENSE) and the bundled albums (audio and bundled cover art) dedicated to
+the public domain under CC0 (LICENSE-CC0). Material not bundled in this
+repository stays out and is not covered. This amendment supersedes the "not a
+license change" and "grants no open license" language above; those lines
+record the position at the time this decision was written, before the license
+was applied.

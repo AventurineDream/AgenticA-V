@@ -18,6 +18,7 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- License the repository: code under the MIT License (LICENSE); the bundled albums and bundled cover art dedicated to the public domain under CC0 (LICENSE-CC0). Material not bundled in this repository stays out and is not covered.
 - Replace the legacy glyph port with 31 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
 - Add automatic terminal glyph selection, `--glyphs`, `AAV_GLYPHS`, and runtime `g` cycling. Large canvases step down their sub-pixel tier.
 - Native playback targets 30 fps (5 transport updates/s when paused or still), batches one synchronized write per frame, and skips unchanged canvas rows. Add section names, progress, and section ticks to transport.
