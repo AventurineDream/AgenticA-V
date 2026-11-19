@@ -215,10 +215,10 @@ def _radiance_markers(html: str) -> dict[str, float]:
 
 
 def normalize_track(family: str, track: Mapping[str, Any], html: str = "") -> dict[str, Any]:
-    """Normalize the four bundled score layouts into a JSON-safe payload.
+    """Normalize the bundled score layouts into a JSON-safe payload.
 
     Args:
-        family: coupon, aquatic, forest, or rooms; unknown families stay empty.
+        family: coupon, aquatic, forest, pocket, or rooms; unknown families stay empty.
         track: Original movement metadata/events; aquatic kinds/voices can be
             supplied from the root object under the same keys.
         html: Original page for aquatic palettes and rooms radiance timing.
@@ -262,6 +262,24 @@ def normalize_track(family: str, track: Mapping[str, Any], html: str = "") -> di
                 vel,
                 pan,
                 _GM_DRUMS.get(int(midi), "") if part == "drums" else "",
+            )
+    elif family == "pocket":
+        # Source rows are objects whose times are already seconds, timing offsets included.
+        for row in raw:
+            part = str(row["part"])
+            if part == "drums":
+                kind = _GM_DRUMS.get(int(row["midi"]), "")
+            else:
+                kind = str(row.get("kind", ""))
+            add(
+                part,
+                row["time"],
+                row["duration"],
+                row["midi"],
+                row["velocity"],
+                row.get("pan", 0),
+                kind,
+                row.get("voice", ""),
             )
     elif family == "aquatic":
         source_kinds = track.get("kinds", _AQUATIC_KINDS)

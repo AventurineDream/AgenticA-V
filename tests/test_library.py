@@ -1,6 +1,7 @@
 """Album catalog order, library frame bounds, deep links, and command dispatch."""
 
 import gzip
+import hashlib
 from importlib.resources import files
 from pathlib import Path
 
@@ -73,13 +74,25 @@ _AUTHORIZED = (
         "quiet-machinery-atlas-unlit-rooms.html.gz",
         (0, 288, 540, 816, 1080, 1320),
     ),
+    (
+        "Nurse Log",
+        "The Forest Has a Pocket",
+        1604,
+        "nurse-log-the-forest-has-a-pocket.html.gz",
+        (0, 272, 532, 784, 1076, 1284),
+    ),
 )
 
 
-def test_public_catalog_is_the_four_authorized_albums() -> None:
-    """Band is the album artist, and only the completed A-01 albums are listed."""
+_POCKET_ASSET = "nurse-log-the-forest-has-a-pocket.html.gz"
+_POCKET_GZ_SHA256 = "bd7887dc5884230721fa3be9cd508697b0231fe6bdb8ced521b8f9770fec50a3"
+_POCKET_HTML_SHA256 = "5b0387575231b1ef29d7c881a10f672688218b3099640399b8319690d0205a87"
+
+
+def test_public_catalog_is_the_authorized_albums() -> None:
+    """Band is the album artist; four A-01 albums and the approved A-02 album are listed."""
     validate_catalog()
-    assert len(ALBUMS) == 4
+    assert len(ALBUMS) == 5
     assert all(album.artist == album.band for album in ALBUMS)
     found = {
         (album.artist, album.title, album.duration_s, album.asset): tuple(
@@ -98,6 +111,45 @@ def test_public_catalog_is_the_four_authorized_albums() -> None:
         if not path.name.startswith(".")
     )
     assert names == sorted(album.asset for album in ALBUMS)
+
+
+def test_pocket_catalog_metadata_and_archive_match_the_approved_source() -> None:
+    """A-02 is the sixth album: exact movements and the approved, unaltered page.
+
+    The hashes come from the approved source HTML and the packaged gzip, so a replaced or
+    re-encoded archive fails here before it can ship.
+    """
+    pocket = next(album for album in ALBUMS if album.asset == _POCKET_ASSET)
+    assert (pocket.artist, pocket.band, pocket.title) == (
+        "Nurse Log",
+        "Nurse Log",
+        "The Forest Has a Pocket",
+    )
+    assert pocket.duration_s == 1604
+    assert [track.title for track in pocket.tracks] == [
+        "A Root Learns the Offbeat",
+        "Rain in the Hinges",
+        "Bark, Bent Light",
+        "The Canopy Has Elbows",
+        "Five Spaces for a Fern",
+        "The Forest Has a Pocket",
+    ]
+    starts = [track.start_s for track in pocket.tracks]
+    ends = [*starts[1:], pocket.duration_s]
+    assert [end - start for start, end in zip(starts, ends, strict=True)] == [
+        272,
+        260,
+        252,
+        292,
+        208,
+        320,
+    ]
+    data = files("agentic_av").joinpath("albums", _POCKET_ASSET).read_bytes()
+    assert len(data) == 49_982_951
+    assert hashlib.sha256(data).hexdigest() == _POCKET_GZ_SHA256
+    html = gzip.decompress(data)
+    assert len(html) == 72_058_058
+    assert hashlib.sha256(html).hexdigest() == _POCKET_HTML_SHA256
 
 
 def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
@@ -152,7 +204,7 @@ def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
         for entry in public
     ]
     assert keys == sorted(keys)
-    assert len(public) == 25
+    assert len(public) == 31
     titles = [entry.track.title for entry in public]
     assert titles.index("We Kept the Receipt") < titles.index("An Uneven Kindness")
     assert titles.index("The Water Learns Major") < titles.index("Under Six Feet of Moss")

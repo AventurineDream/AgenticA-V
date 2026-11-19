@@ -7,16 +7,18 @@ All notable changes to this project are documented here.
 ### Added
 
 - Add the final piano-camera app icon set (v2.2) under `assets/icons/piano-camera-icons-final/`: default orange-on-teal plus eight color variants, full AppIcon.iconsets, .icns files, and a macOS menu bar template icon.
-- Add an album library. Bare `aav play` selects from four authorized public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
+- Add an album library. Bare `aav play` selects from five public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
 - `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
-- Bundle the four completed A-01 album players as gzip HTML. All rights remain reserved.
+- Bundle the four completed A-01 album players as gzip HTML, plus *The Forest Has a Pocket* (Nurse Log, A-02) under Aven's single-album approval dated 2026-11-18. All rights remain reserved; the approval grants no open license.
+- Add *The Forest Has a Pocket* visuals: six numpy scenes (root, rain, spiral, canopy, spores, river) in a `pocket` family, separate from the A-01 forest painter.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
+- Show the approved A-02 cover as a still panel beside the native player's stage. Its SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
 
 ### Changed
 
-- Replace the legacy glyph port with 25 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
+- Replace the legacy glyph port with 31 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
 - Add automatic terminal glyph selection, `--glyphs`, `AAV_GLYPHS`, and runtime `g` cycling. Large canvases step down their sub-pixel tier.
 - Native playback targets 30 fps (5 transport updates/s when paused or still), batches one synchronized write per frame, and skips unchanged canvas rows. Add section names, progress, and section ticks to transport.
 - Add scene previews, benchmarks, and a conservative regional flash-risk regression meter. This is not flash-safety certification.

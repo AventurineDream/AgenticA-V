@@ -2,11 +2,11 @@
 
 `aav play` with no show or scene opens the album library. `aav demo`, and `aav play` with `--show` or `--scene`, render abstract terminal programs. `preview`, `themes`, and `gallery` stay on that visual path.
 
-Four completed public albums are bundled as self-contained HTML players. All rights remain reserved. Enter plays native audio with a new audio-reactive mosaic scene; `o` opens cached HTML at the movement start instead. Browser autoplay still requires a Play click.
+Five albums are bundled as self-contained HTML players: the four completed A-01 albums, and A-02 under the single-album approval dated 2026-11-18 (ADR 0002). All rights remain reserved. Enter plays native audio with a new audio-reactive mosaic scene; `o` opens cached HTML at the movement start instead. Browser autoplay still requires a Play click.
 
 ## Album library
 
-`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums belong in the catalog.
+`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums and the A-02 album approved on 2026-11-18 belong in the catalog; ADR 0002 records that exception. The A-02 record also names its approved cover file and SHA-256 (`CoverArt`); `validate_catalog` checks their form.
 
 `library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
 
@@ -62,6 +62,8 @@ cursor writes and skips unchanged rows. Native adds progress/status and one
 Binary TTY buffers receive UTF-8 bytes; text-only output streams receive an
 explicit UTF-8 decode. Short writes fail visibly.
 
+The cover panel is still image data, not scene data. An album with a catalog cover keeps a panel left of the stage when six canvas rows and a 30-column stage remain. With a square cover and 2:1 terminal cells, it fits from 44 columns; taller cells or a nonsquare cover change that threshold. `viz/cover.py` checks the JPEG's SHA-256 before Pillow decodes it, then renders it through the same encoder at a column offset. A new movement, a resize, or a tier change repaints the whole canvas; with a panel, the canvas rows are erased first in the same synchronized write. A failed check omits the panel and notes it in the transport.
+
 Glyph selection is explicit `--glyphs`, otherwise `AAV_GLYPHS` then conservative
 terminal detection: kitty octants, Linux/dumb ASCII, otherwise half-blocks.
 `g` cycles all tiers. A ~110k sub-pixel budget steps large mosaics down through
@@ -101,7 +103,9 @@ The abstract demo transport is a monotonic visual clock, not an audio player. Pa
 - `library.py`: library frame, Enter/`o` dispatch, versioned cache materialization, and browser deep link.
 - `native.py`: album audio and score extraction with a JSON score cache, the mpv/ffplay players, and the playback loop.
 - `viz/`: numpy surfaces, drawing/effects, audio and score queries, mosaic fitting, encoding, Stage, album scenes, previews, and regional risk measurement.
+- `viz/cover.py`: hash-checked JPEG decoding and bounded mosaic rendering for album covers.
 - `albums/*.html.gz`: authorized public album players. Read-only package data.
+- `artwork/*.jpg`: the approved A-02 cover. Read-only package data, hash-checked on load.
 - `palette.py` and `omarchy.py`: role definitions and read-only theme resolution.
 - `field.py`: deterministic abstract luminance/hue samples.
 - `paint.py`: fixed-grid composition, half-block stage, theme-atlas cards, and ANSI serialization.

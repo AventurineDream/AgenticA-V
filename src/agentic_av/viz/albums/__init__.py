@@ -8,7 +8,7 @@ from importlib import import_module
 
 from ..scene import Movement, Scene
 
-_FAMILIES = frozenset(("coupon", "aquatic", "forest", "rooms"))
+_FAMILIES = frozenset(("coupon", "aquatic", "forest", "pocket", "rooms"))
 
 
 def build_scene(movement: Movement) -> Scene:

@@ -9,6 +9,11 @@ The playback loop owns picture time, input, and synchronized frame writes.
 Analysis failures keep audio playable with an explicit quiet-visuals note.
 Prefetch workers are daemon threads and never delay terminal cleanup.
 The packaged archive is never modified.
+
+The stage shares its rows with a catalog cover when one is available. The
+still panel sits at the left edge and is repainted after a layout or scene
+change. It is omitted silently when too narrow or short; a cover that fails
+verification is omitted and noted in the transport.
 """
 
 from __future__ import annotations
@@ -35,7 +40,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from agentic_av.catalog import (
+    Album,
     CatalogEntry,
     bundled_assets,
     format_clock,
@@ -59,6 +67,7 @@ from agentic_av.tty import (
 )
 from agentic_av.viz.audio import AudioError, Features, Segment, load_features
 from agentic_av.viz.caps import budget_tier, cell_aspect, detect_tier
+from agentic_av.viz.cover import ArtworkError, load_cover, render_cover
 from agentic_av.viz.encode import SYNC_BEGIN, SYNC_END
 from agentic_av.viz.glyphs import TIER_ORDER, TIERS
 from agentic_av.viz.scene import Movement
@@ -75,6 +84,12 @@ _SEEK_STEP_S = 10.0
 # movement's position) must not end the new movement at once.
 _SETTLE_S = 1.0
 _ANALYSIS_LOCK = threading.Lock()
+# Cover panel: at most 40% of the width, two blank columns before the stage, and omitted
+# rather than shrunk below these sizes, so the stage always keeps its minimum share.
+_COVER_SHARE = 0.4
+_COVER_GAP = 2
+_MIN_STAGE_COLS = 30
+_MIN_COVER_ROWS = 6
 # Album asset -> (visual family, `window.<NAME>` holding album JSON).
 # Verified against each bundled archive; the names differ per player.
 _ALBUM_DATA: dict[str, tuple[str, str]] = {
@@ -83,6 +98,7 @@ _ALBUM_DATA: dict[str, tuple[str, str]] = {
     "coupon-seance-saturn.html.gz": ("coupon", ""),
     "drowning-collective-are-we-fish.html.gz": ("aquatic", "BAND02_VISUAL_EVENTS"),
     "nurse-log-ground-moves-anyway.html.gz": ("forest", "NURSE_LOG_ALBUM"),
+    "nurse-log-the-forest-has-a-pocket.html.gz": ("pocket", "NL2_ALBUM"),
     "quiet-machinery-atlas-unlit-rooms.html.gz": ("rooms", "QUIET_MACHINERY"),
 }
 
@@ -169,8 +185,8 @@ def _track_audio(html: str, tracks: list[Any], family: str) -> list[tuple[str, f
     """Return ``(base64 payload, offset_s)`` per movement.
 
     Coupon stores one album mix, so every movement shares it and starts at
-    its `start`. The other three store one MP3 per movement: Nurse Log and
-    Quiet Machinery inline a data URI in each track's `audio`; Drowning's
+    its `start`. Every other album stores one MP3 per movement: both Nurse Log albums
+    and Quiet Machinery inline a data URI in each track's `audio`; Drowning's
     `audio` is a relative path keyed into its `band02-assets` manifest.
     """
     if family == "coupon":
@@ -209,7 +225,7 @@ def _album_json(html: str, variable: str) -> dict[str, Any] | None:
 def _coupon_tracks(html: str) -> list[dict[str, Any]] | None:
     """Return Coupon Seance's `const tracks=[...]` array as dicts, or None.
 
-    This album's player predates the `window.<NAME>` JSON the other three
+    This album's player predates the `window.<NAME>` JSON the other albums
     use; its movements live in a JS array literal with unquoted keys and
     single-quoted string values.
     We parse it with a tolerant regex per object rather than a JS engine.
@@ -758,6 +774,147 @@ def _status_line(
     return f"{left}{middle}{gap}{right} "
 
 
+@dataclass(frozen=True, slots=True)
+class _Panel:
+    """Terminal placement with a one-based top row and zero-based left column.
+
+    Attributes:
+        top: One-based terminal row of the panel's top edge.
+        left: Zero-based column offset of the panel's left edge.
+        cols: Panel width in character cells.
+        rows: Panel height in character cells.
+    """
+
+    top: int
+    left: int
+    cols: int
+    rows: int
+
+
+@dataclass(frozen=True, slots=True)
+class _Layout:
+    """Column split of the canvas rows between the stage and an optional cover.
+
+    Attributes:
+        stage_left: Zero-based column offset of the stage's first cell.
+        stage_cols: Stage width in character cells.
+        cover: Panel for the album cover, or None when there is nothing to show.
+    """
+
+    stage_left: int
+    stage_cols: int
+    cover: _Panel | None
+
+
+def _layout(width: int, canvas_rows: int, aspect: float, ratio: float | None) -> _Layout:
+    """Place the cover left of the stage, or give the stage the whole canvas.
+
+    The panel keeps the image's own proportions. A panel `cols` wide and `rows` tall
+    spans `cols` by `rows * aspect` cell-widths of physical area, so its width over
+    height equals `cols / (rows * aspect)`. The panel is vertically centered in the
+    canvas rows. If it would fall below `_MIN_COVER_ROWS`, or the stage below
+    `_MIN_STAGE_COLS`, no panel is drawn and the stage keeps the full width.
+
+    Args:
+        width: Terminal width in character cells, positive.
+        canvas_rows: Rows shared by the stage and the panel, positive.
+        aspect: Cell height divided by cell width, positive.
+        ratio: Cover width divided by height, positive; None when there is no cover.
+
+    Returns:
+        The split for this terminal size.
+    """
+    whole = _Layout(stage_left=0, stage_cols=width, cover=None)
+    if ratio is None or canvas_rows < _MIN_COVER_ROWS:
+        return whole
+    max_cols = min(int(width * _COVER_SHARE), width - _COVER_GAP - _MIN_STAGE_COLS)
+    rows = min(canvas_rows, int(max_cols / (aspect * ratio)))
+    if rows < _MIN_COVER_ROWS:
+        return whole
+    cols = min(max_cols, int(rows * aspect * ratio))
+    return _Layout(
+        stage_left=cols + _COVER_GAP,
+        stage_cols=width - cols - _COVER_GAP,
+        cover=_Panel(top=1 + (canvas_rows - rows) // 2, left=0, cols=cols, rows=rows),
+    )
+
+
+def _cover_tier(tier: str) -> str:
+    """Return the mosaic tier that draws the cover.
+
+    ASCII stays ASCII for consoles. Every other tier draws the cover with half blocks,
+    the most widely rendered glyphs, so the still panel does not depend on finer glyphs.
+
+    Args:
+        tier: The stage's budgeted tier key.
+
+    Returns:
+        ``"ascii"`` or ``"half"``.
+    """
+    return "ascii" if tier == "ascii" else "half"
+
+
+def _cover_pixels(album: Album) -> tuple[np.ndarray | None, str]:
+    """Load the album's approved cover, reporting a failed verification as a note.
+
+    Args:
+        album: Album whose catalog record may name a cover.
+
+    Returns:
+        Pixels and no note when the cover loads; ``(None, "")`` when the album has no
+        cover; or ``(None, note)`` when a recorded cover fails verification.
+    """
+    if album.cover is None:
+        return None, ""
+    try:
+        return load_cover(album.cover.asset, album.cover.sha256), ""
+    except ArtworkError:
+        return None, "cover art unavailable"
+
+
+def _canvas_prefix(
+    layout: _Layout, pixels: np.ndarray | None, canvas_rows: int, tier: str, color_mode: str
+) -> bytes:
+    """Return the bytes that repaint the cover panel after a layout or scene change.
+
+    The canvas rows are erased first, because a previous layout may have left stage
+    pixels in the panel and gap columns. Color modes reset SGR before erasing so an
+    erased cell takes the default background, not the last stage cell's color. The stage
+    rewrites its own columns in the same frame, since the caller invalidated its row state.
+
+    Args:
+        layout: Current column split.
+        pixels: Decoded cover, or None.
+        canvas_rows: Rows shared by the stage and the panel, positive.
+        tier: The stage's budgeted tier; the cover uses `_cover_tier` of it.
+        color_mode: ``truecolor``, ``256``, or ``none``.
+
+    Returns:
+        Cursor-addressed bytes inside the caller's synchronized frame. Empty when the
+        layout has no cover.
+    """
+    panel = layout.cover
+    if panel is None or pixels is None:
+        return b""
+    reset = b"" if color_mode == "none" else b"\x1b[0m"
+    erase = reset + b"".join(b"\x1b[%d;1H\x1b[2K" % row for row in range(1, canvas_rows + 1))
+    art = render_cover(
+        pixels,
+        cols=panel.cols,
+        rows=panel.rows,
+        tier=_cover_tier(tier),
+        color_mode=color_mode,
+        top=panel.top,
+        left=panel.left,
+    )
+    return erase + art
+
+
+def _joined_notes(*notes: str) -> str:
+    """Join the non-empty transport notes with the status line's separator."""
+    return " · ".join(note for note in notes if note)
+
+
 def _movement(
     entry: CatalogEntry, family: str, data: TrackData, index: int, count: int
 ) -> Movement:
@@ -875,6 +1032,10 @@ def play_native(
     browser launch, mpv/ffplay get no stdin, so nothing needs the terminal
     restored and the child cannot eat keys.
 
+    An album with a catalog cover shows it in a panel left of the stage. The panel
+    is omitted silently when the terminal is too narrow or short; a cover that fails
+    verification is omitted and noted in the transport.
+
     Args:
         entry: Selected movement.
         album_entries: Catalog entries; only those of `entry`'s album are
@@ -928,8 +1089,19 @@ def play_native(
     index = next((i for i, e in enumerate(entries) if e.track.number == entry.track.number), 0)
     requested_tier = detect_tier(os.environ) if glyphs == "auto" else glyphs
     canvas_rows = max(1, height - (2 if height >= 10 else 1))
-    tier = budget_tier(requested_tier, width, canvas_rows)
-    stage = Stage(width, canvas_rows, tier=tier, color_mode=color_mode, cell_aspect=cell_aspect(fd))
+    aspect = cell_aspect(fd)
+    cover_pixels, cover_note = _cover_pixels(entry.album)
+    ratio = None if cover_pixels is None else cover_pixels.shape[1] / cover_pixels.shape[0]
+    layout = _layout(width, canvas_rows, aspect, ratio)
+    tier = budget_tier(requested_tier, layout.stage_cols, canvas_rows)
+    stage = Stage(
+        layout.stage_cols,
+        canvas_rows,
+        tier=tier,
+        color_mode=color_mode,
+        cell_aspect=aspect,
+        left=layout.stage_left,
+    )
     anchor_scene = anchor_clock = 0.0
     scene_s = 0.0
     captured_clock: tuple[float, float] | None = None
@@ -939,6 +1111,7 @@ def play_native(
     playing = True
     note = ""
     dirty = True
+    repaint = False
     pending_open = True
     opened_at = 0.0
     prefetch: threading.Thread | None = None
@@ -1014,7 +1187,11 @@ def play_native(
                 features, score = signal_data
                 movement = _movement(entries[index], album.family, data, index, len(entries))
                 stage.open(movement, features, score)
-                note = "" if features is not None else "audio analysis unavailable · quiet visuals"
+                stage.repaint()
+                note = _joined_notes(
+                    "" if features is not None else "audio analysis unavailable · quiet visuals",
+                    cover_note,
+                )
                 player = factory(data.audio, data.offset_s)
                 pending_open = False
                 # A fresh player's clock can still report the previous
@@ -1026,7 +1203,7 @@ def play_native(
                 # `started` is this iteration's clock read, so recording it
                 # costs no extra tick.
                 opened_at = started
-                dirty = True
+                dirty = repaint = True
                 captured_clock = None
             # No executor shutdown/join: analysis must never hold q or SIGTERM hostage.
             next_index = (index + 1) % len(entries)
@@ -1043,13 +1220,14 @@ def play_native(
             if size != (width, height):
                 width, height = size
                 canvas_rows = max(1, height - (2 if height >= 10 else 1))
-                stage.resize(width, canvas_rows)
-                dirty = True
-            desired_tier = budget_tier(requested_tier, width, canvas_rows)
+                layout = _layout(width, canvas_rows, aspect, ratio)
+                stage.resize(layout.stage_cols, canvas_rows, left=layout.stage_left)
+                dirty = repaint = True
+            desired_tier = budget_tier(requested_tier, layout.stage_cols, canvas_rows)
             if desired_tier != tier:
                 tier = desired_tier
                 stage.set_tier(tier)
-                dirty = True
+                dirty = repaint = True
             elapsed = max(0.0, _position(player, data.offset_s) - data.offset_s)
             if playing:
                 scene_s = max(0.0, anchor_scene + (elapsed - anchor_clock) * _MOTION_RATES[motion])
@@ -1066,6 +1244,10 @@ def play_native(
                 dirty = False
             if height == 1:
                 canvas = b""
+            prefix = b""
+            if repaint:
+                prefix = _canvas_prefix(layout, cover_pixels, canvas_rows, tier, color_mode)
+                repaint = False
             transport = _transport_bytes(
                 entries[index],
                 movement,
@@ -1080,7 +1262,7 @@ def play_native(
                 tier=tier,
                 note=note,
             )
-            _write_output(target, SYNC_BEGIN + canvas + transport + SYNC_END)
+            _write_output(target, SYNC_BEGIN + prefix + canvas + transport + SYNC_END)
             period = 0.2 if held else 1.0 / 30.0
             # Each deadline begins with this frame; slow draws drop frames, never catch up.
             timeout = max(0.0, period - (time.monotonic() - started))

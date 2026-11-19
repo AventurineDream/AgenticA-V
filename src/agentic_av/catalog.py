@@ -1,11 +1,14 @@
 """Typed public album catalog for the terminal library.
 
 `cli.py` lists this catalog with `aav tracks`. `library.py` paints it and
-opens one movement. Only the four completed A-01 albums authorized for
-public bundling belong here; in-progress, archive, and private albums stay
+opens one movement. Only completed albums authorized for public bundling belong
+here: the four A-01 albums, plus A-02 under Aven's narrow 2026-11-18 approval
+(decision 0002). In-progress, archive, and private albums stay
 out. Each band is both the album-artist credit and the band sort field:
 the sources have no distinct per-track musician credits, and none are
 invented. Times are seconds from the start of the album audio.
+Only an album with a `CoverArt` record shows artwork; the A-02 cover is the only one
+approved so far, and the four A-01 albums have none yet.
 """
 
 from __future__ import annotations
@@ -33,6 +36,20 @@ class Track:
 
 
 @dataclass(frozen=True, slots=True)
+class CoverArt:
+    """An approved album cover packaged under ``agentic_av/artwork``.
+
+    Attributes:
+        asset: JPEG basename. Basename only; the loader joins it to the package.
+        sha256: Lowercase hex SHA-256 of the exact shipped bytes, copied from the
+            approval receipt. The loader refuses any other bytes.
+    """
+
+    asset: str
+    sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class Album:
     """A completed public album and the filename of its bundled player.
 
@@ -44,6 +61,7 @@ class Album:
         duration_s: Album duration in seconds.
         asset: Gzip HTML filename under ``agentic_av/albums``. Basename only.
         tracks: Movements in performance order.
+        cover: Approved cover art, or None when the album has no authorized image.
     """
 
     artist: str
@@ -52,6 +70,7 @@ class Album:
     duration_s: float
     asset: str
     tracks: tuple[Track, ...]
+    cover: CoverArt | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +87,7 @@ def _album(
     duration_s: float,
     asset: str,
     tracks: tuple[tuple[float, str], ...],
+    cover: CoverArt | None = None,
 ) -> Album:
     """Build an album whose band credit is the album artist.
 
@@ -85,10 +105,12 @@ def _album(
             Track(number=index, title=name, start_s=start)
             for index, (start, name) in enumerate(tracks, start=1)
         ),
+        cover=cover,
     )
 
 
-# Authorized public archives only. Do not append in-progress or private albums.
+# Authorized public archives only: four A-01 albums, plus A-02 under the narrow
+# 2026-11-18 exception and cover in docs/decisions/0002. Do not append other albums or artwork.
 ALBUMS: tuple[Album, ...] = (
     _album(
         "Coupon Seance",
@@ -147,6 +169,24 @@ ALBUMS: tuple[Album, ...] = (
             (1320, "Antenna for the Unlit"),
         ),
     ),
+    _album(
+        "Nurse Log",
+        "The Forest Has a Pocket",
+        1604,
+        "nurse-log-the-forest-has-a-pocket.html.gz",
+        (
+            (0, "A Root Learns the Offbeat"),
+            (272, "Rain in the Hinges"),
+            (532, "Bark, Bent Light"),
+            (784, "The Canopy Has Elbows"),
+            (1076, "Five Spaces for a Fern"),
+            (1284, "The Forest Has a Pocket"),
+        ),
+        cover=CoverArt(
+            "nurse-log-the-forest-has-a-pocket.jpg",
+            "e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6",
+        ),
+    ),
 )
 
 
@@ -200,7 +240,7 @@ def validate_catalog(albums: tuple[Album, ...] | list[Album] = ALBUMS) -> None:
         albums: Albums to check. Defaults to the bundled public catalog.
 
     Raises:
-        CatalogError: A credit, asset name, track number, or start time is
+        CatalogError: A credit, asset name, cover record, track number, or start time is
             missing or out of order. Start times are seconds and must stay
             inside the album duration.
     """
@@ -218,6 +258,13 @@ def validate_catalog(albums: tuple[Album, ...] | list[Album] = ALBUMS) -> None:
         if asset in seen:
             raise CatalogError(f"duplicate album asset {asset}")
         seen.add(asset)
+        cover = album.cover
+        if cover is not None:
+            name = cover.asset
+            if name != name.strip() or "/" in name or "\\" in name or not name.endswith(".jpg"):
+                raise CatalogError(f"{album.title} cover must be a JPEG basename, not {name!r}")
+            if len(cover.sha256) != 64 or set(cover.sha256) - set("0123456789abcdef"):
+                raise CatalogError(f"{album.title} cover SHA-256 must be 64 lowercase hex digits")
         if not album.tracks:
             raise CatalogError(f"{album.title} has no movements")
         previous = -1.0

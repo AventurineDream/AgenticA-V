@@ -1,8 +1,8 @@
 # Native scene guide
 
 Native album art is a new numpy-painted interpretation, not a port of the web
-player or the former terminal glyph scenes. The 25 movements share album-specific
-materials and palettes. Audio bands and instrument notes move geometry; seeds
+player or the former terminal glyph scenes. The 31 movements across five albums
+share album-specific materials and palettes. Audio bands and instrument notes move geometry; seeds
 keep repeat renders deterministic. Quiet passages and missing analysis retain
 composed scenes rather than substituting fabricated signals.
 
@@ -64,6 +64,25 @@ rims, wind bends space, and bass supplies weight. Dust belongs inside light.
 4. **Lattice:** oblique Voronoi salt plates, widening faults, and halite vertices.
 5. **Void:** an almost empty plaster room holds one small warm light.
 6. **Dawn:** a seven-fork aerial opens a copper horizon, then closes to one point.
+
+## Nurse Log — *The Forest Has a Pocket*
+
+A pocket of the same forest, drawn as a groove-locked picture: a root lattice, hinged
+rain, a bent bark spiral, elbowed canopy branches, fern spaces, and a braided river.
+Geometry follows picture time and smoothed envelopes; score notes place only small marks.
+
+1. **A Root Learns the Offbeat:** a rectilinear root lattice grows, and the bass takes root
+   at its nodes.
+2. **Rain in the Hinges:** slanted rain passes seven hinges whose knuckles flex with the snare.
+3. **Bark, Bent Light:** a three-arm spiral unwinds and bends with the guitar's weight.
+4. **The Canopy Has Elbows:** branches hang from the top edge and turn at right angles on a
+   shared grid.
+5. **Five Spaces for a Fern:** five fern spaces sway on a five-beat cycle while spores climb.
+6. **The Forest Has a Pocket:** nine strands braid toward one horizon, locked to a four-beat pocket.
+
+## Cover panel
+
+*The Forest Has a Pocket* shows its approved cover, a 1024×1024 photo, in a panel at the left of the stage. The panel keeps the photo's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
 
 ## Display and motion
 
