@@ -80,6 +80,21 @@ uv run aav play --theme phosphor
 
 Nine built-ins are included: tungsten, phosphor, broadcast, newsprint, signal, glacier, carbon, marigold, and void. `omarchy`, `sync`, and `system` load the active Omarchy theme read-only. If unavailable, playback falls back to tungsten. `AAV_THEME` sets the default; `--theme` overrides it. `NO_COLOR`, `TERM=dumb`, a terminal without advertised color, and `--no-color` disable color escapes. Interactive output still uses cursor/control sequences. Native scenes use album palettes; the active theme colors their transport.
 
+### App icon
+
+The piano-camera icon set lives under `assets/icons/piano-camera-icons-final/`: the default orange-on-teal set plus eight color variants, each with a 1024 PNG, SVG masters, a full AppIcon.iconset, and a macOS .icns, plus a menu-bar template icon.
+
+```bash
+uv run aav icons            # list the nine variants
+uv run aav icons pick red-orange   # save the choice and install it
+uv run aav icons install    # install the saved variant (or the default)
+uv run aav icons show       # saved variant and install state
+```
+
+On Linux, `install` writes `~/.local/share/applications/agentic-av.desktop` (which launches `aav play` in a terminal) and the chosen variant's iconset PNGs into `~/.local/share/icons/hicolor/` (plus the menu-bar template as `agentic-av-menubar` at 18/36/54), then refreshes the desktop and icon caches when their tools exist. Only files this app owns are written; no desktop or Omarchy configuration is edited. The choice is saved in `~/.config/agentic-av/icons.toml`.
+
+macOS has no app bundle in this repository, so `install` there reports the chosen variant's .icns path instead of installing; the picker still saves the choice. The menu-bar template has no color variants and no consumer in this repository yet, so it is not installed.
+
 Color frames sample the field twice per cell. `aav gallery` prints one stage frame for each built-in theme.
 
 A show TOML file requires `title`, positive `duration` in seconds, and a non-empty list of `programs` (`garden`, `aperture`, `scan`, `tide`). Optional `detail` and integer `tempo` fields are shown in the player.
