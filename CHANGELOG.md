@@ -6,6 +6,7 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Add `aav icons`: list the nine piano-camera icon variants, pick one to save and install, install the saved choice, and show the install state. On Linux, install writes `agentic-av.desktop` and the chosen variant's iconset PNGs into the hicolor theme under `~/.local/share`; the choice is saved in `~/.config/agentic-av/icons.toml`. The default variant installs when no choice is saved. macOS reports the chosen variant's .icns path instead of installing, since this repository has no app bundle.
 - Add the final piano-camera app icon set (v2.2) under `assets/icons/piano-camera-icons-final/`: default orange-on-teal plus eight color variants, full AppIcon.iconsets, .icns files, and a macOS menu bar template icon.
 - Add an album library. Bare `aav play` selects from five public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
 - `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.

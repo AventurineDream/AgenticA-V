@@ -1,9 +1,10 @@
-"""Command-line interface for the album library, themes, and visual play.
+"""Command-line interface for the album library, themes, visual play, and icon.
 
 `tracks` prints the public catalog without a TTY. Bare `play` opens the
 album library. `demo`, and `play` with `--show` or `--scene`, keep the
-abstract visual player. The library never rewrites bundled album archives
-or Omarchy configuration.
+abstract visual player. `icons` lists, picks, and installs the piano-camera
+app icon. The library never rewrites bundled album archives or Omarchy
+configuration.
 """
 
 from __future__ import annotations
@@ -13,6 +14,17 @@ import os
 import sys
 from pathlib import Path
 
+from agentic_av.icons import (
+    IconError,
+    desktop_path,
+    install,
+    installed_variant,
+    load_variant,
+    menubar_files,
+    pick_variant,
+    variant_description,
+    variant_names,
+)
 from agentic_av.omarchy import load_omarchy
 from agentic_av.paint import FrameRequest, compose, render_ansi, render_plain
 from agentic_av.palette import Palette, PaletteError, builtin_palettes
@@ -76,13 +88,15 @@ def _make_parser() -> argparse.ArgumentParser:
             "Library: j/k select, enter plays in the terminal, o opens the browser "
             "(click Play there), ? help, q quit. Album: space pause, arrows seek, "
             "n/p movement, m motion, g glyphs, q back. Visual: space play/pause, arrows seek, "
-            "t themes, m motion, ? help, q quit."
+            "t themes, m motion, ? help, q quit. Icons: `aav icons` lists the piano-camera "
+            "variants; `pick` saves and installs one, `install` applies the saved choice, "
+            "`show` reports it."
         ),
     )
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("play", "demo", "tracks", "themes", "preview", "gallery"),
+        choices=("play", "demo", "tracks", "themes", "preview", "gallery", "icons"),
         default="play",
         help="play opens the album library unless --show or --scene is set",
     )
@@ -263,6 +277,92 @@ def _tracks() -> int:
     return 0
 
 
+def _icons_parser() -> argparse.ArgumentParser:
+    """Build the `aav icons` parser with list, pick, install, and show."""
+    parser = argparse.ArgumentParser(
+        prog="aav icons",
+        description="List, choose, and install the piano-camera app icon.",
+    )
+    subparsers = parser.add_subparsers(dest="action")
+    subparsers.add_parser("list", help="list the icon variants")
+    pick = subparsers.add_parser("pick", help="save and install one variant")
+    pick.add_argument("variant", help="variant name, or default")
+    subparsers.add_parser("install", help="install the saved variant (or the default)")
+    subparsers.add_parser("show", help="show the saved variant and install state")
+    return parser
+
+
+def _icons_list() -> int:
+    """Print the icon variants, marking the saved choice."""
+    saved = load_variant()
+    print("AAV ICONS   /   pick with `aav icons pick <variant>`\n")
+    for index, name in enumerate(variant_names(), start=1):
+        marker = "  ← saved" if name == saved else ""
+        print(f" {index:>2}  {name:<14} {variant_description(name)}{marker}")
+    if menubar_files():
+        print("Menu bar: menubar/MenuBarIconTemplate.png (template image; no color variants)")
+    return 0
+
+
+def _icons_pick(variant: str) -> int:
+    """Save an icon variant and install it, reporting what was written."""
+    result = pick_variant(variant)
+    print(f"Icon set to {variant}.")
+    print(f"Installed {len(result.icon_paths)} icon sizes and {result.desktop_path}.")
+    if not result.refreshed:
+        print("Restart your launcher to pick up the new icon.")
+    return 0
+
+
+def _icons_install() -> int:
+    """Install the saved icon variant, or the default when none is saved."""
+    result = install()
+    print(f"Installed the {result.variant} icon: {len(result.icon_paths)} sizes.")
+    print(f"Launcher: {result.desktop_path}")
+    if not result.refreshed:
+        print("Restart your launcher to pick up the new icon.")
+    return 0
+
+
+def _icons_show() -> int:
+    """Print the saved icon variant and whether it is installed."""
+    saved = load_variant()
+    installed = installed_variant()
+    launcher = desktop_path()
+    print(f"Saved icon: {saved}")
+    if installed is None:
+        print("Installed icon: none — run `aav icons install`")
+    elif installed == saved:
+        print(f"Installed icon: {saved}")
+    else:
+        print(f"Installed icon: {installed} (saved choice is {saved})")
+    print(f"Launcher: {launcher} ({'present' if launcher.is_file() else 'missing'})")
+    return 0
+
+
+def _icons_command(args: list[str]) -> int:
+    """Dispatch `aav icons` subcommands; return a process exit code.
+
+    Args:
+        args: Arguments after `icons`; an empty list lists the variants.
+
+    Returns:
+        Zero for success, 2 for an unknown variant or an unavailable install.
+    """
+    parsed = _icons_parser().parse_args(args)
+    try:
+        if parsed.action in (None, "list"):
+            return _icons_list()
+        if parsed.action == "pick":
+            return _icons_pick(parsed.variant)
+        if parsed.action == "install":
+            return _icons_install()
+        return _icons_show()
+    except (IconError, OSError) as error:
+        print(f"aav: {error}", file=sys.stderr)
+        return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch `aav` commands; return a process exit code.
 
@@ -272,6 +372,9 @@ def main(argv: list[str] | None = None) -> int:
     Returns:
         Zero for success, 2 for invalid input or unavailable interactive mode.
     """
+    args_list = list(sys.argv[1:] if argv is None else argv)
+    if args_list and args_list[0] == "icons":
+        return _icons_command(args_list[1:])
     parser = _make_parser()
     args = parser.parse_args(argv)
     try:
