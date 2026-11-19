@@ -70,6 +70,10 @@ EXTRACT_REVISION = "3"
 
 _VISUAL_LEAD_S = 0.025
 _SEEK_STEP_S = 10.0
+# Seconds a fresh movement's clock gets to settle after a seek before the
+# elapsed-time auto-advance may fire. A stale first reading (the previous
+# movement's position) must not end the new movement at once.
+_SETTLE_S = 1.0
 _ANALYSIS_LOCK = threading.Lock()
 # Album asset -> (visual family, `window.<NAME>` holding album JSON).
 # Verified against each bundled archive; the names differ per player.
@@ -936,6 +940,7 @@ def play_native(
     note = ""
     dirty = True
     pending_open = True
+    opened_at = 0.0
     prefetch: threading.Thread | None = None
     analysis_request: _AnalysisRequest | None = None
     previous_sigterm = signal.getsignal(signal.SIGTERM)
@@ -992,6 +997,13 @@ def play_native(
                                 step -= 1
                         if step:
                             index = (index + step) % len(entries)
+                            # The in-flight analysis is for the old movement.
+                            # Drop it so the next iteration starts a fresh
+                            # request for the new index instead of waiting
+                            # out the stale one; a late n/p during loading
+                            # must not make the player feel stuck and invite
+                            # a second press that overshoots by one more.
+                            analysis_request = None
                         continue
                     request, analysis_request = analysis_request, None
                     if request.error is not None:
@@ -1005,6 +1017,15 @@ def play_native(
                 note = "" if features is not None else "audio analysis unavailable · quiet visuals"
                 player = factory(data.audio, data.offset_s)
                 pending_open = False
+                # A fresh player's clock can still report the previous
+                # movement's position until its seek settles. Do not let
+                # that stale reading end the new movement (which would skip
+                # forward and can wrap to track 1). Give the seek a short
+                # window to settle; process exit still ends the movement
+                # promptly, so this only delays the elapsed-time fallback.
+                # `started` is this iteration's clock read, so recording it
+                # costs no extra tick.
+                opened_at = started
                 dirty = True
                 captured_clock = None
             # No executor shutdown/join: analysis must never hold q or SIGTERM hostage.
@@ -1109,7 +1130,7 @@ def play_native(
                             f"audio player exited with status {returncode}; playback stopped"
                         )
                     step = 1
-                elif elapsed >= duration:
+                elif started - opened_at >= _SETTLE_S and elapsed >= duration:
                     step = 1
             if step:
                 index = (index + step) % len(entries)

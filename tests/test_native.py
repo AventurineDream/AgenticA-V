@@ -419,6 +419,63 @@ def test_previous_movement_is_not_skipped_by_a_stale_position(tmp_path: Path) ->
     assert [p.offset for p in players] == [77.5, 0.0]
 
 
+def test_p_holds_when_the_new_movement_clock_is_stale(tmp_path: Path) -> None:
+    """A fresh movement's stale clock must not end it at once (issue #7).
+
+    After `p` opens the previous movement, the new player's first position
+    reading can still carry the previous movement's clock (mpv seek
+    settling). If that stale reading is already past the new movement's end,
+    judging the new movement by it would auto-advance immediately, and
+    repeated advances wrap to track 1. The player must hold the new movement
+    while the seek settles.
+    """
+    entries = [CatalogEntry(COUPON_ALBUM, track) for track in COUPON_ALBUM.tracks]
+    players: list[FakePlayer] = []
+    read_fd, write_fd = os.pipe()
+    # `p` after a few frames, then `q` soon after so the run ends inside the
+    # settle window.
+    sink = _Sink(write_fd, {4: b"p", 7: b"q"})
+    timed_out = threading.Event()
+
+    def rescue() -> None:
+        timed_out.set()
+        os.write(write_fd, b"q")
+
+    def factory(media: Path, offset: float) -> FakePlayer:
+        # First player: movement 2 (offset 77.5), honest clock. Second
+        # player: movement 1 (offset 0) whose clock reports 1000 s, far past
+        # movement 1's 77.5 s length, as a not-yet-settled seek would.
+        late = 1000.0 if players else 0.0
+        players.append(FakePlayer(media, offset, late_s=late, tick_s=0.0))
+        return players[-1]
+
+    watchdog = threading.Timer(5.0, rescue)
+    watchdog.start()
+    try:
+        result = play_native(
+            entries[1],
+            entries,
+            builtin_palettes()[0],
+            "none",
+            motion="full",
+            input_stream=_Pipe(read_fd),
+            output_stream=sink,
+            glyphs="half",
+            cache_home=tmp_path,
+            source=_gz(_coupon_html()),
+            player_factory=factory,
+        )
+    finally:
+        watchdog.cancel()
+        os.close(read_fd)
+        os.close(write_fd)
+    assert not timed_out.is_set(), "playback ignored its keys; the watchdog quit it"
+    assert result == "quit"
+    # Movement 2, then movement 1, and it stays there: the stale clock must
+    # not auto-advance it onward (which would wrap back toward track 1).
+    assert [p.offset for p in players] == [77.5, 0.0]
+
+
 def _pictures(frames: list[str]) -> list[tuple[str, ...]]:
     """Interpret cursor writes into the consumer's canvas, retaining skipped rows."""
     grid = [[" "] * 80 for _ in range(24)]
