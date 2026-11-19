@@ -1,6 +1,6 @@
 # Terminally Agentic A/V
 
-Subtitle: to be decided.
+Subtitle: Agentically crafted A/V experiences in your terminal with a community-driven library of bands and albums.
 
 ## Project direction
 
