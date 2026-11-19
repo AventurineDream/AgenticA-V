@@ -8,10 +8,10 @@ Build a reusable creative recipe and player tools for making audio-visual band w
 
 ## Roadmap
 
+Done: each band has terminal-friendly interpretations of its visuals, and the CLI player is built around them (4 A-01 albums bundled).
+
 1. Continue the planned sequence through all 16 albums.
-2. Have each band create terminal-friendly interpretations of its visuals.
-3. Build the CLI player around those interpretations.
-4. Once the process is refined, open-source the reusable recipe and tell the project story.
+2. Once the process is refined, open-source the reusable recipe and tell the project story.
 
 The open-source scope is the recipe and reusable tooling. Four completed A-01 albums are now bundled in the player; all rights remain reserved. Other band details and albums stay outside that release.
 
@@ -25,10 +25,8 @@ Code contributions are closed by default: communicate before opening a PR, and p
 
 The CLI is the priority for interactive play-along. Explore per-band instrument presets and MIDI keyboard input as the baseline, so fans can improvise over a band’s music. Computer-keyboard note input would be a welcome optional experiment if it can be made responsive and comfortable; MIDI support is sufficient on its own, so keyboard input is not a blocker.
 
-This is technically feasible. Cross-platform MIDI input backends exist; the chosen runtime, audio engine, target operating systems, and input behavior still need validation. A web play-along path is secondary to the CLI and would face narrower MIDI support: Web Audio is broadly available, while Web MIDI has limited browser availability, requires a secure context, and asks the user for permission.
+This is technically feasible. Cross-platform MIDI input backends exist; the chosen runtime, audio engine, target operating systems, and input behavior still need validation.
 
 ## Technical references
 
-- [MDN: Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
-- [MDN: Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
 - [RtMidi: cross-platform real-time MIDI input and output](https://github.com/thestk/rtmidi)
