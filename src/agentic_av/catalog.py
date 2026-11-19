@@ -7,8 +7,8 @@ here: the four A-01 albums, plus A-02 under Aven's narrow 2026-11-18 approval
 out. Each band is both the album-artist credit and the band sort field:
 the sources have no distinct per-track musician credits, and none are
 invented. Times are seconds from the start of the album audio.
-Only an album with a `CoverArt` record shows artwork; the A-02 cover is the only one
-approved so far, and the four A-01 albums have none yet.
+Only an album with a `CoverArt` record shows artwork. All five albums have one: the
+A-02 cover and the four A-01 covers Aven selected on 2026-11-18 (decision 0002).
 """
 
 from __future__ import annotations
@@ -110,7 +110,7 @@ def _album(
 
 
 # Authorized public archives only: four A-01 albums, plus A-02 under the narrow
-# 2026-11-18 exception and cover in docs/decisions/0002. Do not append other albums or artwork.
+# 2026-11-18 exception. Covers follow docs/decisions/0002. Do not append other albums or artwork.
 ALBUMS: tuple[Album, ...] = (
     _album(
         "Coupon Seance",
@@ -126,6 +126,10 @@ ALBUMS: tuple[Album, ...] = (
             (507.116625, "Return Policy for a Black Hole"),
             (622.831, "We Kept the Receipt"),
         ),
+        cover=CoverArt(
+            "coupon-seance-saturn.jpg",
+            "b44173b91ff51c4bada8fb601180858a414c931d049e429f4205049d608d1dbe",
+        ),
     ),
     _album(
         "Drowning Collective",
@@ -139,6 +143,10 @@ ALBUMS: tuple[Album, ...] = (
             (820, "Where the Downbeat Went Under"),
             (1108, "Two Notes, Then Air"),
             (1340, "The Water Learns Major"),
+        ),
+        cover=CoverArt(
+            "drowning-collective-are-we-fish.jpg",
+            "07eb2ef0caa9977f9f4f905dce13bb92fece2e6f0a049468c609dcff72c38385",
         ),
     ),
     _album(
@@ -154,6 +162,10 @@ ALBUMS: tuple[Album, ...] = (
             (1128, "Nurse Log, Open Hand"),
             (1356, "The Ground Moves Anyway"),
         ),
+        cover=CoverArt(
+            "nurse-log-ground-moves-anyway.jpg",
+            "76762a94a87b14db5f5b8a1cb2576fe3784cb9012eba710a33cad57c2ed8cbbd",
+        ),
     ),
     _album(
         "Quiet Machinery",
@@ -167,6 +179,10 @@ ALBUMS: tuple[Album, ...] = (
             (816, "Salt Geometry"),
             (1080, "An Empty Room Stays Warm"),
             (1320, "Antenna for the Unlit"),
+        ),
+        cover=CoverArt(
+            "quiet-machinery-atlas-unlit-rooms.jpg",
+            "d479b0d15146192fa17fe76f4929c3e520b4bc1c56861a4ed9bc06294901244f",
         ),
     ),
     _album(

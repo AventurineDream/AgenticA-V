@@ -88,7 +88,7 @@ A show TOML file requires `title`, positive `duration` in seconds, and a non-emp
 
 - `src/agentic_av/` — CLI, album catalog, palettes, abstract field programs, renderer, and TTY loop.
 - `src/agentic_av/albums/` — authorized public album HTML archives.
-- `src/agentic_av/artwork/` — the approved A-02 cover JPEG, hash-checked on load.
+- `src/agentic_av/artwork/` — the five approved album cover JPEGs, hash-checked on load.
 - `tests/` — isolated color, Omarchy, layout, clock, CLI, library, and input tests.
 - `docs/` — architecture and decisions.
 - `docs/plans/` — project roadmap.
@@ -103,4 +103,4 @@ All rights reserved. No open-source license has been selected. See [LICENSE](LIC
 
 ## Public scope
 
-The four completed A-01 albums are authorized for public bundling: Coupon Seance, *Saturn Has a Dollar Store*; Drowning Collective, *Are We Fish?*; Nurse Log, *The Ground Moves Anyway*; Quiet Machinery, *The Atlas of Unlit Rooms*. Nurse Log, *The Forest Has a Pocket* (A-02) is also bundled under Aven's single-album approval dated 2026-11-18. That approval supersedes the source archive's `public_release: false` flag for that album only; it does not cover the source ZIP, stems, candidate artwork, other A-02 material, or any open license. A-02's selected cover is bundled under the cover amendment in ADR 0002. The four A-01 selected cover images were not available to this build, so those albums show no cover. All rights remain reserved. In-progress, archive, and other private material stay out of this repository. The visual demo uses original abstract terminal fields only.
+The four completed A-01 albums are authorized for public bundling: Coupon Seance, *Saturn Has a Dollar Store*; Drowning Collective, *Are We Fish?*; Nurse Log, *The Ground Moves Anyway*; Quiet Machinery, *The Atlas of Unlit Rooms*. Nurse Log, *The Forest Has a Pocket* (A-02) is also bundled under Aven's single-album approval dated 2026-11-18. That approval supersedes the source archive's `public_release: false` flag for that album only; it does not cover the source ZIP, stems, candidate artwork, other A-02 material, or any open license. Each album's selected cover is bundled under the cover amendments in ADR 0002; unselected candidates stay out. All rights remain reserved. In-progress, archive, and other private material stay out of this repository. The visual demo uses original abstract terminal fields only.

@@ -14,7 +14,8 @@ All notable changes to this project are documented here.
 - Add *The Forest Has a Pocket* visuals: six numpy scenes (root, rain, spiral, canopy, spores, river) in a `pocket` family, separate from the A-01 forest painter.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
-- Show the approved A-02 cover as a still panel beside the native player's stage. Its SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
+- Show each album's approved cover as a still panel beside the native player's stage. Its SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport.
+- Bundle the four A-01 covers Aven selected on 2026-11-18, generated candidates recorded with selection receipts. All five albums now show a cover.
 
 ### Changed
 

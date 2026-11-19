@@ -1,6 +1,6 @@
-"""Verify the approved A-02 cover: receipt bytes, refusal paths, and bounded rendering.
+"""Verify the approved covers: receipt bytes, refusal paths, and bounded rendering.
 
-The receipt hash and size come from the approval record in docs/decisions/0002. Rendering
+Each receipt hash and size comes from the approval record in docs/decisions/0002. Rendering
 tests replay the emitted bytes through pyte, so they check what a terminal would show:
 which cells the panel paints, whether its gap stays clear, and whether no-color output
 carries any SGR sequence.
@@ -20,14 +20,37 @@ from agentic_av.catalog import ALBUMS, validate_catalog
 from agentic_av.viz.cover import ArtworkError, decode_cover, load_cover, render_cover
 
 _ASSET = "nurse-log-the-forest-has-a-pocket.jpg"
-_POCKET_ALBUM = "nurse-log-the-forest-has-a-pocket.html.gz"
 _RECEIPT_SHA256 = "e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6"
 _RECEIPT_BYTES = 370_848
+# album asset -> (cover asset, receipt SHA-256, receipt bytes), copied from ADR 0002.
+_RECEIPTS = {
+    "coupon-seance-saturn.html.gz": (
+        "coupon-seance-saturn.jpg",
+        "b44173b91ff51c4bada8fb601180858a414c931d049e429f4205049d608d1dbe",
+        402_633,
+    ),
+    "drowning-collective-are-we-fish.html.gz": (
+        "drowning-collective-are-we-fish.jpg",
+        "07eb2ef0caa9977f9f4f905dce13bb92fece2e6f0a049468c609dcff72c38385",
+        416_511,
+    ),
+    "nurse-log-ground-moves-anyway.html.gz": (
+        "nurse-log-ground-moves-anyway.jpg",
+        "76762a94a87b14db5f5b8a1cb2576fe3784cb9012eba710a33cad57c2ed8cbbd",
+        779_334,
+    ),
+    "quiet-machinery-atlas-unlit-rooms.html.gz": (
+        "quiet-machinery-atlas-unlit-rooms.jpg",
+        "d479b0d15146192fa17fe76f4929c3e520b4bc1c56861a4ed9bc06294901244f",
+        315_007,
+    ),
+    "nurse-log-the-forest-has-a-pocket.html.gz": (_ASSET, _RECEIPT_SHA256, _RECEIPT_BYTES),
+}
 _SGR = re.compile(r"\x1b\[[0-9;]*m")
 
 
-def _artwork_bytes() -> bytes:
-    return files("agentic_av").joinpath("artwork", _ASSET).read_bytes()
+def _artwork_bytes(asset: str = _ASSET) -> bytes:
+    return files("agentic_av").joinpath("artwork", asset).read_bytes()
 
 
 def _replay(frame: bytes | str, width: int, height: int) -> pyte.Screen:
@@ -48,29 +71,30 @@ def _painted(screen: pyte.Screen) -> set[tuple[int, int]]:
     return cells
 
 
-def test_packaged_cover_is_the_approved_receipt_file() -> None:
-    data = _artwork_bytes()
-    assert len(data) == _RECEIPT_BYTES
-    assert hashlib.sha256(data).hexdigest() == _RECEIPT_SHA256
-    pixels = load_cover(_ASSET, _RECEIPT_SHA256)
+@pytest.mark.parametrize(("asset", "sha256", "size"), list(_RECEIPTS.values()))
+def test_packaged_cover_is_the_approved_receipt_file(asset: str, sha256: str, size: int) -> None:
+    data = _artwork_bytes(asset)
+    assert len(data) == size
+    assert hashlib.sha256(data).hexdigest() == sha256
+    pixels = load_cover(asset, sha256)
     assert pixels.shape == (1024, 1024, 3)
     assert pixels.dtype == np.uint8
 
 
-def test_only_a02_records_a_cover_and_the_artwork_folder_holds_only_it() -> None:
+def test_each_album_records_its_receipt_cover_and_the_folder_holds_only_those() -> None:
     validate_catalog()
-    covered = {album.asset: album.cover for album in ALBUMS if album.cover is not None}
-    assert list(covered) == [_POCKET_ALBUM]
-    assert (covered[_POCKET_ALBUM].asset, covered[_POCKET_ALBUM].sha256) == (
-        _ASSET,
-        _RECEIPT_SHA256,
-    )
+    covered = {
+        album.asset: (album.cover.asset, album.cover.sha256)
+        for album in ALBUMS
+        if album.cover is not None
+    }
+    assert covered == {album: receipt[:2] for album, receipt in _RECEIPTS.items()}
     names = sorted(
         path.name
         for path in files("agentic_av").joinpath("artwork").iterdir()
         if not path.name.startswith(".") and path.name != "__pycache__"
     )
-    assert names == [_ASSET]
+    assert names == sorted(asset for asset, _, _ in _RECEIPTS.values())
 
 
 def test_altered_bytes_are_refused_before_decoding() -> None:

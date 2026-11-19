@@ -82,7 +82,7 @@ Geometry follows picture time and smoothed envelopes; score notes place only sma
 
 ## Cover panel
 
-*The Forest Has a Pocket* shows its approved cover, a 1024×1024 photo, in a panel at the left of the stage. The panel keeps the photo's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
+Each album shows its approved 1024×1024 cover in a panel at the left of the stage. The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. An album record without a cover keeps the full-width stage.
 
 ## Display and motion
 

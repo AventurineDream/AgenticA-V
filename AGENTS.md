@@ -33,7 +33,7 @@ uv sync --group dev
 
 ## Conventions
 
-- The four completed A-01 albums under `src/agentic_av/albums/` are authorized for public bundling. A-02, *The Forest Has a Pocket* (`nurse-log-the-forest-has-a-pocket.html.gz`), is authorized by Aven's single-album approval dated 2026-11-18 (ADR 0002). Its selected cover, `src/agentic_av/artwork/nurse-log-the-forest-has-a-pocket.jpg`, is the only bundled artwork; ADR 0002's cover amendment covers it. All rights remain reserved. Do not add other albums, in-progress work, archives, stems, source ZIPs, other artwork, or private material.
+- The four completed A-01 albums under `src/agentic_av/albums/` are authorized for public bundling. A-02, *The Forest Has a Pocket* (`nurse-log-the-forest-has-a-pocket.html.gz`), is authorized by Aven's single-album approval dated 2026-11-18 (ADR 0002). The five selected covers in `src/agentic_av/artwork/` are the only bundled artwork, one per album; ADR 0002's cover amendments cover them. All rights remain reserved. Do not add other albums, in-progress work, archives, stems, source ZIPs, unselected candidates, other artwork, or private material.
 - Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
 - Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.
@@ -54,7 +54,7 @@ Do not add private band content or choose a code/media license on Aven's behalf.
 
 - `src/agentic_av/` — CLI, album catalog, palettes, field programs, TTY runtime, and renderer.
 - `src/agentic_av/albums/` — authorized public album HTML archives. Do not overwrite them.
-- `src/agentic_av/artwork/` — the approved A-02 cover JPEG, hash-checked on load. Do not overwrite it.
+- `src/agentic_av/artwork/` — the five approved album cover JPEGs, hash-checked on load. Do not overwrite them.
 - `tests/` — isolated palette, layout, CLI, transport, library, and input tests.
 - `docs/` — architecture and decision records.
 - `docs/plans/` — project roadmap.
