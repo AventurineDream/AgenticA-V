@@ -6,6 +6,7 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Add `aav icons follow`: the installed app icon follows the live Omarchy theme. An explicit theme-to-variant table wins (blackwater -> mono-dark today; Fog's theme-matched icon files plug in as new variant directories + mapping entries when they land). Themes with no dedicated file fall back to the closest plate/body colors among the theme's light/dark family (dark themes never land on a light plate). Follow is off by default so existing manual picks are untouched; a manual `pick` turns it back off. The icon re-syncs at `aav play` startup and when the live theme changes while the visual player runs. `aav icons show` and `list` report the follow state and the followed variant.
 - Bundle *The Shape That Stays* (Drowning Collective A-02): six original instrumentals, 27:12, made by `openai-codex/gpt-6.1-sol`. Add the `undertow` native scene family, independent piano-hand score queries, six inline MP3s and an agent-proposed baseline JPEG cover. Aven's 2026-11-18 instruction authorizes making, bundling and PR; merge is publication approval and cover confirmation/swap, not listening-review approval.
 - Add `aav icons`: list the nine piano-camera icon variants, pick one to save and install, install the saved choice, and show the install state. On Linux, install writes `agentic-av.desktop` and the chosen variant's iconset PNGs into the hicolor theme under `~/.local/share`; the choice is saved in `~/.config/agentic-av/icons.toml`. The default variant installs when no choice is saved. The menu-bar template is installed alongside as `agentic-av-menubar` at 18/36/54. macOS reports the chosen variant's .icns path instead of installing, since this repository has no app bundle.
 - Add the final piano-camera app icon set (v2.2) under `assets/icons/piano-camera-icons-final/`: default orange-on-teal plus eight color variants, full AppIcon.iconsets, .icns files, and a macOS menu bar template icon.
@@ -37,6 +38,7 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- Install the variant's `AppIcon.svg` as the scalable hicolor icon. Docks prefer the scalable SVG when present, and install never wrote it, so a stale SVG could keep showing after a pick. Stale copies of the app's icon at sizes install never writes (22/24/48, left by old hand-installs) are removed for the same reason.
 - Still motion keeps the selected visual program when transport crosses a chapter. A seek, chapter skip, or leaving still updates it.
 - Canceling the theme gallery with Escape no longer changes the next theme cycle.
 - SIGTERM restores canonical mode, echo, the cursor, and the primary screen.
