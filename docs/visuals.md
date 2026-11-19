@@ -101,9 +101,25 @@ uv run python -m agentic_av.viz.preview undertow 1 --at 60 --out /tmp/undertow.p
 uv run python -m agentic_av.viz.preview undertow 6 --motion still --sheet 4 --out /tmp/estuary.png
 ```
 
+## Coupon Seance — *Buy One, Haunt One Free*
+
+Album two's perihelion shop, drawn as orbit rings, a crooked store grid and a ghost's memory
+trace, separate from the A-01 starfield. Rings follow the bass register; keys voicings sit
+on the orbit as points, with side-slips a step off it; violin and theremin leave fading lines.
+
+1. **Doors Open at Perihelion:** flat, tilted rings around a warm sun core.
+2. **Buy One, Haunt One Free:** the rings open slightly, and a tapered ghost sheet passes with a
+   dimmer copy behind it.
+3. **Price Check on Aisle Infinity:** a perspective aisle grid follows the 7/8 bar's 2+2+3 groups
+   under three ceiling tubes.
+4. **The Ghost in the Coin Return:** a tilted coin over a return slot, with coins falling back
+   through the memory trace.
+5. **Layaway for a Dying Star:** the orbit contracts toward a dimming star above a rail of tags.
+6. **We Kept the Change:** the rings reopen into arcs and the keys scatter outward as change.
+
 ## Cover panel
 
-*The Forest Has a Pocket* shows its creator-selected 1024×1024 cover; Drowning Collective A-02 shows an agent-proposed 1024×1024 baseline JPEG, pending Aven's confirmation or swap at merge. Both use the same hash-checked panel at the left of the stage. The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
+The A-02 albums — *The Forest Has a Pocket* (creator-selected cover), *The Shape That Stays* and *Buy One, Haunt One Free* (agent-proposed covers, approved at merge) — show their bundled 1024×1024 covers in a panel at the left of the stage. The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
 
 ## Display and motion
 

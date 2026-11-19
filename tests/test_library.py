@@ -89,18 +89,28 @@ _AUTHORIZED = (
         "drowning-collective-the-shape-that-stays.html.gz",
         (0, 268, 516, 808, 1084, 1316),
     ),
+    (
+        "Coupon Seance",
+        "Buy One, Haunt One Free",
+        1603,
+        "coupon-seance-buy-one-haunt-one-free.html.gz",
+        (0, 271, 530, 784, 1070, 1326),
+    ),
 )
 
 
 _POCKET_ASSET = "nurse-log-the-forest-has-a-pocket.html.gz"
 _POCKET_GZ_SHA256 = "bd7887dc5884230721fa3be9cd508697b0231fe6bdb8ced521b8f9770fec50a3"
 _POCKET_HTML_SHA256 = "5b0387575231b1ef29d7c881a10f672688218b3099640399b8319690d0205a87"
+_HAUNT_ASSET = "coupon-seance-buy-one-haunt-one-free.html.gz"
+_HAUNT_GZ_SHA256 = "6d18ba3cd44f3ad2258907a8fc7719c372de9a7d6016e0f8fa71779d2ee96be9"
+_HAUNT_HTML_SHA256 = "fa9672cdba93f7bc3a19a8689f89ebc0af865b166297baa043394274b534fced"
 
 
 def test_public_catalog_is_the_authorized_albums() -> None:
-    """Only the four debuts and the two specifically authorized A-02 albums are listed."""
+    """Band is the album artist; four A-01 albums and the approved A-02 albums are listed."""
     validate_catalog()
-    assert len(ALBUMS) == 6
+    assert len(ALBUMS) == 7
     assert all(album.artist == album.band for album in ALBUMS)
     found = {
         (album.artist, album.title, album.duration_s, album.asset): tuple(
@@ -207,6 +217,45 @@ def test_drowning_a02_metadata_and_archive_match_the_finished_album() -> None:
     assert all(t["audio"].startswith("data:audio/mpeg;base64,") for t in data["tracks"])
 
 
+def test_haunt_catalog_metadata_and_archive_match_the_built_page() -> None:
+    """Coupon Seance A-02: exact movements, the unaltered built page, and its model credit.
+
+    The hashes come from the built page and the packaged gzip, so a replaced or re-encoded
+    archive fails here. The page's album JSON must keep the model that made the album.
+    """
+    haunt = next(album for album in ALBUMS if album.asset == _HAUNT_ASSET)
+    assert (haunt.artist, haunt.band, haunt.title) == (
+        "Coupon Seance",
+        "Coupon Seance",
+        "Buy One, Haunt One Free",
+    )
+    assert [track.title for track in haunt.tracks] == [
+        "Doors Open at Perihelion",
+        "Buy One, Haunt One Free",
+        "Price Check on Aisle Infinity",
+        "The Ghost in the Coin Return",
+        "Layaway for a Dying Star",
+        "We Kept the Change",
+    ]
+    starts = [track.start_s for track in haunt.tracks]
+    ends = [*starts[1:], haunt.duration_s]
+    assert [end - start for start, end in zip(starts, ends, strict=True)] == [
+        271,
+        259,
+        254,
+        286,
+        256,
+        277,
+    ]
+    data = files("agentic_av").joinpath("albums", _HAUNT_ASSET).read_bytes()
+    assert len(data) == 38_493_904
+    assert hashlib.sha256(data).hexdigest() == _HAUNT_GZ_SHA256
+    html = gzip.decompress(data)
+    assert len(html) == 52_431_005
+    assert hashlib.sha256(html).hexdigest() == _HAUNT_HTML_SHA256
+    assert b'"made_with":{"model":"anthropic/claude-opus-5-5"' in html
+
+
 def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
     """Each sort field participates, including when artist and band differ."""
     later = Album(
@@ -259,11 +308,12 @@ def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
         for entry in public
     ]
     assert keys == sorted(keys)
-    assert len(public) == 37
+    assert len(public) == 43
     titles = [entry.track.title for entry in public]
     assert titles.index("We Kept the Receipt") < titles.index("An Uneven Kindness")
     assert titles.index("The Water Learns Major") < titles.index("Under Six Feet of Moss")
     assert titles.index("The Ground Moves Anyway") < titles.index("Copper Gravity")
+    assert titles.index("We Kept the Change") < titles.index("Customs at the Edge of Saturn")
 
 
 def test_tracks_listing_follows_catalog_order_without_ansi(capsys) -> None:
@@ -424,8 +474,7 @@ def test_materialize_injects_before_body_and_leaves_source(tmp_path: Path) -> No
 
 def test_track_url_and_browser_wait_for_canonical_mode(tmp_path: Path) -> None:
     """The browser sees a numeric start only after raw mode has been left."""
-    entry = catalog_entries()[1]
-    assert entry.track.title == "Rosin in the Subwoofer"
+    entry = next(e for e in catalog_entries() if e.track.title == "Rosin in the Subwoofer")
     assert track_url(tmp_path / "album.html", entry.track.start_s).endswith("?start=77.5715")
     assert track_url(tmp_path / "album.html", 0).endswith("?start=0")
     assert track_url(tmp_path / "album.html", 418.116375).endswith("?start=418.116375")

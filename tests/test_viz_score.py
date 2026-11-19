@@ -132,6 +132,68 @@ def test_object_rows_keep_seconds_meter_and_drum_names(family):
     assert score.level("drums", 1.6, decay_s=0.2, kind="snare") > 0
 
 
+def test_haunt_rows_keep_seconds_odd_meter_and_voice_names():
+    payload = normalize_track(
+        "haunt",
+        {
+            "events": [
+                {
+                    "part": "keys",
+                    "kind": "note",
+                    "time": 1.4,
+                    "duration": 0.5,
+                    "midi": 62,
+                    "velocity": 0.6,
+                    "pan": -0.1,
+                    "voice": "side-slip",
+                },
+                {
+                    "part": "ether",
+                    "kind": "note",
+                    "time": 2.25,
+                    "duration": 0.2,
+                    "midi": 84,
+                    "velocity": 0.5,
+                    "pan": 0.3,
+                    "voice": "blip",
+                },
+                {
+                    "part": "violin",
+                    "kind": "note",
+                    "time": 3.0,
+                    "duration": 1.5,
+                    "midi": 70,
+                    "velocity": 0.7,
+                    "pan": 0.2,
+                    "voice": "memory",
+                },
+                {
+                    "part": "tube",
+                    "kind": "noise",
+                    "time": 0,
+                    "duration": 40.0,
+                    "midi": 0,
+                    "velocity": 0.05,
+                    "voice": "fluorescent tube and room air",
+                },
+            ],
+            "bpm": 120,
+            "meter": "7/8",
+            "color": ["#0d1418", "#c6f25b", "#ff7a3d"],
+        },
+    )
+    score = Score.from_payload(payload)
+    assert score.bpm == 120 and score.meter == (7, 8)
+    slip = score.notes["keys"][0]
+    assert slip["onset"] == 1.4 and slip["gate"] == 0.5
+    assert score.voices[int(slip["voice"])] == "side-slip"
+    assert score.kinds[int(score.notes["keys"][0]["kind"])] == "note"
+    assert score.level("ether", 2.3, decay_s=0.2, voice="blip") > 0
+    assert score.kinds[int(score.notes["tube"][0]["kind"])] == "noise"
+    assert score.level("tube", 10, decay_s=2.0, kind="noise") > 0
+    assert score.notes["violin"][0]["onset"] == 3.0
+
+
 def test_aquatic_arrays_root_tables_palette_and_motifs():
     html = (
         'const palette = [["#112233", "#445566", "#778899", "#aabbcc"], '

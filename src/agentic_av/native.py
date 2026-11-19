@@ -96,6 +96,7 @@ _ALBUM_DATA: dict[str, tuple[str, str]] = {
     # Coupon predates the `window.<NAME>` JSON; its movements are a
     # `const tracks=[...]` literal read by `_coupon_tracks`.
     "coupon-seance-saturn.html.gz": ("coupon", ""),
+    "coupon-seance-buy-one-haunt-one-free.html.gz": ("haunt", "CS2_ALBUM"),
     "drowning-collective-are-we-fish.html.gz": ("aquatic", "BAND02_VISUAL_EVENTS"),
     "nurse-log-ground-moves-anyway.html.gz": ("forest", "NURSE_LOG_ALBUM"),
     "nurse-log-the-forest-has-a-pocket.html.gz": ("pocket", "NL2_ALBUM"),

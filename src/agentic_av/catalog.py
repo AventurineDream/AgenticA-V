@@ -2,13 +2,13 @@
 
 `cli.py` lists this catalog with `aav tracks`. `library.py` paints it and
 opens one movement. Only completed albums authorized for public bundling belong
-here: the four A-01 albums, Nurse Log A-02 under its single-album approval, and
-Drowning Collective A-02 under Aven's 2026-11-18 make/bundle/PR instruction (ADR 0002).
-In-progress, archive and private albums stay out. Each band is both the album-artist credit
-and the band sort field: the sources have no distinct per-track musician credits, and none are
+here: the four A-01 albums, plus the A-02 albums whose dated approvals are recorded
+in decision 0002. In-progress, archive, and private albums stay
+out. Each band is both the album-artist credit and the band sort field:
+the sources have no distinct per-track musician credits, and none are
 invented. Times are seconds from the start of the album audio.
-Only an album with a `CoverArt` record shows artwork. Nurse Log's cover is creator-selected;
-Drowning Collective's is agent-proposed pending confirmation or swap at merge.
+Only an album with a `CoverArt` record shows artwork; the A-02 albums have covers,
+and the four A-01 albums have none yet.
 """
 
 from __future__ import annotations
@@ -110,8 +110,8 @@ def _album(
     )
 
 
-# Authorized public archives: four A-01s, Nurse Log A-02, and Drowning Collective A-02.
-# ADR 0002 records scope and cover status; merge approves the new album's publication.
+# Authorized public archives only: four A-01 albums, plus the A-02 albums and covers
+# recorded in docs/decisions/0002. Do not append other albums or artwork.
 ALBUMS: tuple[Album, ...] = (
     _album(
         "Coupon Seance",
@@ -204,6 +204,24 @@ ALBUMS: tuple[Album, ...] = (
         cover=CoverArt(
             "drowning-collective-the-shape-that-stays.jpg",
             "15ebebe5901876171853a20858d7f828b989bbca8c3d4fd4d78f15f2a2933d4a",
+        ),
+    ),
+    _album(
+        "Coupon Seance",
+        "Buy One, Haunt One Free",
+        1603,
+        "coupon-seance-buy-one-haunt-one-free.html.gz",
+        (
+            (0, "Doors Open at Perihelion"),
+            (271, "Buy One, Haunt One Free"),
+            (530, "Price Check on Aisle Infinity"),
+            (784, "The Ghost in the Coin Return"),
+            (1070, "Layaway for a Dying Star"),
+            (1326, "We Kept the Change"),
+        ),
+        cover=CoverArt(
+            "coupon-seance-buy-one-haunt-one-free.jpg",
+            "4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047f",
         ),
     ),
 )

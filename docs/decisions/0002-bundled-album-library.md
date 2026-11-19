@@ -6,7 +6,7 @@ The visual player in decision 0001 is a media-free instrument. Four completed A-
 
 ## Decision
 
-Ship those four gzip HTML albums in the package, plus the A-02 albums named in the 2026-11-18 amendments below. All rights remain reserved; this is not a license change. `aav play` with no show or scene opens a terminal track selector. Enter restores the terminal, materializes a cache copy, and opens the default browser at that movement. The listener clicks Play. The browser page is the full synchronized album. `aav demo`, and `aav play` with `--show` or `--scene`, keep the abstract visual player.
+Ship those four gzip HTML albums in the package, plus the A-02 albums named in the dated amendments below. All rights remain reserved; this is not a license change. `aav play` with no show or scene opens a terminal track selector. Enter restores the terminal, materializes a cache copy, and opens the default browser at that movement. The listener clicks Play. The browser page is the full synchronized album. `aav demo`, and `aav play` with `--show` or `--scene`, keep the abstract visual player.
 
 Album artist and band are the same credit. Do not invent performer credits. Do not add in-progress, archive, or private albums. Any further album needs its own dated approval recorded in this file. Do not rewrite the packaged gzip files.
 
@@ -49,3 +49,11 @@ The archive is `gzip -9 -n` of the finished offline page, which embeds the exact
 **Cover status: agent-proposed**, not creator-selected. Aven confirms or swaps it at merge; a swap requires the corresponding asset, catalog digest and receipt tests to change together. **Aven's merge is publication approval** for the album and retained cover, not a listening review. This amendment extends the earlier single-album scope only to these two media assets. Source archives, stems, first takes, rejected cover candidates and unrelated private band material remain unbundled. The existing CC0 amendment applies to this bundled album and cover; player code remains MIT.
 
 The catalog adds six cumulative movement starts (0, 268, 516, 808, 1084, 1316), a hash-pinned `CoverArt`, `window.DC2_ALBUM` extraction and the separate `undertow` native family. The page owns album-second `?start=` deep links on `#album-audio`; the library's legacy `#audio` seeker is intentionally a no-op there. Digital music checks passed for both actual passes and all masters; the continuous FLAC is PCM-identical to the ordered tracks. Physical translation listening and Aven's album-two review remain pending.
+
+## Amendment 2026-11-18: Coupon Seance A-02 and its cover
+
+Aven's 2026-11-18 run instruction directed the remaining round-two A-02 albums to be made, bundled, and opened as pull requests, one per album, for her to merge. Under that instruction this change adds Coupon Seance, *Buy One, Haunt One Free* (A-02), made by anthropic/claude-opus-5-5 and recorded as such in the page's album JSON (`made_with`). Her merge of this pull request is the publication approval; the instruction alone is not.
+
+The package adds two assets. `albums/coupon-seance-buy-one-haunt-one-free.html.gz` is the `gzip -9 -n` of the built 52,431,005-byte player page (SHA-256 `fa9672cdba93f7bc3a19a8689f89ebc0af865b166297baa043394274b534fced`): 38,493,904 bytes, SHA-256 `6d18ba3cd44f3ad2258907a8fc7719c372de9a7d6016e0f8fa71779d2ee96be9`. `artwork/coupon-seance-buy-one-haunt-one-free.jpg` is the album's selected cover, 1024×1024 pixels, 221,166 bytes, SHA-256 `4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047f`; it is a baseline JPEG with JFIF headers only (no EXIF, GPS, XMP, or ICC data). The cover is agent-proposed, one of three candidates generated for this album; Aven's merge approves it together with the album. If she chooses a different cover, the replacement needs a new hash here and in the catalog.
+
+This amendment does not cover the source package, stems, masters, the other cover candidates, or any listening-review approval; the album's listening review is pending. Both assets are covered by the CC0 amendment above.

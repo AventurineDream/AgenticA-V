@@ -14,9 +14,10 @@ All notable changes to this project are documented here.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
 - Bundle the four completed A-01 album players as gzip HTML, plus *The Forest Has a Pocket* (Nurse Log, A-02) under Aven's single-album approval dated 2026-11-18. Bundled media follows the CC0 license amendment below.
 - Add *The Forest Has a Pocket* visuals: six numpy scenes (root, rain, spiral, canopy, spores, river) in a `pocket` family, separate from the A-01 forest painter.
+- Bundle Coupon Seance A-02, *Buy One, Haunt One Free* (six instrumentals, 26:43, made by anthropic/claude-opus-5-5), with its agent-proposed cover, under Aven's 2026-11-18 run instruction. Its visuals are six numpy scenes (perihelion, haunt-free, aisle, coin-return, layaway, change) in a `haunt` family, separate from the A-01 coupon painter. With two Coupon Seance albums, `preview` now needs the family or album title rather than the artist name, as Nurse Log already did.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
-- Show the bundled A-02 covers as still panels beside the native player's stage: Nurse Log's is creator-selected; Drowning Collective's is agent-proposed pending merge. Each SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
+- Show the bundled A-02 covers as a still panel beside the native player's stage. Each cover's SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
 
 ### Changed
 
