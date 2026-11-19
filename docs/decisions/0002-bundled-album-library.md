@@ -6,7 +6,7 @@ The visual player in decision 0001 is a media-free instrument. Four completed A-
 
 ## Decision
 
-Ship those four gzip HTML albums in the package, plus the single A-02 album named in the 2026-11-18 amendment below. All rights remain reserved; this is not a license change. `aav play` with no show or scene opens a terminal track selector. Enter restores the terminal, materializes a cache copy, and opens the default browser at that movement. The listener clicks Play. The browser page is the full synchronized album. `aav demo`, and `aav play` with `--show` or `--scene`, keep the abstract visual player.
+Ship those four gzip HTML albums in the package, plus the A-02 albums named in the 2026-11-18 amendments below. All rights remain reserved; this is not a license change. `aav play` with no show or scene opens a terminal track selector. Enter restores the terminal, materializes a cache copy, and opens the default browser at that movement. The listener clicks Play. The browser page is the full synchronized album. `aav demo`, and `aav play` with `--show` or `--scene`, keep the abstract visual player.
 
 Album artist and band are the same credit. Do not invent performer credits. Do not add in-progress, archive, or private albums. Any further album needs its own dated approval recorded in this file. Do not rewrite the packaged gzip files.
 

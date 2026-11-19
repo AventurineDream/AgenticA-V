@@ -61,7 +61,8 @@ class Album:
         duration_s: Album duration in seconds.
         asset: Gzip HTML filename under ``agentic_av/albums``. Basename only.
         tracks: Movements in performance order.
-        cover: Approved cover art, or None when the album has no authorized image.
+        cover: Bundled cover art, creator-selected or agent-proposed (see the module
+            header), or None when the album has no bundled image.
     """
 
     artist: str

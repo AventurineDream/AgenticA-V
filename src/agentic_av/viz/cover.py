@@ -1,4 +1,4 @@
-"""Decode the approved album cover and fit it into a terminal panel.
+"""Decode bundled album covers and fit them into terminal panels.
 
 `native.py` decides where the panel sits. This module verifies the packaged JPEG
 against its receipt SHA-256, decodes it with Pillow (a declared runtime
@@ -33,7 +33,7 @@ def decode_cover(data: bytes, sha256: str) -> np.ndarray:
 
     Args:
         data: Exact file bytes as shipped.
-        sha256: Expected lowercase hex digest from the approval receipt.
+        sha256: Expected lowercase hex digest from the selection receipt.
 
     Returns:
         Owned uint8 RGB array of shape (height, width, 3), in sRGB.
