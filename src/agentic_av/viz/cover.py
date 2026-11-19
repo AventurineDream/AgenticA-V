@@ -42,7 +42,7 @@ def decode_cover(data: bytes, sha256: str) -> np.ndarray:
         ArtworkError: The digest differs, or the bytes are not a decodable JPEG.
     """
     if hashlib.sha256(data).hexdigest() != sha256:
-        raise ArtworkError("cover bytes do not match the approved SHA-256")
+        raise ArtworkError("cover bytes do not match the recorded SHA-256")
     try:
         with Image.open(io.BytesIO(data)) as image:
             if image.format != "JPEG":

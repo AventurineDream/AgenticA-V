@@ -100,6 +100,7 @@ _ALBUM_DATA: dict[str, tuple[str, str]] = {
     "nurse-log-ground-moves-anyway.html.gz": ("forest", "NURSE_LOG_ALBUM"),
     "nurse-log-the-forest-has-a-pocket.html.gz": ("pocket", "NL2_ALBUM"),
     "quiet-machinery-atlas-unlit-rooms.html.gz": ("rooms", "QUIET_MACHINERY"),
+    "drowning-collective-the-shape-that-stays.html.gz": ("undertow", "DC2_ALBUM"),
 }
 
 

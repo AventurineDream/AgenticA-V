@@ -1,4 +1,4 @@
-"""Tiny authored fixtures cover score queries and all five bundled event layouts."""
+"""Tiny authored fixtures cover score queries and the bundled event layouts."""
 
 import math
 
@@ -90,9 +90,11 @@ def test_forest_tuple_layout_and_gm_drums():
     assert score.notes["harp"]["midi"][0] == 72
 
 
-def test_pocket_rows_keep_seconds_meter_and_drum_names():
+@pytest.mark.parametrize("family", ["pocket", "undertow"])
+def test_object_rows_keep_seconds_meter_and_drum_names(family):
+    """Object-layout albums retain actual performance seconds and named kit strokes."""
     payload = normalize_track(
-        "pocket",
+        family,
         {
             "events": [
                 {
@@ -204,3 +206,46 @@ def test_coupon_metadata_without_invented_score():
     score = Score.from_payload(payload)
     assert not score.notes and not score.sections and not score.motifs
     assert score.level("bass", 10) == 0 and score.section(10) is None
+
+
+def test_undertow_preserves_independent_hands_and_piano_memory():
+    """The single pianist's hand voices stay queryable without adding band members."""
+    rows = [
+        dict(
+            part="piano",
+            kind="note",
+            time=1.013,
+            duration=1.2,
+            midi=74,
+            velocity=0.6,
+            pan=0.12,
+            voice="right",
+        ),
+        dict(
+            part="piano",
+            kind="note",
+            time=0.993,
+            duration=0.7,
+            midi=50,
+            velocity=0.4,
+            pan=-0.13,
+            voice="left",
+        ),
+        dict(
+            part="memory",
+            kind="noise",
+            time=0.4,
+            duration=4,
+            midi=74,
+            velocity=0.12,
+            pan=0,
+            voice="piano-memory",
+        ),
+    ]
+    score = Score.from_payload(normalize_track("undertow", {"events": rows}))
+    np.testing.assert_allclose(score.notes["piano"]["onset"], [0.993, 1.013])
+    right = score.level("piano", 1.1, voice="right")
+    left = score.level("piano", 1.1, voice="left")
+    assert right > left > 0
+    assert score.level("piano", 1, voice="right") == 0
+    assert score.level("memory", 1, kind="noise", voice="piano-memory") > 0

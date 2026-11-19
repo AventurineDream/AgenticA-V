@@ -2,13 +2,13 @@
 
 `cli.py` lists this catalog with `aav tracks`. `library.py` paints it and
 opens one movement. Only completed albums authorized for public bundling belong
-here: the four A-01 albums, plus A-02 under Aven's narrow 2026-11-18 approval
-(decision 0002). In-progress, archive, and private albums stay
-out. Each band is both the album-artist credit and the band sort field:
-the sources have no distinct per-track musician credits, and none are
+here: the four A-01 albums, Nurse Log A-02 under its single-album approval, and
+Drowning Collective A-02 under Aven's 2026-11-18 make/bundle/PR instruction (ADR 0002).
+In-progress, archive and private albums stay out. Each band is both the album-artist credit
+and the band sort field: the sources have no distinct per-track musician credits, and none are
 invented. Times are seconds from the start of the album audio.
-Only an album with a `CoverArt` record shows artwork; the A-02 cover is the only one
-approved so far, and the four A-01 albums have none yet.
+Only an album with a `CoverArt` record shows artwork. Nurse Log's cover is creator-selected;
+Drowning Collective's is agent-proposed pending confirmation or swap at merge.
 """
 
 from __future__ import annotations
@@ -37,12 +37,12 @@ class Track:
 
 @dataclass(frozen=True, slots=True)
 class CoverArt:
-    """An approved album cover packaged under ``agentic_av/artwork``.
+    """A bundled album cover packaged under ``agentic_av/artwork``.
 
     Attributes:
         asset: JPEG basename. Basename only; the loader joins it to the package.
         sha256: Lowercase hex SHA-256 of the exact shipped bytes, copied from the
-            approval receipt. The loader refuses any other bytes.
+            selection receipt. The loader refuses any other bytes.
     """
 
     asset: str
@@ -110,8 +110,8 @@ def _album(
     )
 
 
-# Authorized public archives only: four A-01 albums, plus A-02 under the narrow
-# 2026-11-18 exception and cover in docs/decisions/0002. Do not append other albums or artwork.
+# Authorized public archives: four A-01s, Nurse Log A-02, and Drowning Collective A-02.
+# ADR 0002 records scope and cover status; merge approves the new album's publication.
 ALBUMS: tuple[Album, ...] = (
     _album(
         "Coupon Seance",
@@ -186,6 +186,24 @@ ALBUMS: tuple[Album, ...] = (
         cover=CoverArt(
             "nurse-log-the-forest-has-a-pocket.jpg",
             "e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6",
+        ),
+    ),
+    _album(
+        "Drowning Collective",
+        "The Shape That Stays",
+        1632,
+        "drowning-collective-the-shape-that-stays.html.gz",
+        (
+            (0, "A Handhold in Moving Water"),
+            (268, "The Low Voice Keeps the Question"),
+            (516, "Five Ways Past the Same Shore"),
+            (808, "A Fault Held Gently"),
+            (1084, "Leave the Basin Unfilled"),
+            (1316, "The Shape That Stays"),
+        ),
+        cover=CoverArt(
+            "drowning-collective-the-shape-that-stays.jpg",
+            "15ebebe5901876171853a20858d7f828b989bbca8c3d4fd4d78f15f2a2933d4a",
         ),
     ),
 )

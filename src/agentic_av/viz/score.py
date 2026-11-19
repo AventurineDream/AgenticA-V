@@ -218,7 +218,7 @@ def normalize_track(family: str, track: Mapping[str, Any], html: str = "") -> di
     """Normalize the bundled score layouts into a JSON-safe payload.
 
     Args:
-        family: coupon, aquatic, forest, pocket, or rooms; unknown families stay empty.
+        family: coupon, aquatic, forest, pocket, rooms, or undertow; unknown stays empty.
         track: Original movement metadata/events; aquatic kinds/voices can be
             supplied from the root object under the same keys.
         html: Original page for aquatic palettes and rooms radiance timing.
@@ -263,7 +263,7 @@ def normalize_track(family: str, track: Mapping[str, Any], html: str = "") -> di
                 pan,
                 _GM_DRUMS.get(int(midi), "") if part == "drums" else "",
             )
-    elif family == "pocket":
+    elif family in ("pocket", "undertow"):
         # Source rows are objects whose times are already seconds, timing offsets included.
         for row in raw:
             part = str(row["part"])

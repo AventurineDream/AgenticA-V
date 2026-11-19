@@ -2,6 +2,7 @@
 
 import gzip
 import hashlib
+import json
 from importlib.resources import files
 from pathlib import Path
 
@@ -81,6 +82,13 @@ _AUTHORIZED = (
         "nurse-log-the-forest-has-a-pocket.html.gz",
         (0, 272, 532, 784, 1076, 1284),
     ),
+    (
+        "Drowning Collective",
+        "The Shape That Stays",
+        1632,
+        "drowning-collective-the-shape-that-stays.html.gz",
+        (0, 268, 516, 808, 1084, 1316),
+    ),
 )
 
 
@@ -90,9 +98,9 @@ _POCKET_HTML_SHA256 = "5b0387575231b1ef29d7c881a10f672688218b3099640399b8319690d
 
 
 def test_public_catalog_is_the_authorized_albums() -> None:
-    """Band is the album artist; four A-01 albums and the approved A-02 album are listed."""
+    """Only the four debuts and the two specifically authorized A-02 albums are listed."""
     validate_catalog()
-    assert len(ALBUMS) == 5
+    assert len(ALBUMS) == 6
     assert all(album.artist == album.band for album in ALBUMS)
     found = {
         (album.artist, album.title, album.duration_s, album.asset): tuple(
@@ -114,7 +122,7 @@ def test_public_catalog_is_the_authorized_albums() -> None:
 
 
 def test_pocket_catalog_metadata_and_archive_match_the_approved_source() -> None:
-    """A-02 is the sixth album: exact movements and the approved, unaltered page.
+    """Nurse Log A-02 retains its exact movements and approved, unaltered page.
 
     The hashes come from the approved source HTML and the packaged gzip, so a replaced or
     re-encoded archive fails here before it can ship.
@@ -150,6 +158,53 @@ def test_pocket_catalog_metadata_and_archive_match_the_approved_source() -> None
     html = gzip.decompress(data)
     assert len(html) == 72_058_058
     assert hashlib.sha256(html).hexdigest() == _POCKET_HTML_SHA256
+
+
+def test_drowning_a02_metadata_and_archive_match_the_finished_album() -> None:
+    """The new catalog entry resolves exact audio-page bytes and maker provenance."""
+    asset = "drowning-collective-the-shape-that-stays.html.gz"
+    album = next(a for a in ALBUMS if a.asset == asset)
+    assert (album.artist, album.band, album.title, album.duration_s) == (
+        "Drowning Collective",
+        "Drowning Collective",
+        "The Shape That Stays",
+        1632,
+    )
+    assert [track.title for track in album.tracks] == [
+        "A Handhold in Moving Water",
+        "The Low Voice Keeps the Question",
+        "Five Ways Past the Same Shore",
+        "A Fault Held Gently",
+        "Leave the Basin Unfilled",
+        "The Shape That Stays",
+    ]
+    starts = [t.start_s for t in album.tracks]
+    ends = [*starts[1:], album.duration_s]
+    assert [end - start for start, end in zip(starts, ends, strict=True)] == [
+        268,
+        248,
+        292,
+        276,
+        232,
+        316,
+    ]
+    archive = files("agentic_av").joinpath("albums", asset).read_bytes()
+    assert len(archive) == 38_275_169
+    assert hashlib.sha256(archive).hexdigest() == (
+        "e60a51ce7e5788c9a0b364c08a32e4a2ef5e81fa1a9eda6bb19e83504f090caa"
+    )
+    html = gzip.decompress(archive)
+    assert len(html) == 53_318_791
+    assert hashlib.sha256(html).hexdigest() == (
+        "825ea4f55144a4ef0271c1a868034443487d776ca5730ee85005f54637067665"
+    )
+    source = html.decode("utf-8")
+    marker = "window.DC2_ALBUM="
+    data, _ = json.JSONDecoder().raw_decode(source.split(marker, 1)[1])
+    assert data["made_with"]["model"] == "openai-codex/gpt-6.1-sol"
+    assert data["album_duration"] == 1632
+    assert [t["duration"] for t in data["tracks"]] == [268, 248, 292, 276, 232, 316]
+    assert all(t["audio"].startswith("data:audio/mpeg;base64,") for t in data["tracks"])
 
 
 def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
@@ -204,7 +259,7 @@ def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
         for entry in public
     ]
     assert keys == sorted(keys)
-    assert len(public) == 31
+    assert len(public) == 37
     titles = [entry.track.title for entry in public]
     assert titles.index("We Kept the Receipt") < titles.index("An Uneven Kindness")
     assert titles.index("The Water Learns Major") < titles.index("Under Six Feet of Moss")
