@@ -194,6 +194,46 @@ def test_haunt_rows_keep_seconds_odd_meter_and_voice_names():
     assert score.notes["violin"][0]["onset"] == 3.0
 
 
+def test_dusk_rows_keep_seconds_odd_meter_and_percussion_names():
+    payload = normalize_track(
+        "dusk",
+        {
+            "events": [
+                {
+                    "part": "perc",
+                    "kind": "hit",
+                    "time": 2.25,
+                    "duration": 0.05,
+                    "midi": 75,
+                    "velocity": 0.5,
+                    "pan": -0.3,
+                    "voice": "layer-1",
+                },
+                {
+                    "part": "air",
+                    "kind": "noise",
+                    "time": 0,
+                    "duration": 250.0,
+                    "midi": 0,
+                    "velocity": 0.02,
+                    "voice": "room air",
+                },
+            ],
+            "bpm": 138,
+            "meter": "11/8",
+            "color": ["#0a1018", "#e09a5c", "#9ec3d6"],
+        },
+    )
+    score = Score.from_payload(payload)
+    assert score.bpm == 138 and score.meter == (11, 8)
+    claves = score.notes["perc"][0]
+    assert claves["onset"] == 2.25
+    assert score.kinds[int(claves["kind"])] == "hit"
+    assert score.voices[int(claves["voice"])] == "layer-1"
+    assert score.kinds[int(score.notes["air"][0]["kind"])] == "noise"
+    assert score.level("perc", 2.3, decay_s=0.2) > 0
+
+
 def test_aquatic_arrays_root_tables_palette_and_motifs():
     html = (
         'const palette = [["#112233", "#445566", "#778899", "#aabbcc"], '

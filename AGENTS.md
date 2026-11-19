@@ -33,7 +33,7 @@ uv sync --group dev
 
 ## Conventions
 
-- Public scope is seven albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02 and Coupon Seance A-02 under her 2026-11-18 make/bundle/PR run instruction (ADR 0002). Merge is her publication approval. Nurse Log's cover is creator-selected; the Drowning Collective and Coupon Seance covers are agent-proposed and approved at merge. All are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
+- Public scope is eight albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02, Coupon Seance A-02, and Quiet Machinery A-02 under her 2026-11-18 make/bundle/PR run instruction (ADR 0002). Merge is her publication approval. Nurse Log's cover is creator-selected; the Drowning Collective, Coupon Seance, and Quiet Machinery covers are agent-proposed and approved at merge. All are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
 - Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
 - Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.

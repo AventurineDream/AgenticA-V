@@ -38,7 +38,7 @@ from .stage import Stage
 _FPS = 30.0
 _RATES = {"full": 1.0, "reduced": 0.22, "still": 0.0}
 # Positional: each name matches the ALBUMS entry at the same index. Append only.
-_FAMILIES = ("coupon", "aquatic", "forest", "rooms", "pocket", "undertow", "haunt")
+_FAMILIES = ("coupon", "aquatic", "forest", "rooms", "pocket", "undertow", "haunt", "dusk")
 
 
 @dataclass(frozen=True)
