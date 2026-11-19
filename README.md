@@ -91,7 +91,7 @@ uv run aav icons install    # install the saved variant (or the default)
 uv run aav icons show       # saved variant and install state
 ```
 
-On Linux, `install` writes `~/.local/share/applications/agentic-av.desktop` (which launches `aav play` in a terminal) and the chosen variant's iconset PNGs into `~/.local/share/icons/hicolor/`, then refreshes the desktop and icon caches when their tools exist. Only files this app owns are written; no desktop or Omarchy configuration is edited. The choice is saved in `~/.config/agentic-av/icons.toml`.
+On Linux, `install` writes `~/.local/share/applications/agentic-av.desktop` (which launches `aav play` in a terminal) and the chosen variant's iconset PNGs into `~/.local/share/icons/hicolor/` (plus the menu-bar template as `agentic-av-menubar` at 18/36/54), then refreshes the desktop and icon caches when their tools exist. Only files this app owns are written; no desktop or Omarchy configuration is edited. The choice is saved in `~/.config/agentic-av/icons.toml`.
 
 macOS has no app bundle in this repository, so `install` there reports the chosen variant's .icns path instead of installing; the picker still saves the choice. The menu-bar template has no color variants and no consumer in this repository yet, so it is not installed.
 

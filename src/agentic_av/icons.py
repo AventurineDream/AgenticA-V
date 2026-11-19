@@ -9,7 +9,8 @@ macOS tints it, and there is no menu-bar consumer in this repository yet.
 The picker is the ``aav icons`` command. It records the user's variant in
 ``$XDG_CONFIG_HOME/agentic-av/icons.toml`` and, on Linux, installs the chosen
 set as the app's icon: an ``agentic-av.desktop`` launcher plus the iconset
-PNGs in the freedesktop hicolor theme under ``$XDG_DATA_HOME``. Only files
+PNGs in the freedesktop hicolor theme under ``$XDG_DATA_HOME`` and the
+menu-bar template as ``agentic-av-menubar`` at 18/36/54. Only files
 this app owns are written; no desktop or Omarchy configuration is edited.
 macOS has no app bundle in this repository, so install there reports the
 .icns location instead of pretending to install.
@@ -53,6 +54,14 @@ _HICOLOR_PNGS = {
     1024: "AppIcon-1024.png",
 }
 
+# Menu-bar template size -> template file. The template has no color
+# variants; it is installed identically for every variant.
+_MENUBAR_HICOLOR = {
+    18: "MenuBarIconTemplate.png",
+    36: "MenuBarIconTemplate@2x.png",
+    54: "MenuBarIconTemplate@3x.png",
+}
+
 _MENUBAR_FILES = (
     "MenuBarIconTemplate.png",
     "MenuBarIconTemplate@2x.png",
@@ -72,6 +81,7 @@ class InstallResult:
     desktop_path: Path
     icon_paths: tuple[Path, ...]
     refreshed: bool
+    menubar_paths: tuple[Path, ...] = ()
 
 
 def icon_root(*, root: Path | None = None) -> Path:
@@ -251,6 +261,27 @@ def installed_variant(
     return None
 
 
+def installed_menubar(
+    *,
+    env: dict[str, str] | None = None,
+    data_home: Path | None = None,
+) -> tuple[int, ...]:
+    """Return the installed menu-bar template sizes, or an empty tuple.
+
+    Args:
+        env: Optional environment mapping for XDG overrides.
+        data_home: Optional XDG data home override, primarily for tests.
+    """
+    home = data_home if data_home is not None else _data_home(env)
+    return tuple(
+        size
+        for size in _MENUBAR_HICOLOR
+        if (
+            home / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av-menubar.png"
+        ).is_file()
+    )
+
+
 def _aav_executable(*, executable: Path | None) -> Path:
     """Return the `aav` entry point for the running installation."""
     if executable is not None:
@@ -361,9 +392,22 @@ def install(
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / relative, target)
         written.append(target)
+    menubar_written: list[Path] = []
+    for size, relative in _MENUBAR_HICOLOR.items():
+        source_file = icon_root(root=root) / "menubar" / relative
+        if not source_file.is_file():
+            continue
+        target = icons_dir / f"{size}x{size}" / "apps" / "agentic-av-menubar.png"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source_file, target)
+        menubar_written.append(target)
     refreshed = _refresh_caches(apps_dir, icons_dir) if refresh else False
     return InstallResult(
-        variant=name, desktop_path=desktop, icon_paths=tuple(written), refreshed=refreshed
+        variant=name,
+        desktop_path=desktop,
+        icon_paths=tuple(written),
+        menubar_paths=tuple(menubar_written),
+        refreshed=refreshed,
     )
 
 

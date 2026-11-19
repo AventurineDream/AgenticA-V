@@ -9,7 +9,9 @@ from agentic_av.icons import (
     DEFAULT_VARIANT,
     IconError,
     desktop_path,
+    icon_root,
     install,
+    installed_menubar,
     installed_variant,
     load_variant,
     menubar_files,
@@ -175,3 +177,40 @@ def test_cli_icons_pick_installs_and_shows(tmp_path: Path, monkeypatch, capsys) 
     assert "Installed icon: mono-dark" in shown
     assert "present" in shown
     assert desktop_path(env=env).is_file()
+
+
+def test_install_also_installs_menubar_template(tmp_path: Path) -> None:
+    env = _xdg(tmp_path)
+    data = Path(env["XDG_DATA_HOME"])
+    result = pick_variant("default", env=env, data_home=data, refresh=False)
+    assert len(result.menubar_paths) == 3
+    expected = {
+        18: "MenuBarIconTemplate.png",
+        36: "MenuBarIconTemplate@2x.png",
+        54: "MenuBarIconTemplate@3x.png",
+    }
+    for size, filename in expected.items():
+        installed = (
+            data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av-menubar.png"
+        )
+        assert installed in result.menubar_paths
+        assert installed.is_file()
+        assert installed.read_bytes() == (icon_root() / "menubar" / filename).read_bytes()
+    assert installed_menubar(env=env, data_home=data) == (18, 36, 54)
+
+
+def test_menubar_absent_reports_none(tmp_path: Path) -> None:
+    env = _xdg(tmp_path)
+    assert installed_menubar(env=env, data_home=Path(env["XDG_DATA_HOME"])) == ()
+
+
+def test_cli_icons_show_reports_menubar(tmp_path: Path, monkeypatch, capsys) -> None:
+    env = _xdg(tmp_path)
+    monkeypatch.setenv("XDG_CONFIG_HOME", env["XDG_CONFIG_HOME"])
+    monkeypatch.setenv("XDG_DATA_HOME", env["XDG_DATA_HOME"])
+    assert main(["icons", "show"]) == 0
+    assert "Menu-bar template: none" in capsys.readouterr().out
+    assert main(["icons", "pick", "default"]) == 0
+    assert main(["icons", "show"]) == 0
+    shown = capsys.readouterr().out
+    assert "Menu-bar template: installed (18, 36, 54 px)" in shown

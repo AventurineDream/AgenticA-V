@@ -25,7 +25,8 @@ On Linux, `install` writes only files this app owns: an
 running installation, `Terminal=true`, `Icon=agentic-av`) under
 `$XDG_DATA_HOME/applications/`, and the chosen variant's iconset PNGs into
 the freedesktop hicolor theme under `$XDG_DATA_HOME/icons/hicolor/` at
-16/32/64/128/256/512/1024. Desktop and icon caches are refreshed
+16/32/64/128/256/512/1024, and the menu-bar template as `agentic-av-menubar`
+at 18/36/54. Desktop and icon caches are refreshed
 best-effort when their tools exist; a missing tool never fails the install.
 The installed variant is identified by content (SHA-256 of the installed
 1024 PNG), not by a stored name, so `show` reports honestly after a
@@ -33,8 +34,10 @@ hand-edited install.
 
 macOS has no app bundle in this repository, so `install` there reports the
 chosen variant's .icns path and the icon README instead of pretending to
-install; `pick` still saves the choice. The menu-bar template has no color
-variants and no consumer in this repository, so it is not installed.
+install; `pick` still saves the choice. The menu-bar template (18/36/54
+PNGs) has no color variants; it is installed alongside the variant as
+`agentic-av-menubar` in the hicolor theme, identically for every variant, so
+a future menu-bar consumer can find it by name.
 
 The icon assets stay at `assets/icons/piano-camera-icons-final/` and are
 resolved from the repository root at runtime; the project is installed
@@ -47,5 +50,5 @@ Launchers and docks on Linux show the piano-camera icon for `aav play`, and
 the user can switch among the nine variants from the CLI. The install never
 touches Omarchy or system configuration, and it never overwrites another
 app's files. A macOS app bundle and a menu-bar consumer remain future,
-independently validated choices; the .icns files and the template image are
-already in the repository for them.
+independently validated choices; the .icns files are already in the repository
+for the bundle, and the menu-bar template is installed for the consumer.

@@ -18,6 +18,7 @@ from agentic_av.icons import (
     IconError,
     desktop_path,
     install,
+    installed_menubar,
     installed_variant,
     load_variant,
     menubar_files,
@@ -309,6 +310,8 @@ def _icons_pick(variant: str) -> int:
     result = pick_variant(variant)
     print(f"Icon set to {variant}.")
     print(f"Installed {len(result.icon_paths)} icon sizes and {result.desktop_path}.")
+    if result.menubar_paths:
+        print(f"Menu-bar template: {len(result.menubar_paths)} sizes installed.")
     if not result.refreshed:
         print("Restart your launcher to pick up the new icon.")
     return 0
@@ -318,6 +321,8 @@ def _icons_install() -> int:
     """Install the saved icon variant, or the default when none is saved."""
     result = install()
     print(f"Installed the {result.variant} icon: {len(result.icon_paths)} sizes.")
+    if result.menubar_paths:
+        print(f"Menu-bar template: {len(result.menubar_paths)} sizes installed.")
     print(f"Launcher: {result.desktop_path}")
     if not result.refreshed:
         print("Restart your launcher to pick up the new icon.")
@@ -336,6 +341,11 @@ def _icons_show() -> int:
         print(f"Installed icon: {saved}")
     else:
         print(f"Installed icon: {installed} (saved choice is {saved})")
+    sizes = installed_menubar()
+    if sizes:
+        print(f"Menu-bar template: installed ({', '.join(str(size) for size in sizes)} px)")
+    else:
+        print("Menu-bar template: none — run `aav icons install`")
     print(f"Launcher: {launcher} ({'present' if launcher.is_file() else 'missing'})")
     return 0
 
