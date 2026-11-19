@@ -16,7 +16,7 @@ classifiers = [
     "Environment :: Console",
     "Private :: Do Not Upload",
 ]
-dependencies = ["numpy>=2.0"]
+dependencies = ["numpy>=2.0", "Pillow>=11.0"]
 
 [project.scripts]
 aav = "agentic_av.cli:main"
@@ -25,7 +25,7 @@ aav = "agentic_av.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentic_av = ["demo/*.toml", "albums/*.html.gz"]
+agentic_av = ["demo/*.toml", "albums/*.html.gz", "artwork/*.jpg"]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.8", "pyte>=0.8.2"]

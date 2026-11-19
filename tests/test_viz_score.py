@@ -1,4 +1,4 @@
-"""Tiny authored fixtures cover score queries and all four bundled event layouts."""
+"""Tiny authored fixtures cover score queries and all five bundled event layouts."""
 
 import math
 
@@ -88,6 +88,46 @@ def test_forest_tuple_layout_and_gm_drums():
     assert score.level("drums", 1, kind="kick") == pytest.approx(math.tanh(0.8))
     assert [score.kinds[i] for i in score.notes["drums"]["kind"]] == ["kick", "snare", "rim", "hat"]
     assert score.notes["harp"]["midi"][0] == 72
+
+
+def test_pocket_rows_keep_seconds_meter_and_drum_names():
+    payload = normalize_track(
+        "pocket",
+        {
+            "events": [
+                {
+                    "part": "drums",
+                    "kind": "hit",
+                    "time": 1.5,
+                    "duration": 0.1,
+                    "midi": 38,
+                    "velocity": 0.6,
+                    "pan": 0.25,
+                    "voice": "snare",
+                },
+                {
+                    "part": "rain",
+                    "kind": "noise",
+                    "time": 0,
+                    "duration": 21.8,
+                    "midi": 0,
+                    "velocity": 0.03,
+                    "voice": "original-rain",
+                },
+            ],
+            "bpm": 72,
+            "meter": "5/4",
+            "color": ["#112233", "#445566", "#778899"],
+        },
+    )
+    score = Score.from_payload(payload)
+    assert score.bpm == 72 and score.meter == (5, 4)
+    snare = score.notes["drums"][0]
+    assert snare["onset"] == 1.5
+    assert score.kinds[int(snare["kind"])] == "snare"
+    assert score.voices[int(snare["voice"])] == "snare"
+    assert score.kinds[int(score.notes["rain"][0]["kind"])] == "noise"
+    assert score.level("drums", 1.6, decay_s=0.2, kind="snare") > 0
 
 
 def test_aquatic_arrays_root_tables_palette_and_motifs():
