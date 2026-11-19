@@ -1,6 +1,6 @@
-"""Verify the approved A-02 cover: receipt bytes, refusal paths, and bounded rendering.
+"""Verify bundled A-02 covers: receipt bytes, refusal paths, and bounded rendering.
 
-The receipt hash and size come from the approval record in docs/decisions/0002. Rendering
+The receipt hashes and sizes come from docs/decisions/0002. Rendering
 tests replay the emitted bytes through pyte, so they check what a terminal would show:
 which cells the panel paints, whether its gap stays clear, and whether no-color output
 carries any SGR sequence.
@@ -23,6 +23,9 @@ _ASSET = "nurse-log-the-forest-has-a-pocket.jpg"
 _POCKET_ALBUM = "nurse-log-the-forest-has-a-pocket.html.gz"
 _RECEIPT_SHA256 = "e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6"
 _RECEIPT_BYTES = 370_848
+_DC2_ASSET = "drowning-collective-the-shape-that-stays.jpg"
+_DC2_ALBUM = "drowning-collective-the-shape-that-stays.html.gz"
+_DC2_SHA256 = "15ebebe5901876171853a20858d7f828b989bbca8c3d4fd4d78f15f2a2933d4a"
 _SGR = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -57,20 +60,26 @@ def test_packaged_cover_is_the_approved_receipt_file() -> None:
     assert pixels.dtype == np.uint8
 
 
-def test_only_a02_records_a_cover_and_the_artwork_folder_holds_only_it() -> None:
+def test_only_the_two_a02_albums_record_their_receipt_covers() -> None:
+    """Bundled cover scope is exact, with each file matching its recorded bytes."""
     validate_catalog()
     covered = {album.asset: album.cover for album in ALBUMS if album.cover is not None}
-    assert list(covered) == [_POCKET_ALBUM]
+    assert list(covered) == [_POCKET_ALBUM, _DC2_ALBUM]
     assert (covered[_POCKET_ALBUM].asset, covered[_POCKET_ALBUM].sha256) == (
         _ASSET,
         _RECEIPT_SHA256,
     )
+    assert (covered[_DC2_ALBUM].asset, covered[_DC2_ALBUM].sha256) == (_DC2_ASSET, _DC2_SHA256)
+    data = files("agentic_av").joinpath("artwork", _DC2_ASSET).read_bytes()
+    assert len(data) == 404_381
+    assert hashlib.sha256(data).hexdigest() == _DC2_SHA256
+    assert load_cover(_DC2_ASSET, _DC2_SHA256).shape == (1024, 1024, 3)
     names = sorted(
         path.name
         for path in files("agentic_av").joinpath("artwork").iterdir()
         if not path.name.startswith(".") and path.name != "__pycache__"
     )
-    assert names == [_ASSET]
+    assert names == sorted([_ASSET, _DC2_ASSET])
 
 
 def test_altered_bytes_are_refused_before_decoding() -> None:

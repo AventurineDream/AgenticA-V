@@ -6,21 +6,22 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Bundle *The Shape That Stays* (Drowning Collective A-02): six original instrumentals, 27:12, made by `openai-codex/gpt-6.1-sol`. Add the `undertow` native scene family, independent piano-hand score queries, six inline MP3s and an agent-proposed baseline JPEG cover. Aven's 2026-11-18 instruction authorizes making, bundling and PR; merge is publication approval and cover confirmation/swap, not listening-review approval.
 - Add `aav icons`: list the nine piano-camera icon variants, pick one to save and install, install the saved choice, and show the install state. On Linux, install writes `agentic-av.desktop` and the chosen variant's iconset PNGs into the hicolor theme under `~/.local/share`; the choice is saved in `~/.config/agentic-av/icons.toml`. The default variant installs when no choice is saved. The menu-bar template is installed alongside as `agentic-av-menubar` at 18/36/54. macOS reports the chosen variant's .icns path instead of installing, since this repository has no app bundle.
 - Add the final piano-camera app icon set (v2.2) under `assets/icons/piano-camera-icons-final/`: default orange-on-teal plus eight color variants, full AppIcon.iconsets, .icns files, and a macOS menu bar template icon.
-- Add an album library. Bare `aav play` selects from five public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
+- Add an album library. Bare `aav play` selects from six public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
 - `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
-- Bundle the four completed A-01 album players as gzip HTML, plus *The Forest Has a Pocket* (Nurse Log, A-02) under Aven's single-album approval dated 2026-11-18. All rights remain reserved; the approval grants no open license.
+- Bundle the four completed A-01 album players as gzip HTML, plus *The Forest Has a Pocket* (Nurse Log, A-02) under Aven's single-album approval dated 2026-11-18. Bundled media follows the CC0 license amendment below.
 - Add *The Forest Has a Pocket* visuals: six numpy scenes (root, rain, spiral, canopy, spores, river) in a `pocket` family, separate from the A-01 forest painter.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
-- Show the approved A-02 cover as a still panel beside the native player's stage. Its SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
+- Show the bundled A-02 covers as still panels beside the native player's stage: Nurse Log's is creator-selected; Drowning Collective's is agent-proposed pending merge. Each SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
 
 ### Changed
 
 - License the repository: code under the MIT License (LICENSE); the bundled albums and bundled cover art dedicated to the public domain under CC0 (LICENSE-CC0). Material not bundled in this repository stays out and is not covered.
-- Replace the legacy glyph port with 31 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
+- Replace the legacy glyph port with 37 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
 - Add automatic terminal glyph selection, `--glyphs`, `AAV_GLYPHS`, and runtime `g` cycling. Large canvases step down their sub-pixel tier.
 - Native playback targets 30 fps (5 transport updates/s when paused or still), batches one synchronized write per frame, and skips unchanged canvas rows. Add section names, progress, and section ticks to transport.
 - Add scene previews, benchmarks, and a conservative regional flash-risk regression meter. This is not flash-safety certification.

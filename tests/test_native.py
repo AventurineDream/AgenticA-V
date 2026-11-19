@@ -53,6 +53,7 @@ AQUATIC = "drowning-collective-are-we-fish.html.gz"
 COUPON = "coupon-seance-saturn.html.gz"
 ROOMS = "quiet-machinery-atlas-unlit-rooms.html.gz"
 POCKET = "nurse-log-the-forest-has-a-pocket.html.gz"
+DC2 = "drowning-collective-the-shape-that-stays.html.gz"
 
 # Distinct payloads prove each movement gets its own file.
 NAMES = (b"ONE", b"TWO", b"THREE")
@@ -177,7 +178,7 @@ def test_per_movement_audio_gets_its_own_file(tmp_path: Path) -> None:
 
 
 def test_pocket_album_reads_its_own_window_and_normalizes_rows(tmp_path: Path) -> None:
-    """The sixth album reads `window.NL2_ALBUM`, keeps its own family and pocket rows."""
+    """Nurse Log A-02 keeps its own window, family and object-shaped score rows."""
     native = extract_album(POCKET, tmp_path, _gz(_pocket_html()))
     assert native.family == "pocket"
     assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
@@ -186,6 +187,52 @@ def test_pocket_album_reads_its_own_window_and_normalizes_rows(tmp_path: Path) -
     assert native.tracks[1].score["bpm"] == 88
     assert native.tracks[1].score["meter"] == [5, 4]
     assert native.tracks[0].score["events"]["harp"][0][:5] == [2, 1, 72, 0.5, -0.2]
+
+
+def test_drowning_a02_extracts_separate_audio_and_both_piano_hands(tmp_path: Path) -> None:
+    """DC2's new window retains separate MP3s and performed hand timing in its sidecar."""
+    events = [
+        dict(
+            part="piano",
+            kind="note",
+            time=0.993,
+            duration=0.7,
+            midi=50,
+            velocity=0.4,
+            pan=-0.13,
+            voice="left",
+        ),
+        dict(
+            part="piano",
+            kind="note",
+            time=1.013,
+            duration=1.2,
+            midi=74,
+            velocity=0.6,
+            pan=0.12,
+            voice="right",
+        ),
+    ]
+    tracks = [
+        dict(
+            number=i + 1,
+            scene=scene,
+            duration=60,
+            events=events,
+            audio=f"data:audio/mpeg;base64,{_b64(NAMES[i])}",
+        )
+        for i, scene in enumerate(("seam", "shoal"))
+    ]
+    html = f"<script>window.DC2_ALBUM={json.dumps({'tracks': tracks})};</script>"
+    native = extract_album(DC2, tmp_path, _gz(html))
+    assert native.family == "undertow"
+    assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
+    assert [t.offset_s for t in native.tracks] == [0, 0]
+    assert [t.scene for t in native.tracks] == ["seam", "shoal"]
+    payload = native.tracks[0].score
+    notes = payload["events"]["piano"]
+    assert [row[:5] for row in notes] == [[0.993, 0.7, 50, 0.4, -0.13], [1.013, 1.2, 74, 0.6, 0.12]]
+    assert [payload["voices"][int(row[6])] for row in notes] == ["left", "right"]
 
 
 def test_drowning_audio_resolves_through_asset_manifest(tmp_path: Path) -> None:

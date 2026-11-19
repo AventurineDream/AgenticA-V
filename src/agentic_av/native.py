@@ -100,6 +100,7 @@ _ALBUM_DATA: dict[str, tuple[str, str]] = {
     "nurse-log-ground-moves-anyway.html.gz": ("forest", "NURSE_LOG_ALBUM"),
     "nurse-log-the-forest-has-a-pocket.html.gz": ("pocket", "NL2_ALBUM"),
     "quiet-machinery-atlas-unlit-rooms.html.gz": ("rooms", "QUIET_MACHINERY"),
+    "drowning-collective-the-shape-that-stays.html.gz": ("undertow", "DC2_ALBUM"),
 }
 
 
@@ -185,9 +186,10 @@ def _track_audio(html: str, tracks: list[Any], family: str) -> list[tuple[str, f
     """Return ``(base64 payload, offset_s)`` per movement.
 
     Coupon stores one album mix, so every movement shares it and starts at
-    its `start`. Every other album stores one MP3 per movement: both Nurse Log albums
-    and Quiet Machinery inline a data URI in each track's `audio`; Drowning's
-    `audio` is a relative path keyed into its `band02-assets` manifest.
+    its `start`. Every other album stores one MP3 per movement. Both Nurse Log albums,
+    Quiet Machinery and Drowning Collective A-02 inline a data URI in each track's
+    `audio`. Drowning Collective A-01 alone uses relative `audio` paths keyed into
+    its `band02-assets` manifest.
     """
     if family == "coupon":
         payload = _album_audio(html)
@@ -855,7 +857,7 @@ def _cover_tier(tier: str) -> str:
 
 
 def _cover_pixels(album: Album) -> tuple[np.ndarray | None, str]:
-    """Load the album's approved cover, reporting a failed verification as a note.
+    """Load the album's bundled cover, reporting a failed verification as a note.
 
     Args:
         album: Album whose catalog record may name a cover.

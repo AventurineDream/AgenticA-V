@@ -13,7 +13,7 @@ Done: each band has terminal-friendly interpretations of its visuals, and the CL
 1. Continue the planned sequence through all 16 albums.
 2. Once the process is refined, open-source the reusable recipe and tell the project story.
 
-The open-source scope is the recipe and reusable tooling. Four completed A-01 albums are bundled in the player, and A-02 (*The Forest Has a Pocket*) is bundled under Aven's single-album approval dated 2026-11-18. The bundled albums are dedicated to the public domain under CC0 and the code is MIT-licensed (see LICENSE and LICENSE-CC0); that approval is not a listening-review approval. Other band details and albums stay outside that release.
+The open-source scope is the recipe and reusable tooling. Four completed A-01 albums and Nurse Log A-02 (*The Forest Has a Pocket*) are bundled under the recorded approvals. Drowning Collective A-02 adds six movements under Aven's 2026-11-18 make/bundle/PR instruction; merge is publication approval, with its agent-proposed cover awaiting confirmation or swap. That is six albums / 37 movements on this branch. Bundled albums and covers are CC0, code is MIT (LICENSE and LICENSE-CC0); publication is not listening-review approval. Other band details, source archives, stems and candidate artwork stay outside the release.
 
 ## CLI invitation and contribution policy
 
