@@ -4,7 +4,7 @@ A terminal album library and visual player, with multiple palettes and live Omar
 
 ## Status
 
-Active — album library plus the abstract visual player. Five albums are bundled: the four completed A-01 albums and A-02 under a single-album approval dated 2026-11-18. Code is MIT-licensed; bundled albums are CC0 (see License).
+Active — album library plus the abstract visual player. Six albums are bundled: the four completed A-01 albums, Nurse Log A-02 under its single-album approval, and Drowning Collective A-02, *The Shape That Stays*, under Aven's 2026-11-18 make/bundle/PR instruction. Merge is her publication approval; the new cover is agent-proposed until then. Code is MIT-licensed; bundled albums are CC0 (see License).
 
 ## Quick start
 
@@ -55,7 +55,7 @@ per second. Slow frames are dropped rather than queued. Reduced motion uses
 0.22× picture time and gentler reactivity. `--no-color` preserves geometry with
 ordered monochrome dithering; cursor positioning remains necessary in the TTY.
 
-See the [scene guide](docs/visuals.md) for all 31 movements and preview commands.
+See the [scene guide](docs/visuals.md) for all 37 movements and preview commands.
 The regional flash meter is a conservative regression heuristic, not a
 certification of flash safety; use reduced/still motion as needed.
 
@@ -103,7 +103,7 @@ A show TOML file requires `title`, positive `duration` in seconds, and a non-emp
 
 - `src/agentic_av/` — CLI, album catalog, palettes, abstract field programs, renderer, and TTY loop.
 - `src/agentic_av/albums/` — authorized public album HTML archives.
-- `src/agentic_av/artwork/` — the approved A-02 cover JPEG, hash-checked on load.
+- `src/agentic_av/artwork/` — two A-02 cover JPEGs, hash-checked on load; Drowning Collective's is agent-proposed pending merge.
 - `tests/` — isolated color, Omarchy, layout, clock, CLI, library, and input tests.
 - `docs/` — architecture and decisions.
 - `docs/plans/` — project roadmap.
@@ -118,4 +118,4 @@ Code in this repository is licensed under the MIT License — see [LICENSE](LICE
 
 ## Public scope
 
-The four completed A-01 albums are authorized for public bundling: Coupon Seance, *Saturn Has a Dollar Store*; Drowning Collective, *Are We Fish?*; Nurse Log, *The Ground Moves Anyway*; Quiet Machinery, *The Atlas of Unlit Rooms*. Nurse Log, *The Forest Has a Pocket* (A-02) is also bundled under Aven's single-album approval dated 2026-11-18. That approval supersedes the source archive's `public_release: false` flag for that album only; it does not cover the source ZIP, stems, candidate artwork, or other A-02 material. A-02's selected cover is bundled under the cover amendment in ADR 0002. The four A-01 selected cover images were not available to this build, so those albums show no cover. The bundled albums and bundled cover art are dedicated to the public domain under CC0 (see License). In-progress, archive, and other private material stay out of this repository. The visual demo uses original abstract terminal fields only.
+The four completed A-01 albums are authorized for public bundling: Coupon Seance, *Saturn Has a Dollar Store*; Drowning Collective, *Are We Fish?*; Nurse Log, *The Ground Moves Anyway*; Quiet Machinery, *The Atlas of Unlit Rooms*. Nurse Log, *The Forest Has a Pocket* (A-02) is also bundled under Aven's single-album approval dated 2026-11-18, superseding that source's `public_release: false` flag. Drowning Collective A-02 is made and bundled for PR under her 2026-11-18 run instruction; merge is publication approval, not a listening review. Its cover is agent-proposed for confirmation or swap at merge; Nurse Log's is creator-selected. ADR 0002 records exact assets and scope. Source ZIPs, stems, candidates and other private material remain outside this repository. The four A-01 covers were unavailable to this build. Bundled albums and cover art are CC0 (see License). The visual demo uses original abstract terminal fields only.

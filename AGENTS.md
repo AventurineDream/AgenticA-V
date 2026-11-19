@@ -33,7 +33,7 @@ uv sync --group dev
 
 ## Conventions
 
-- The four completed A-01 albums under `src/agentic_av/albums/` are authorized for public bundling. A-02, *The Forest Has a Pocket* (`nurse-log-the-forest-has-a-pocket.html.gz`), is authorized by Aven's single-album approval dated 2026-11-18 (ADR 0002). Its selected cover, `src/agentic_av/artwork/nurse-log-the-forest-has-a-pocket.jpg`, is the only bundled artwork; ADR 0002's cover amendment covers it. The bundled albums and bundled cover art are CC0; code is MIT (see LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, other artwork, or private material.
+- Public scope is six albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02 under her 2026-11-18 make/bundle/PR instruction (ADR 0002). Merge is her publication approval. Nurse Log's cover is creator-selected; Drowning Collective's baseline JPEG is agent-proposed pending confirmation or swap at merge. Both are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
 - Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
 - Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.
@@ -54,7 +54,8 @@ Do not add private band content or choose a code/media license on Aven's behalf.
 
 - `src/agentic_av/` — CLI, album catalog, palettes, field programs, TTY runtime, and renderer.
 - `src/agentic_av/albums/` — authorized public album HTML archives. Do not overwrite them.
-- `src/agentic_av/artwork/` — the approved A-02 cover JPEG, hash-checked on load. Do not overwrite it.
+- `src/agentic_av/artwork/` — the two A-02 cover JPEGs, hash-checked on load; Drowning Collective's is agent-proposed until merge. Do not overwrite them.
+- `src/agentic_av/viz/albums/undertow.py` — six Drowning Collective A-02 scenes; object score rows preserve Iris's separate `right`/`left` voices.
 - `tests/` — isolated palette, layout, CLI, transport, library, and input tests.
 - `docs/` — architecture and decision records.
 - `docs/plans/` — project roadmap.

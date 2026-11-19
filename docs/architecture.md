@@ -2,11 +2,11 @@
 
 `aav play` with no show or scene opens the album library. `aav demo`, and `aav play` with `--show` or `--scene`, render abstract terminal programs. `preview`, `themes`, and `gallery` stay on that visual path.
 
-Five albums are bundled as self-contained HTML players: the four completed A-01 albums, and A-02 under the single-album approval dated 2026-11-18 (ADR 0002). The bundled albums are CC0 and the code is MIT (see LICENSE and LICENSE-CC0). Enter plays native audio with a new audio-reactive mosaic scene; `o` opens cached HTML at the movement start instead. Browser autoplay still requires a Play click.
+Six albums are bundled as self-contained HTML players: the four completed A-01 albums, Nurse Log A-02 under its single-album approval, and Drowning Collective A-02 under Aven's 2026-11-18 make/bundle/PR instruction (ADR 0002). Merge is publication approval. Bundled albums are CC0 and code is MIT (LICENSE and LICENSE-CC0). Enter plays native audio with an audio-reactive mosaic scene; `o` opens cached HTML at the movement start instead. Browser autoplay still requires a Play click.
 
 ## Album library
 
-`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums and the A-02 album approved on 2026-11-18 belong in the catalog; ADR 0002 records that exception. The A-02 record also names its approved cover file and SHA-256 (`CoverArt`); `validate_catalog` checks their form.
+`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. ADR 0002 limits the catalog to those six albums. Both A-02 records name a cover file and SHA-256 (`CoverArt`); `validate_catalog` checks their form. Nurse Log's cover is creator-selected, while Drowning Collective's is agent-proposed pending confirmation or swap at merge.
 
 `library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
 
@@ -80,8 +80,13 @@ guarantee of flash safety**. Preview measurements and synthetic adversarial
 fixtures complement, rather than replace, rendered-art review.
 
 Browser materialization remains separate: cached HTML receives a numeric-start
-script that seeks after metadata without calling `play()`. `aav tracks` prints
-the catalog without a TTY. See [visuals](visuals.md) and [ADR 0004](decisions/0004-numpy-mosaic-visualizers.md).
+script targeting `#audio`, seeking after metadata without calling `play()`.
+Drowning Collective A-02 owns `?start=` itself on `#album-audio`, resolving album
+seconds to a track and local offset; the injected script is intentionally a no-op
+there. Native extraction reads `window.DC2_ALBUM` into the distinct `undertow`
+family and reuses the object-row normalizer without flattening the two piano hands.
+`aav tracks` prints the catalog without a TTY. See [visuals](visuals.md) and
+[ADR 0004](decisions/0004-numpy-mosaic-visualizers.md).
 
 ## Data flow
 
@@ -105,7 +110,7 @@ The abstract demo transport is a monotonic visual clock, not an audio player. Pa
 - `viz/`: numpy surfaces, drawing/effects, audio and score queries, mosaic fitting, encoding, Stage, album scenes, previews, and regional risk measurement.
 - `viz/cover.py`: hash-checked JPEG decoding and bounded mosaic rendering for album covers.
 - `albums/*.html.gz`: authorized public album players. Read-only package data.
-- `artwork/*.jpg`: the approved A-02 cover. Read-only package data, hash-checked on load.
+- `artwork/*.jpg`: the two A-02 covers; Drowning Collective's is agent-proposed pending merge. Read-only package data, hash-checked on load.
 - `palette.py` and `omarchy.py`: role definitions and read-only theme resolution.
 - `field.py`: deterministic abstract luminance/hue samples.
 - `paint.py`: fixed-grid composition, half-block stage, theme-atlas cards, and ANSI serialization.

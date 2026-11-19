@@ -1,7 +1,7 @@
 # Native scene guide
 
 Native album art is a new numpy-painted interpretation, not a port of the web
-player or the former terminal glyph scenes. The 31 movements across five albums
+player or the former terminal glyph scenes. The 37 movements across six albums
 share album-specific materials and palettes. Audio bands and instrument notes move geometry; seeds
 keep repeat renders deterministic. Quiet passages and missing analysis retain
 composed scenes rather than substituting fabricated signals.
@@ -80,9 +80,30 @@ Geometry follows picture time and smoothed envelopes; score notes place only sma
 5. **Five Spaces for a Fern:** five fern spaces sway on a five-beat cycle while spores climb.
 6. **The Forest Has a Pocket:** nine strands braid toward one horizon, locked to a four-beat pocket.
 
+## Drowning Collective — *The Shape That Stays*
+
+The `undertow` family keeps aquatic pressure tactile and asymmetric: thick mineral
+bodies, two independent piano currents and consequential black interruptions.
+Iris's `right` and `left` voices remain separate queries; Mica moves pressure mass,
+Pax opens fractures, and piano-derived memory is a production layer, not a member.
+Smoothed audio envelopes deform geometry rather than beat-synchronized light.
+Seeded compositions remain visible without analysis, and Stage preserves exact holds.
+
+1. **A Handhold in Moving Water:** two fine routes pass a heavy split body.
+2. **The Low Voice Keeps the Question:** off-center pressure chambers give the bass a complete sentence.
+3. **Five Ways Past the Same Shore:** long lateral planes leave space between five-beat phrases.
+4. **A Fault Held Gently:** opposed vertical currents meet at a black shear.
+5. **Leave the Basin Unfilled:** a spare curled basin protects its empty center and two filaments.
+6. **The Shape That Stays:** braided routes return around an opening of restrained amber.
+
+```bash
+uv run python -m agentic_av.viz.preview undertow 1 --at 60 --out /tmp/undertow.png
+uv run python -m agentic_av.viz.preview undertow 6 --motion still --sheet 4 --out /tmp/estuary.png
+```
+
 ## Cover panel
 
-*The Forest Has a Pocket* shows its approved cover, a 1024×1024 photo, in a panel at the left of the stage. The panel keeps the photo's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
+*The Forest Has a Pocket* shows its creator-selected 1024×1024 cover; Drowning Collective A-02 shows an agent-proposed 1024×1024 baseline JPEG, pending Aven's confirmation or swap at merge. Both use the same hash-checked panel at the left of the stage. The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
 
 ## Display and motion
 
