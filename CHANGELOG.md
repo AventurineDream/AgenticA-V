@@ -6,6 +6,7 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- Add the final piano-camera app icon set (v2.2) under `assets/icons/piano-camera-icons-final/`: default orange-on-teal plus eight color variants, full AppIcon.iconsets, .icns files, and a macOS menu bar template icon.
 - Add an album library. Bare `aav play` selects from four authorized public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
 - `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
