@@ -55,6 +55,7 @@ ROOMS = "quiet-machinery-atlas-unlit-rooms.html.gz"
 POCKET = "nurse-log-the-forest-has-a-pocket.html.gz"
 DC2 = "drowning-collective-the-shape-that-stays.html.gz"
 HAUNT = "coupon-seance-buy-one-haunt-one-free.html.gz"
+DUSK = "quiet-machinery-instruments-for-measuring-dusk.html.gz"
 
 # Distinct payloads prove each movement gets its own file.
 NAMES = (b"ONE", b"TWO", b"THREE")
@@ -155,6 +156,41 @@ def _haunt_html(count: int = 2) -> str:
         "tracks": tracks,
     }
     return f"<script>window.CS2_ALBUM={json.dumps(album)};</script>"
+
+
+def _dusk_html(count: int = 2) -> str:
+    """Dusk-album shape: `window.QM2_ALBUM` with object rows and inline MP3s."""
+    scenes = ("survey", "sheets", "bell")
+    tracks = [
+        {
+            "number": index + 1,
+            "scene": scenes[index],
+            "bpm": 76,
+            "meter": "6/8" if index == 1 else "4/4",
+            "color": ["#0b1220", "#c98a5a", "#7f9cc7"],
+            "duration": 60,
+            "events": [
+                {
+                    "part": "marimba",
+                    "kind": "note",
+                    "time": 3.5,
+                    "duration": 2,
+                    "midi": 74,
+                    "velocity": 0.6,
+                    "pan": 0.3,
+                    "voice": "cell",
+                },
+            ],
+            "audio": f"data:audio/mpeg;base64,{_b64(NAMES[index])}",
+        }
+        for index in range(count)
+    ]
+    album = {
+        "band": "Quiet Machinery",
+        "made_with": {"model": "anthropic/claude-opus-5-5"},
+        "tracks": tracks,
+    }
+    return f"<script>window.QM2_ALBUM={json.dumps(album)};</script>"
 
 
 def _aquatic_html() -> str:
@@ -279,6 +315,16 @@ def test_haunt_album_reads_its_own_window_and_keeps_object_rows(tmp_path: Path) 
     assert [t.scene for t in native.tracks] == ["perihelion", "haunt-free"]
     assert native.tracks[1].score["meter"] == [3, 4]
     assert native.tracks[0].score["events"]["violin"][0][:5] == [3.5, 2, 74, 0.6, 0.3]
+
+
+def test_dusk_album_reads_its_own_window_and_keeps_object_rows(tmp_path: Path) -> None:
+    """Quiet Machinery A-02 reads `window.QM2_ALBUM` into the `dusk` family, not A-01 rooms."""
+    native = extract_album(DUSK, tmp_path, _gz(_dusk_html()))
+    assert native.family == "dusk"
+    assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
+    assert [t.scene for t in native.tracks] == ["survey", "sheets"]
+    assert native.tracks[1].score["meter"] == [6, 8]
+    assert native.tracks[0].score["events"]["marimba"][0][:5] == [3.5, 2, 74, 0.6, 0.3]
 
 
 def test_drowning_audio_resolves_through_asset_manifest(tmp_path: Path) -> None:

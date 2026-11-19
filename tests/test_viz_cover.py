@@ -30,6 +30,10 @@ _DC2_SHA256 = "15ebebe5901876171853a20858d7f828b989bbca8c3d4fd4d78f15f2a2933d4a"
 _HAUNT_ALBUM = "coupon-seance-buy-one-haunt-one-free.html.gz"
 _HAUNT_ASSET = "coupon-seance-buy-one-haunt-one-free.jpg"
 _HAUNT_SHA256 = "4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047f"
+# Quiet Machinery A-02's agent-proposed cover (ADR 0002 amendment); Aven's merge approves it.
+_DUSK_ALBUM = "quiet-machinery-instruments-for-measuring-dusk.html.gz"
+_DUSK_ASSET = "quiet-machinery-instruments-for-measuring-dusk.jpg"
+_DUSK_SHA256 = "cd29193cde9fc0a53e40fd8b37fda8fa845ffc397dd0c39451fb19bf1db4c81a"
 _SGR = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -76,13 +80,14 @@ def test_only_approved_a02_covers_are_recorded_and_the_artwork_folder_holds_only
         _POCKET_ALBUM: (_ASSET, _RECEIPT_SHA256),
         _DC2_ALBUM: (_DC2_ASSET, _DC2_SHA256),
         _HAUNT_ALBUM: (_HAUNT_ASSET, _HAUNT_SHA256),
+        _DUSK_ALBUM: (_DUSK_ASSET, _DUSK_SHA256),
     }
     names = sorted(
         path.name
         for path in files("agentic_av").joinpath("artwork").iterdir()
         if not path.name.startswith(".") and path.name != "__pycache__"
     )
-    assert names == sorted([_ASSET, _DC2_ASSET, _HAUNT_ASSET])
+    assert names == sorted([_ASSET, _DC2_ASSET, _HAUNT_ASSET, _DUSK_ASSET])
     dc2 = files("agentic_av").joinpath("artwork", _DC2_ASSET).read_bytes()
     assert len(dc2) == 404_381
     assert hashlib.sha256(dc2).hexdigest() == _DC2_SHA256
@@ -90,6 +95,9 @@ def test_only_approved_a02_covers_are_recorded_and_the_artwork_folder_holds_only
     haunt = files("agentic_av").joinpath("artwork", _HAUNT_ASSET).read_bytes()
     assert hashlib.sha256(haunt).hexdigest() == _HAUNT_SHA256
     assert load_cover(_HAUNT_ASSET, _HAUNT_SHA256).shape == (1024, 1024, 3)
+    dusk = files("agentic_av").joinpath("artwork", _DUSK_ASSET).read_bytes()
+    assert hashlib.sha256(dusk).hexdigest() == _DUSK_SHA256
+    assert load_cover(_DUSK_ASSET, _DUSK_SHA256).shape == (1024, 1024, 3)
 
 
 def test_altered_bytes_are_refused_before_decoding() -> None:

@@ -96,6 +96,13 @@ _AUTHORIZED = (
         "coupon-seance-buy-one-haunt-one-free.html.gz",
         (0, 271, 530, 784, 1070, 1326),
     ),
+    (
+        "Quiet Machinery",
+        "Instruments for Measuring Dusk",
+        1596,
+        "quiet-machinery-instruments-for-measuring-dusk.html.gz",
+        (0, 276, 546, 823, 1096, 1346),
+    ),
 )
 
 
@@ -105,12 +112,15 @@ _POCKET_HTML_SHA256 = "5b0387575231b1ef29d7c881a10f672688218b3099640399b8319690d
 _HAUNT_ASSET = "coupon-seance-buy-one-haunt-one-free.html.gz"
 _HAUNT_GZ_SHA256 = "6d18ba3cd44f3ad2258907a8fc7719c372de9a7d6016e0f8fa71779d2ee96be9"
 _HAUNT_HTML_SHA256 = "fa9672cdba93f7bc3a19a8689f89ebc0af865b166297baa043394274b534fced"
+_DUSK_ASSET = "quiet-machinery-instruments-for-measuring-dusk.html.gz"
+_DUSK_GZ_SHA256 = "881b22458e6d8bd1a04b5c330e5b276bd11a60036e559edb5841a2aff71c164b"
+_DUSK_HTML_SHA256 = "9312ea491df87d3c75b0d9fe8d6011d084111682ab843120c2b7b7c37240a177"
 
 
 def test_public_catalog_is_the_authorized_albums() -> None:
     """Band is the album artist; four A-01 albums and the approved A-02 albums are listed."""
     validate_catalog()
-    assert len(ALBUMS) == 7
+    assert len(ALBUMS) == 8
     assert all(album.artist == album.band for album in ALBUMS)
     found = {
         (album.artist, album.title, album.duration_s, album.asset): tuple(
@@ -256,6 +266,48 @@ def test_haunt_catalog_metadata_and_archive_match_the_built_page() -> None:
     assert b'"made_with":{"model":"anthropic/claude-opus-5-5"' in html
 
 
+def test_dusk_catalog_metadata_and_archive_match_the_built_page() -> None:
+    """Quiet Machinery A-02: exact movements, the unaltered built page, and its model credit.
+
+    The hashes come from the built page and the packaged gzip, so a replaced or re-encoded
+    archive fails here. The page's album JSON must keep the model that made the album.
+    """
+    dusk = next(album for album in ALBUMS if album.asset == _DUSK_ASSET)
+    assert (dusk.artist, dusk.band, dusk.title) == (
+        "Quiet Machinery",
+        "Quiet Machinery",
+        "Instruments for Measuring Dusk",
+    )
+    assert [track.title for track in dusk.tracks] == [
+        "The Cell Returns at Dusk",
+        "Two Reeds Cross the Sheet",
+        "A Bell Learns to Wait",
+        "Salt Fault, Seven Steps",
+        "The Warm Room Opens a Window",
+        "Antenna, Lit",
+    ]
+    starts = [track.start_s for track in dusk.tracks]
+    ends = [*starts[1:], dusk.duration_s]
+    assert [end - start for start, end in zip(starts, ends, strict=True)] == [
+        276,
+        270,
+        277,
+        273,
+        250,
+        250,
+    ]
+    data = files("agentic_av").joinpath("albums", _DUSK_ASSET).read_bytes()
+    assert len(data) == 38_256_695
+    assert hashlib.sha256(data).hexdigest() == _DUSK_GZ_SHA256
+    html = gzip.decompress(data)
+    assert len(html) == 52_814_897
+    assert hashlib.sha256(html).hexdigest() == _DUSK_HTML_SHA256
+    assert b'"made_with":{"model":"anthropic/claude-opus-5-5"' in html
+    # The catalog's titles are the page's own track titles, punctuation included.
+    for track in dusk.tracks:
+        assert f'"title":"{track.title}"'.encode() in html, track.title
+
+
 def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
     """Each sort field participates, including when artist and band differ."""
     later = Album(
@@ -308,12 +360,13 @@ def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
         for entry in public
     ]
     assert keys == sorted(keys)
-    assert len(public) == 43
+    assert len(public) == 49
     titles = [entry.track.title for entry in public]
     assert titles.index("We Kept the Receipt") < titles.index("An Uneven Kindness")
     assert titles.index("The Water Learns Major") < titles.index("Under Six Feet of Moss")
     assert titles.index("The Ground Moves Anyway") < titles.index("Copper Gravity")
     assert titles.index("We Kept the Change") < titles.index("Customs at the Edge of Saturn")
+    assert titles.index("Antenna, Lit") < titles.index("Copper Gravity")
 
 
 def test_tracks_listing_follows_catalog_order_without_ansi(capsys) -> None:

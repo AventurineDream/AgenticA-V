@@ -117,9 +117,22 @@ on the orbit as points, with side-slips a step off it; violin and theremin leave
 5. **Layaway for a Dying Star:** the orbit contracts toward a dimming star above a rail of tags.
 6. **We Kept the Change:** the rings reopen into arcs and the keys scatter outward as change.
 
+## Quiet Machinery — *Instruments for Measuring Dusk*
+
+Six room-scale instruments, each in its own geometry and apart from the A-01 rooms sculptures.
+Bass and air set the base geometry; vibes, clarinet and flute shape their envelopes, and
+marimba and percussion place marks that ramp in rather than stepping on their onsets.
+
+1. **The Cell Returns at Dusk:** an iris of nine blades opens with the vibraphone; marimba cell ticks ring its rim.
+2. **Two Reeds Cross the Sheet:** two ribbons cross left of centre, the clarinet low and warm, the flute high and cool.
+3. **A Bell Learns to Wait:** a glowing bell body that the vibraphone decay fills; each vibes note rings its plane.
+4. **Salt Fault, Seven Steps:** seven salt fault lines slip with the bass; marimba notes leave copper crystals.
+5. **The Warm Room Opens a Window:** a one-point room whose back window widens across the track; flute light spills out.
+6. **Antenna, Lit:** a guyed mast whose head sways in picture time, rings on accented percussion, and lights late.
+
 ## Cover panel
 
-The A-02 albums — *The Forest Has a Pocket* (creator-selected cover), *The Shape That Stays* and *Buy One, Haunt One Free* (agent-proposed covers, approved at merge) — show their bundled 1024×1024 covers in a panel at the left of the stage. The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
+The A-02 albums — *The Forest Has a Pocket* (creator-selected cover), *The Shape That Stays*, *Buy One, Haunt One Free*, and *Instruments for Measuring Dusk* (agent-proposed covers, approved at merge) — show their bundled 1024×1024 covers in a panel at the left of the stage. The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. The four A-01 cover images were not available to this build, so those albums keep the full-width stage.
 
 ## Display and motion
 

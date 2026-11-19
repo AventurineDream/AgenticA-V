@@ -224,6 +224,24 @@ ALBUMS: tuple[Album, ...] = (
             "4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047f",
         ),
     ),
+    _album(
+        "Quiet Machinery",
+        "Instruments for Measuring Dusk",
+        1596,
+        "quiet-machinery-instruments-for-measuring-dusk.html.gz",
+        (
+            (0, "The Cell Returns at Dusk"),
+            (276, "Two Reeds Cross the Sheet"),
+            (546, "A Bell Learns to Wait"),
+            (823, "Salt Fault, Seven Steps"),
+            (1096, "The Warm Room Opens a Window"),
+            (1346, "Antenna, Lit"),
+        ),
+        cover=CoverArt(
+            "quiet-machinery-instruments-for-measuring-dusk.jpg",
+            "cd29193cde9fc0a53e40fd8b37fda8fa845ffc397dd0c39451fb19bf1db4c81a",
+        ),
+    ),
 )
 
 
