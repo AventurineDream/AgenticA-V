@@ -37,7 +37,8 @@ from .stage import Stage
 
 _FPS = 30.0
 _RATES = {"full": 1.0, "reduced": 0.22, "still": 0.0}
-_FAMILIES = ("coupon", "aquatic", "forest", "rooms")
+# Positional: each name matches the ALBUMS entry at the same index. Append only.
+_FAMILIES = ("coupon", "aquatic", "forest", "rooms", "pocket")
 
 
 @dataclass(frozen=True)
@@ -61,8 +62,10 @@ def _load(album_name: str, movement_name: str) -> _Source:
             album.asset.removesuffix(".html.gz"),
         )
     ]
-    if len(albums) != 1:
-        raise ValueError("unknown album; choose coupon, aquatic, forest, or rooms")
+    if not albums:
+        raise ValueError("unknown album; use a family, catalog number, or exact album title")
+    if len(albums) > 1:
+        raise ValueError("ambiguous album; use a family, catalog number, or exact album title")
     _, album = albums[0]
     native = extract_album(album.asset)
     candidates = [

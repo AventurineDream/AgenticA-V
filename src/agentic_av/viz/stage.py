@@ -47,6 +47,8 @@ class Stage:
         tier: Key from glyphs.TIERS.
         color_mode: truecolor, 256, or none.
         cell_aspect: Cell height divided by width in physical pixels.
+        left: Zero-based terminal column of the canvas left edge. A cover panel may
+            share the rows to its left; the stage never writes into those columns.
 
     Attributes:
         surface: Current linear-light canvas (tone mapped after each frame).
@@ -54,13 +56,23 @@ class Stage:
         timings: Latest render, fit, and encode durations in seconds.
 
     Raises:
-        ValueError: Dimensions or color mode are invalid.
+        ValueError: Dimensions, the left offset, or color mode are invalid.
         KeyError: The tier is unknown.
     """
 
     def __init__(
-        self, cols: int, rows: int, *, tier: str, color_mode: str, cell_aspect: float = 2.0
+        self,
+        cols: int,
+        rows: int,
+        *,
+        tier: str,
+        color_mode: str,
+        cell_aspect: float = 2.0,
+        left: int = 0,
     ):
+        if left < 0:
+            raise ValueError("left offset must be nonnegative")
+        self.left = left
         self.tier = tier
         self.color_mode = color_mode
         self.cell_aspect = cell_aspect
@@ -114,16 +126,21 @@ class Stage:
         self.cells = None
         self._redraw = False
 
-    def resize(self, cols: int, rows: int) -> None:
+    def resize(self, cols: int, rows: int, *, left: int | None = None) -> None:
         """Change canvas dimensions and redraw the captured instant on the next frame.
 
         Args:
             cols: Positive width in character cells.
             rows: Positive height in character cells.
+            left: Zero-based column offset of the canvas; None keeps the current offset.
 
         Raises:
-            ValueError: A dimension is not positive.
+            ValueError: A dimension or the offset is invalid.
         """
+        if left is not None:
+            if left < 0:
+                raise ValueError("left offset must be nonnegative")
+            self.left = left
         self.surface = self._surface(cols, rows)
         if self.scene is not None:
             self.scene.resize(self.surface)
@@ -131,6 +148,14 @@ class Stage:
         self._redraw = True
         self.encoder.invalidate()
         self.cells = None
+
+    def repaint(self) -> None:
+        """Forget the terminal rows so the next frame rewrites the whole canvas.
+
+        Used after a new scene opens or after another panel overwrote canvas rows.
+        The picture, crossfade, and clocks are unchanged; only row-diff state resets.
+        """
+        self.encoder.invalidate()
 
     def set_tier(self, tier: str) -> None:
         """Switch the mosaic sampling grid and invalidate terminal rows.
@@ -232,7 +257,7 @@ class Stage:
         rendered = perf_counter()
         self.cells = fit(self.surface.rgb, self.tier, mono=self.color_mode == "none")
         fitted = perf_counter()
-        result = self.encoder.encode(self.cells)
+        result = self.encoder.encode(self.cells, left=self.left)
         encoded = perf_counter()
         self.timings = (rendered - start, fitted - rendered, encoded - fitted)
         return result

@@ -109,24 +109,26 @@ class FrameEncoder:
         """Forget the last frame so the next call repaints every row."""
         self._previous = None
 
-    def encode(self, cells: Cells, *, top: int = 1) -> bytes:
+    def encode(self, cells: Cells, *, top: int = 1, left: int = 0) -> bytes:
         """Return changed rows as terminal bytes, without a sync wrapper or clear.
 
         Args:
             cells: Fitted canvas; arrays are read without mutation.
             top: One-based terminal row for the canvas top edge.
+            left: Zero-based column offset of the canvas left edge. Rows start at
+                column ``left + 1``, so a cover panel can sit beside the stage.
 
         Returns:
             Empty bytes when nothing visible changed. Colored rows end in SGR reset.
 
         Raises:
-            ValueError: top is not a positive terminal row.
+            ValueError: top is not a positive terminal row, or left is negative.
         """
-        if top < 1:
-            raise ValueError("top must be a positive terminal row")
+        if top < 1 or left < 0:
+            raise ValueError("top must be a positive terminal row and left nonnegative")
         rows, cols = cells.glyph.shape
         mode = "none" if cells.mono else self.color_mode
-        key = (cells.tier, mode, rows, cols, top)
+        key = (cells.tier, mode, rows, cols, top, left)
         if key != self._key:
             self.invalidate()
             self._key = key
@@ -199,7 +201,7 @@ class FrameEncoder:
         mask[..., offset : offset + 4] = np.arange(4) < lengths[cells.glyph][..., None]
         parts = []
         for row in np.flatnonzero(changed):
-            parts.append(b"\x1b[%d;1H" % (row + top))
+            parts.append(b"\x1b[%d;%dH" % (row + top, left + 1))
             parts.append(record[row][mask[row]].tobytes())
             if mode != "none":
                 parts.append(b"\x1b[0m")

@@ -14,7 +14,7 @@ Build a reusable creative recipe and player tools for making audio-visual band w
 4. Build the CLI player around those interpretations.
 5. Once the process is refined, open-source the reusable recipe and tell the project story.
 
-The open-source scope is the recipe and reusable tooling. Four completed A-01 albums are now bundled in the player; all rights remain reserved. Other band details and albums stay outside that release.
+The open-source scope is the recipe and reusable tooling. Four completed A-01 albums are bundled in the player, and A-02 (*The Forest Has a Pocket*) is bundled under Aven's single-album approval dated 2026-11-18. All rights remain reserved; that approval is not a license grant or a listening-review approval. Other band details and albums stay outside that release.
 
 ## CLI invitation and contribution policy
 

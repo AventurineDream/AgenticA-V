@@ -170,7 +170,9 @@ def test_load_uses_native_extract_score_palette_and_one_based_movement(monkeypat
     assert source.movement.palette == ("#010203", "#aabbcc")
     assert source.movement.bpm == 123
     assert source.movement.meter == (7, 8)
-    assert preview._load("Nurse Log", "6").movement.seed == source.movement.seed
+    assert preview._load("The Ground Moves Anyway", "6").movement.seed == source.movement.seed
+    with pytest.raises(ValueError, match="ambiguous album"):
+        preview._load("Nurse Log", "6")
 
 
 def test_still_cli_at_captures_requested_progress_not_warmup_start(monkeypatch):

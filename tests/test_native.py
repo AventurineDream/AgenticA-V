@@ -11,6 +11,7 @@ hanging the suite.
 from __future__ import annotations
 
 import base64
+import dataclasses
 import gzip
 import json
 import os
@@ -24,14 +25,16 @@ from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
+import pyte
 import pytest
 
-from agentic_av.catalog import Album, CatalogEntry, Track
+from agentic_av.catalog import ALBUMS, Album, CatalogEntry, Track
 from agentic_av.library import AlbumError
 from agentic_av.native import (
     Ffplay,
     Mpv,
     NativeError,
+    _layout,
     _player_for,
     _status_line,
     _write_output,
@@ -42,12 +45,14 @@ from agentic_av.native import (
 from agentic_av.palette import builtin_palettes
 from agentic_av.tty import _PlayerTerminatedError
 from agentic_av.viz.audio import AudioError, Segment, analyze
+from agentic_av.viz.cover import ArtworkError
 from agentic_av.viz.score import NOTE
 
 FOREST = "nurse-log-ground-moves-anyway.html.gz"
 AQUATIC = "drowning-collective-are-we-fish.html.gz"
 COUPON = "coupon-seance-saturn.html.gz"
 ROOMS = "quiet-machinery-atlas-unlit-rooms.html.gz"
+POCKET = "nurse-log-the-forest-has-a-pocket.html.gz"
 
 # Distinct payloads prove each movement gets its own file.
 NAMES = (b"ONE", b"TWO", b"THREE")
@@ -82,6 +87,37 @@ def _forest_html(count: int = 2) -> str:
         for index in range(count)
     ]
     return f"<script>window.NURSE_LOG_ALBUM={json.dumps({'tracks': tracks})};</script>"
+
+
+def _pocket_html(count: int = 2) -> str:
+    """Pocket-album shape: `window.NL2_ALBUM` with one inline MP3 per track."""
+    scenes = ("root", "rain", "spiral")
+    tracks = [
+        {
+            "number": index + 1,
+            "scene": scenes[index],
+            "bpm": 88,
+            "meter": "5/4" if index == 1 else "4/4",
+            "color": ["#091c18", "#497453", "#d0b575"],
+            "duration": 60,
+            "events": [
+                {
+                    "part": "harp",
+                    "kind": "note",
+                    "time": 2,
+                    "duration": 1,
+                    "midi": 72,
+                    "velocity": 0.5,
+                    "pan": -0.2,
+                    "voice": "held-center",
+                },
+            ],
+            "audio": f"data:audio/mpeg;base64,{_b64(NAMES[index])}",
+        }
+        for index in range(count)
+    ]
+    album = {"band": "Nurse Log", "tracks": tracks}
+    return f"<script>window.NL2_ALBUM={json.dumps(album)};</script>"
 
 
 def _aquatic_html() -> str:
@@ -138,6 +174,18 @@ def test_per_movement_audio_gets_its_own_file(tmp_path: Path) -> None:
     assert [t.offset_s for t in native.tracks] == [0.0, 0.0]
     assert [t.scene for t in native.tracks] == ["root", "rain"]
     assert native.tracks[0].score["events"]["harp"][0][:5] == [0, 1, 60, 0.5, 0]
+
+
+def test_pocket_album_reads_its_own_window_and_normalizes_rows(tmp_path: Path) -> None:
+    """The sixth album reads `window.NL2_ALBUM`, keeps its own family and pocket rows."""
+    native = extract_album(POCKET, tmp_path, _gz(_pocket_html()))
+    assert native.family == "pocket"
+    assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
+    assert [t.scene for t in native.tracks] == ["root", "rain"]
+    assert native.tracks[0].score["palette"] == ["#091c18", "#497453", "#d0b575"]
+    assert native.tracks[1].score["bpm"] == 88
+    assert native.tracks[1].score["meter"] == [5, 4]
+    assert native.tracks[0].score["events"]["harp"][0][:5] == [2, 1, 72, 0.5, -0.2]
 
 
 def test_drowning_audio_resolves_through_asset_manifest(tmp_path: Path) -> None:
@@ -967,3 +1015,155 @@ def test_frame_deadlines_drop_slow_work_without_queued_catchup(
         tick_s=0.1,
     )
     assert waits == pytest.approx([expected_s, expected_s])
+
+
+# --- album cover panel ---------------------------------------------------------
+
+_SYNC_MARK = re.compile(r"\x1b\[\?2026[hl]")
+_SGR_SEQUENCE = re.compile(r"\x1b\[[0-9;]*m")
+_CATALOG_POCKET = next(album for album in ALBUMS if album.asset == POCKET)
+# The catalog's A-02 record lists six movements; the playback harness replays two, so the
+# real cover rides on a two-movement album.
+POCKET_ALBUM = dataclasses.replace(_album(POCKET, (0.0, 60.0), 120.0), cover=_CATALOG_POCKET.cover)
+
+
+def _replay(frames: list[str], width: int, height: int) -> pyte.Screen:
+    """Feed the frames, in order, to a terminal of the given size."""
+    screen = pyte.Screen(width, height)
+    stream = pyte.Stream(screen)
+    for frame in frames:
+        stream.feed(_SYNC_MARK.sub("", frame))
+    return screen
+
+
+def _painted(screen: pyte.Screen, rows: range, cols: range) -> int:
+    """Count cells in the box that show a glyph or carry a color."""
+    return sum(
+        1
+        for row in rows
+        for col in cols
+        if screen.buffer[row][col].data != " "
+        or screen.buffer[row][col].fg != "default"
+        or screen.buffer[row][col].bg != "default"
+    )
+
+
+def _glyphs(screen: pyte.Screen, rows: range, cols: range) -> str:
+    """Return the characters in the box, row by row."""
+    return "".join(screen.buffer[row][col].data for row in rows for col in cols)
+
+
+def test_a02_shows_its_cover_left_of_the_stage_in_color(tmp_path: Path) -> None:
+    _, frames = _play(
+        tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2, color_mode="truecolor"
+    )
+    screen = _replay(frames, 80, 24)
+    # A 32x16 panel centered on the 22 canvas rows: rows 4-19, columns 1-32 (one-based).
+    assert _painted(screen, range(3, 19), range(0, 32)) == 32 * 16
+    assert _painted(screen, range(0, 3), range(0, 32)) == 0
+    assert _painted(screen, range(19, 22), range(0, 32)) == 0
+    # The two-column gap is erased; the stage keeps its 46 columns on the right.
+    assert _painted(screen, range(0, 22), range(32, 34)) == 0
+    assert _painted(screen, range(0, 22), range(34, 80)) == 22 * 46
+    assert "PLAYING" in screen.display[23]
+
+
+def test_a02_cover_is_glyphs_only_without_color(tmp_path: Path) -> None:
+    _, frames = _play(tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2)
+    assert not any(_SGR_SEQUENCE.search(frame) for frame in frames)
+    screen = _replay(frames, 80, 24)
+    assert _glyphs(screen, range(3, 19), range(0, 32)).strip()
+    assert _painted(screen, range(0, 22), range(32, 34)) == 0
+    assert "PLAYING" in screen.display[23]
+
+
+def test_linux_console_tier_draws_the_cover_in_ascii(tmp_path: Path) -> None:
+    _, frames = _play(
+        tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2, glyphs="ascii"
+    )
+    screen = _replay(frames, 80, 24)
+    panel = _glyphs(screen, range(3, 19), range(0, 32))
+    assert panel.strip()
+    assert all(ord(char) < 128 for char in panel)
+
+
+def test_albums_without_a_cover_keep_the_full_width_stage(tmp_path: Path) -> None:
+    _, frames = _play(
+        tmp_path, _forest_html(3), 1, FOREST_ALBUM, b"", quit_after_frames=2, color_mode="truecolor"
+    )
+    assert not any("\x1b[2K" in frame for frame in frames)
+    screen = _replay(frames, 80, 24)
+    assert _painted(screen, range(0, 22), range(0, 80)) == 22 * 80
+
+
+def test_resizing_the_panel_leaves_no_stale_pixels(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[int] = []
+
+    def size(_fd: int) -> tuple[int, int]:
+        calls.append(len(calls))
+        return (80, 24) if len(calls) <= 3 else (100, 24)
+
+    monkeypatch.setattr("agentic_av.native._size", size)
+    _, frames = _play(
+        tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=8, color_mode="truecolor"
+    )
+    assert len(calls) >= 4, "the widening must happen before the quit"
+    screen = _replay(frames, 100, 24)
+    # At 100 columns the panel grows to 40x20 and stays centered: rows 2-21, columns 1-40.
+    assert _painted(screen, range(1, 21), range(0, 40)) == 40 * 20
+    assert _painted(screen, range(0, 22), range(40, 42)) == 0
+    assert _painted(screen, range(0, 1), range(0, 40)) == 0
+    assert _painted(screen, range(21, 22), range(0, 40)) == 0
+    assert _painted(screen, range(0, 22), range(42, 100)) == 22 * 58
+    assert "PLAYING" in screen.display[23]
+
+
+@pytest.mark.parametrize(
+    ("key", "expected_title"),
+    [(b"n", POCKET_ALBUM.tracks[1].title), (b"g", POCKET_ALBUM.tracks[0].title)],
+)
+def test_cover_remains_visible_after_movement_and_tier_changes(
+    tmp_path: Path, key: bytes, expected_title: str
+) -> None:
+    _, frames = _play(
+        tmp_path,
+        _pocket_html(2),
+        1,
+        POCKET_ALBUM,
+        b"",
+        keys_after_frames={1: key, 6: b"q"},
+        color_mode="truecolor",
+        glyphs="half",
+    )
+    screen = _replay(frames, 80, 24)
+    assert expected_title in screen.display[23]
+    assert _painted(screen, range(3, 19), range(0, 32)) == 32 * 16
+    assert _painted(screen, range(0, 22), range(32, 34)) == 0
+    assert _painted(screen, range(0, 22), range(34, 80)) == 22 * 46
+
+
+def test_a_cover_that_fails_verification_is_omitted_with_a_note(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(asset: str, sha256: str) -> np.ndarray:
+        raise ArtworkError(f"{asset} does not match the approved SHA-256 {sha256}")
+
+    monkeypatch.setattr("agentic_av.native.load_cover", refuse)
+    _, frames = _play(tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2)
+    assert not any("\x1b[2K" in frame for frame in frames)
+    screen = _replay(frames, 80, 24)
+    assert "cover art unavailable" in screen.display[23]
+
+
+def test_cover_layout_keeps_the_stage_share_and_drops_the_panel_when_small() -> None:
+    layout = _layout(80, 22, 2.0, 1.0)
+    panel = layout.cover
+    assert (panel.top, panel.left, panel.cols, panel.rows) == (4, 0, 32, 16)
+    assert (layout.stage_left, layout.stage_cols) == (34, 46)
+    assert _layout(80, 22, 2.0, None).cover is None
+    for width, rows in ((40, 22), (80, 5)):
+        small = _layout(width, rows, 2.0, 1.0)
+        assert small.cover is None
+        assert (small.stage_left, small.stage_cols) == (0, width)
