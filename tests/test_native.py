@@ -54,6 +54,7 @@ COUPON = "coupon-seance-saturn.html.gz"
 ROOMS = "quiet-machinery-atlas-unlit-rooms.html.gz"
 POCKET = "nurse-log-the-forest-has-a-pocket.html.gz"
 DC2 = "drowning-collective-the-shape-that-stays.html.gz"
+HAUNT = "coupon-seance-buy-one-haunt-one-free.html.gz"
 
 # Distinct payloads prove each movement gets its own file.
 NAMES = (b"ONE", b"TWO", b"THREE")
@@ -119,6 +120,41 @@ def _pocket_html(count: int = 2) -> str:
     ]
     album = {"band": "Nurse Log", "tracks": tracks}
     return f"<script>window.NL2_ALBUM={json.dumps(album)};</script>"
+
+
+def _haunt_html(count: int = 2) -> str:
+    """Coupon Seance A-02 shape: `window.CS2_ALBUM` with object rows and inline MP3s."""
+    scenes = ("perihelion", "haunt-free", "aisle")
+    tracks = [
+        {
+            "number": index + 1,
+            "scene": scenes[index],
+            "bpm": 104,
+            "meter": "3/4" if index == 1 else "4/4",
+            "color": ["#120c22", "#e2b25a", "#7fd6c2"],
+            "duration": 60,
+            "events": [
+                {
+                    "part": "violin",
+                    "kind": "note",
+                    "time": 3.5,
+                    "duration": 2,
+                    "midi": 74,
+                    "velocity": 0.6,
+                    "pan": 0.3,
+                    "voice": "head",
+                },
+            ],
+            "audio": f"data:audio/mpeg;base64,{_b64(NAMES[index])}",
+        }
+        for index in range(count)
+    ]
+    album = {
+        "band": "Coupon Seance",
+        "made_with": {"model": "anthropic/claude-opus-5-5"},
+        "tracks": tracks,
+    }
+    return f"<script>window.CS2_ALBUM={json.dumps(album)};</script>"
 
 
 def _aquatic_html() -> str:
@@ -233,6 +269,16 @@ def test_drowning_a02_extracts_separate_audio_and_both_piano_hands(tmp_path: Pat
     notes = payload["events"]["piano"]
     assert [row[:5] for row in notes] == [[0.993, 0.7, 50, 0.4, -0.13], [1.013, 1.2, 74, 0.6, 0.12]]
     assert [payload["voices"][int(row[6])] for row in notes] == ["left", "right"]
+
+
+def test_haunt_album_reads_its_own_window_and_keeps_object_rows(tmp_path: Path) -> None:
+    """Coupon Seance A-02 reads `window.CS2_ALBUM` into the `haunt` family, not A-01 coupon."""
+    native = extract_album(HAUNT, tmp_path, _gz(_haunt_html()))
+    assert native.family == "haunt"
+    assert [t.audio.read_bytes() for t in native.tracks] == [b"ONE", b"TWO"]
+    assert [t.scene for t in native.tracks] == ["perihelion", "haunt-free"]
+    assert native.tracks[1].score["meter"] == [3, 4]
+    assert native.tracks[0].score["events"]["violin"][0][:5] == [3.5, 2, 74, 0.6, 0.3]
 
 
 def test_drowning_audio_resolves_through_asset_manifest(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
-"""Verify bundled A-02 covers: receipt bytes, refusal paths, and bounded rendering.
+"""Verify the bundled A-02 covers: receipt bytes, refusal paths, and bounded rendering.
 
-The receipt hashes and sizes come from docs/decisions/0002. Rendering
+The receipt hashes and sizes come from the records in docs/decisions/0002. Rendering
 tests replay the emitted bytes through pyte, so they check what a terminal would show:
 which cells the panel paints, whether its gap stays clear, and whether no-color output
 carries any SGR sequence.
@@ -26,6 +26,10 @@ _RECEIPT_BYTES = 370_848
 _DC2_ASSET = "drowning-collective-the-shape-that-stays.jpg"
 _DC2_ALBUM = "drowning-collective-the-shape-that-stays.html.gz"
 _DC2_SHA256 = "15ebebe5901876171853a20858d7f828b989bbca8c3d4fd4d78f15f2a2933d4a"
+# Coupon Seance A-02's agent-proposed cover (ADR 0002 amendment); Aven's merge approves it.
+_HAUNT_ALBUM = "coupon-seance-buy-one-haunt-one-free.html.gz"
+_HAUNT_ASSET = "coupon-seance-buy-one-haunt-one-free.jpg"
+_HAUNT_SHA256 = "4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047f"
 _SGR = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -60,26 +64,32 @@ def test_packaged_cover_is_the_approved_receipt_file() -> None:
     assert pixels.dtype == np.uint8
 
 
-def test_only_the_two_a02_albums_record_their_receipt_covers() -> None:
+def test_only_approved_a02_covers_are_recorded_and_the_artwork_folder_holds_only_them() -> None:
     """Bundled cover scope is exact, with each file matching its recorded bytes."""
     validate_catalog()
-    covered = {album.asset: album.cover for album in ALBUMS if album.cover is not None}
-    assert list(covered) == [_POCKET_ALBUM, _DC2_ALBUM]
-    assert (covered[_POCKET_ALBUM].asset, covered[_POCKET_ALBUM].sha256) == (
-        _ASSET,
-        _RECEIPT_SHA256,
-    )
-    assert (covered[_DC2_ALBUM].asset, covered[_DC2_ALBUM].sha256) == (_DC2_ASSET, _DC2_SHA256)
-    data = files("agentic_av").joinpath("artwork", _DC2_ASSET).read_bytes()
-    assert len(data) == 404_381
-    assert hashlib.sha256(data).hexdigest() == _DC2_SHA256
-    assert load_cover(_DC2_ASSET, _DC2_SHA256).shape == (1024, 1024, 3)
+    covered = {
+        album.asset: (album.cover.asset, album.cover.sha256)
+        for album in ALBUMS
+        if album.cover is not None
+    }
+    assert covered == {
+        _POCKET_ALBUM: (_ASSET, _RECEIPT_SHA256),
+        _DC2_ALBUM: (_DC2_ASSET, _DC2_SHA256),
+        _HAUNT_ALBUM: (_HAUNT_ASSET, _HAUNT_SHA256),
+    }
     names = sorted(
         path.name
         for path in files("agentic_av").joinpath("artwork").iterdir()
         if not path.name.startswith(".") and path.name != "__pycache__"
     )
-    assert names == sorted([_ASSET, _DC2_ASSET])
+    assert names == sorted([_ASSET, _DC2_ASSET, _HAUNT_ASSET])
+    dc2 = files("agentic_av").joinpath("artwork", _DC2_ASSET).read_bytes()
+    assert len(dc2) == 404_381
+    assert hashlib.sha256(dc2).hexdigest() == _DC2_SHA256
+    assert load_cover(_DC2_ASSET, _DC2_SHA256).shape == (1024, 1024, 3)
+    haunt = files("agentic_av").joinpath("artwork", _HAUNT_ASSET).read_bytes()
+    assert hashlib.sha256(haunt).hexdigest() == _HAUNT_SHA256
+    assert load_cover(_HAUNT_ASSET, _HAUNT_SHA256).shape == (1024, 1024, 3)
 
 
 def test_altered_bytes_are_refused_before_decoding() -> None:
