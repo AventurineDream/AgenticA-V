@@ -9,10 +9,9 @@ Build a reusable creative recipe and player tools for making audio-visual band w
 ## Roadmap
 
 1. Continue the planned sequence through all 16 albums.
-2. Build a universal web viewer.
-3. Have each band create terminal-friendly interpretations of its visuals.
-4. Build the CLI player around those interpretations.
-5. Once the process is refined, open-source the reusable recipe and tell the project story.
+2. Have each band create terminal-friendly interpretations of its visuals.
+3. Build the CLI player around those interpretations.
+4. Once the process is refined, open-source the reusable recipe and tell the project story.
 
 The open-source scope is the recipe and reusable tooling. Four completed A-01 albums are now bundled in the player; all rights remain reserved. Other band details and albums stay outside that release.
 
