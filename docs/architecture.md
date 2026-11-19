@@ -2,7 +2,7 @@
 
 `aav play` with no show or scene opens the album library. `aav demo`, and `aav play` with `--show` or `--scene`, render abstract terminal programs. `preview`, `themes`, and `gallery` stay on that visual path.
 
-Five albums are bundled as self-contained HTML players: the four completed A-01 albums, and A-02 under the single-album approval dated 2026-11-18 (ADR 0002). All rights remain reserved. Enter plays native audio with a new audio-reactive mosaic scene; `o` opens cached HTML at the movement start instead. Browser autoplay still requires a Play click.
+Five albums are bundled as self-contained HTML players: the four completed A-01 albums, and A-02 under the single-album approval dated 2026-11-18 (ADR 0002). The bundled albums are CC0 and the code is MIT (see LICENSE and LICENSE-CC0). Enter plays native audio with a new audio-reactive mosaic scene; `o` opens cached HTML at the movement start instead. Browser autoplay still requires a Play click.
 
 ## Album library
 

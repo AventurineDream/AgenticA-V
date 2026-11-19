@@ -2,7 +2,7 @@
 
 The package selects bundled album movements, plays them in the terminal
 with their code-only visuals, and paints abstract terminal programs.
-All rights reserved. Example::
+Example::
 
     from agentic_av.cli import main
 

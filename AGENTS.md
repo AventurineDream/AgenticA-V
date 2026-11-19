@@ -33,7 +33,7 @@ uv sync --group dev
 
 ## Conventions
 
-- The four completed A-01 albums under `src/agentic_av/albums/` are authorized for public bundling. A-02, *The Forest Has a Pocket* (`nurse-log-the-forest-has-a-pocket.html.gz`), is authorized by Aven's single-album approval dated 2026-11-18 (ADR 0002). Its selected cover, `src/agentic_av/artwork/nurse-log-the-forest-has-a-pocket.jpg`, is the only bundled artwork; ADR 0002's cover amendment covers it. All rights remain reserved. Do not add other albums, in-progress work, archives, stems, source ZIPs, other artwork, or private material.
+- The four completed A-01 albums under `src/agentic_av/albums/` are authorized for public bundling. A-02, *The Forest Has a Pocket* (`nurse-log-the-forest-has-a-pocket.html.gz`), is authorized by Aven's single-album approval dated 2026-11-18 (ADR 0002). Its selected cover, `src/agentic_av/artwork/nurse-log-the-forest-has-a-pocket.jpg`, is the only bundled artwork; ADR 0002's cover amendment covers it. The bundled albums and bundled cover art are CC0; code is MIT (see LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, other artwork, or private material.
 - Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
 - Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.

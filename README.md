@@ -4,7 +4,7 @@ A terminal album library and visual player, with multiple palettes and live Omar
 
 ## Status
 
-Active — album library plus the abstract visual player. Five albums are bundled: the four completed A-01 albums and A-02 under a single-album approval dated 2026-11-18. All rights remain reserved.
+Active — album library plus the abstract visual player. Five albums are bundled: the four completed A-01 albums and A-02 under a single-album approval dated 2026-11-18. Code is MIT-licensed; bundled albums are CC0 (see License).
 
 ## Quick start
 
@@ -99,8 +99,8 @@ See [docs/README.md](docs/README.md) for the documentation map. Project tracking
 
 ## License
 
-All rights reserved. No open-source license has been selected. See [LICENSE](LICENSE). The bundled albums are included under that same reservation; bundling them is not a license grant.
+Code in this repository is licensed under the MIT License — see [LICENSE](LICENSE). The bundled albums (audio and album artwork) are dedicated to the public domain under CC0 — see [LICENSE-CC0](LICENSE-CC0). Material not bundled in this repository (source archives, stems, candidate artwork) is not covered by either.
 
 ## Public scope
 
-The four completed A-01 albums are authorized for public bundling: Coupon Seance, *Saturn Has a Dollar Store*; Drowning Collective, *Are We Fish?*; Nurse Log, *The Ground Moves Anyway*; Quiet Machinery, *The Atlas of Unlit Rooms*. Nurse Log, *The Forest Has a Pocket* (A-02) is also bundled under Aven's single-album approval dated 2026-11-18. That approval supersedes the source archive's `public_release: false` flag for that album only; it does not cover the source ZIP, stems, candidate artwork, other A-02 material, or any open license. A-02's selected cover is bundled under the cover amendment in ADR 0002. The four A-01 selected cover images were not available to this build, so those albums show no cover. All rights remain reserved. In-progress, archive, and other private material stay out of this repository. The visual demo uses original abstract terminal fields only.
+The four completed A-01 albums are authorized for public bundling: Coupon Seance, *Saturn Has a Dollar Store*; Drowning Collective, *Are We Fish?*; Nurse Log, *The Ground Moves Anyway*; Quiet Machinery, *The Atlas of Unlit Rooms*. Nurse Log, *The Forest Has a Pocket* (A-02) is also bundled under Aven's single-album approval dated 2026-11-18. That approval supersedes the source archive's `public_release: false` flag for that album only; it does not cover the source ZIP, stems, candidate artwork, or other A-02 material. A-02's selected cover is bundled under the cover amendment in ADR 0002. The four A-01 selected cover images were not available to this build, so those albums show no cover. The bundled albums and bundled cover art are dedicated to the public domain under CC0 (see License). In-progress, archive, and other private material stay out of this repository. The visual demo uses original abstract terminal fields only.
