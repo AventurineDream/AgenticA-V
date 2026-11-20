@@ -242,10 +242,13 @@ class Stage:
             tone_map(self.surface)
             if self._fade_from is not None:
                 self._fade_elapsed += dt
-                amount = min(1.0, self._fade_elapsed / _CROSSFADE_S)
+                progress = min(1.0, self._fade_elapsed / _CROSSFADE_S)
+                # Smoothstep eases both ends, so the old picture lets go and the new
+                # one settles without the visible kink of a linear ramp.
+                amount = progress * progress * (3 - 2 * progress)
                 self.surface.rgb *= amount
                 self.surface.rgb += self._fade_from * (1 - amount)
-                if amount >= 1:
+                if progress >= 1:
                     self._fade_from = None
             if self._picture is None or self._picture.shape != self.surface.rgb.shape:
                 self._picture = self.surface.rgb.copy()
