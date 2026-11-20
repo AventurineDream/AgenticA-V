@@ -24,6 +24,7 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- Polish the native player's presentation (#20). Covers are framed after a two-column margin and captioned with album title and artist, and are now resampled in linear light with Lanczos for crisper detail (from 46 columns for square art). A splash shows the cover and letter-spaced title while the album loads. Each movement opens with a four-second title card on a scrim, faded in truecolor full motion, and scene crossfades are eased. One album accent, from the cover's dominant hue or the movement palette, is lifted to 3:1 contrast and colors the caption, state label, title card, and rail. The rail gains a half-cell playhead and rising section ticks. The status row adds play/pause glyphs and movement position, and keeps state, clock, and `q back` from 30 columns.
 - License the repository: code under the MIT License (LICENSE); the bundled albums and bundled cover art dedicated to the public domain under CC0 (LICENSE-CC0). Material not bundled in this repository stays out and is not covered.
 - Replace the legacy glyph port with 37 numpy-painted audio-reactive mosaic scenes. Cached seven-band audio analysis and normalized scores drive distinct album worlds; missing analysis explicitly falls back to quiet visuals without blocking audio.
 - Add automatic terminal glyph selection, `--glyphs`, `AAV_GLYPHS`, and runtime `g` cycling. Large canvases step down their sub-pixel tier.
