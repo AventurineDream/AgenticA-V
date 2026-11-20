@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/jade-horse//colors.toml",
+ "slots": {
+  "plate_top": "#2f4f43",
+  "plate_mid": "#142620",
+  "plate_bottom": "#0a1713",
+  "glow": "#637b72",
+  "floor_shadow": "#050c0a",
+  "body": "#8bcbb1",
+  "body_hi": "#a5d6c2",
+  "body_shade": "#79b19a",
+  "ball_hi": "#d1eae0",
+  "ring": "#bfe2d4",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#24334b",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 8.79,
+  "body_vs_plate": 4.86,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/nord//colors.toml",
+ "slots": {
+  "plate_top": "#454f62",
+  "plate_mid": "#2e3440",
+  "plate_bottom": "#191c23",
+  "glow": "#747b89",
+  "floor_shadow": "#0c0e12",
+  "body": "#81a1c1",
+  "body_hi": "#9db6cf",
+  "body_shade": "#708ca8",
+  "ball_hi": "#cdd9e6",
+  "ring": "#bacbdd",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b3552",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 6.08,
+  "body_vs_plate": 3.06,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

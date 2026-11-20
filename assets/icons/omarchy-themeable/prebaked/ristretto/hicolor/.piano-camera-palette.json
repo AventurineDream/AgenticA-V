@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/ristretto//colors.toml",
+ "slots": {
+  "plate_top": "#563c34",
+  "plate_mid": "#2c2525",
+  "plate_bottom": "#181414",
+  "glow": "#806d67",
+  "floor_shadow": "#0c0a0a",
+  "body": "#f38d70",
+  "body_hi": "#f6a68f",
+  "body_shade": "#d37b61",
+  "ball_hi": "#fad1c6",
+  "ring": "#f8c0b0",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b324b",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 6.9,
+  "body_vs_plate": 4.23,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

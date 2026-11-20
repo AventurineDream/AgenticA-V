@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/hackerman//colors.toml",
+ "slots": {
+  "plate_top": "#243838",
+  "plate_mid": "#0b0c16",
+  "plate_bottom": "#06060c",
+  "glow": "#5b6a6a",
+  "floor_shadow": "#030306",
+  "body": "#82fb9c",
+  "body_hi": "#9efcb2",
+  "body_shade": "#71da88",
+  "ball_hi": "#cdfdd7",
+  "ring": "#bafdc9",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#232b47",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 12.65,
+  "body_vs_plate": 9.56,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

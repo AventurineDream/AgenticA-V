@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/white//colors.toml",
+ "slots": {
+  "plate_top": "#ffffff",
+  "plate_mid": "#ffffff",
+  "plate_bottom": "#adadad",
+  "glow": "#ffffff",
+  "floor_shadow": "#565656",
+  "body": "#6e6e6e",
+  "body_hi": "#8e8e8e",
+  "body_shade": "#606060",
+  "ball_hi": "#c5c5c5",
+  "ring": "#afafaf",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b3550",
+  "edge": "#000000",
+  "edge_opacity": "0.12"
+ },
+ "checks": {
+  "mode": "light",
+  "body_from": "accent",
+  "body_vs_ink": 3.21,
+  "body_vs_plate": 5.1,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

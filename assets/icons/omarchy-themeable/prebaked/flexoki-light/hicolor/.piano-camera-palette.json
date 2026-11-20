@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/flexoki-light//colors.toml",
+ "slots": {
+  "plate_top": "#fffef8",
+  "plate_mid": "#fffcf0",
+  "plate_bottom": "#cfcdc3",
+  "glow": "#fffefa",
+  "floor_shadow": "#686662",
+  "body": "#3a71b0",
+  "body_hi": "#6590c1",
+  "body_shade": "#326299",
+  "ball_hi": "#b0c6df",
+  "ring": "#93b1d4",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b3550",
+  "edge": "#000000",
+  "edge_opacity": "0.12"
+ },
+ "checks": {
+  "mode": "light",
+  "body_from": "accent",
+  "body_vs_ink": 3.25,
+  "body_vs_plate": 4.9,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

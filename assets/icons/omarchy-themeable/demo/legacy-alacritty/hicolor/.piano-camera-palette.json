@@ -1,0 +1,31 @@
+{
+ "source": "demo/palettes/legacy-alacritty.toml",
+ "slots": {
+  "plate_top": "#4a3c56",
+  "plate_mid": "#2a1e2e",
+  "plate_bottom": "#19121c",
+  "glow": "#776d80",
+  "floor_shadow": "#0c090e",
+  "body": "#9a7cd8",
+  "body_hi": "#b099e1",
+  "body_shade": "#866cbc",
+  "ball_hi": "#d7cbef",
+  "ring": "#c7b7ea",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2d3250",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "blue",
+  "body_vs_ink": 4.87,
+  "body_vs_plate": 3.02,
+  "plate_vs_background": 1.0
+ },
+ "notes": [
+  "accent missing or under 3:1 on the background; body uses blue"
+ ]
+}

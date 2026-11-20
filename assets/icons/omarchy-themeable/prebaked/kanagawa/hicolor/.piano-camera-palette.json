@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/kanagawa//colors.toml",
+ "slots": {
+  "plate_top": "#3c4959",
+  "plate_mid": "#1f1f28",
+  "plate_bottom": "#111116",
+  "glow": "#6d7682",
+  "floor_shadow": "#08080b",
+  "body": "#dcd7ba",
+  "body_hi": "#e4e0c9",
+  "body_shade": "#bfbba2",
+  "ball_hi": "#f1efe3",
+  "ring": "#ece9d9",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#28304c",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 11.28,
+  "body_vs_plate": 6.32,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

@@ -1,0 +1,15 @@
+Piano-camera icon v2.2, corner fix (19 Nov 2026). These files replace the Nov 18 set.
+
+Bug: the top light-fade ("sheen") and the glow were square rectangles that relied on
+a clip-path to get rounded corners. Viewers that ignore clip-path showed faint
+16%-white square corners at the top of the plate.
+
+Fix: the sheen and glow are now filled directly in the plate's squircle shape. No
+clip-path is left anywhere in the SVGs: the character's key, highlight and jaw
+overlays are pre-cut to the body shape too. The artwork is unchanged; renders match
+the Nov 18 PNGs to within anti-aliasing.
+
+Checked:
+ - every SVG rendered with rsvg-convert, clip-paths stripped: nothing outside the
+   rounded plate except its own edge line
+ - every PNG has fully transparent corners

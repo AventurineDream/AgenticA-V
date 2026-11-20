@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/ethereal//colors.toml",
+ "slots": {
+  "plate_top": "#222950",
+  "plate_mid": "#060b1e",
+  "plate_bottom": "#030610",
+  "glow": "#595e7c",
+  "floor_shadow": "#020308",
+  "body": "#7d82d9",
+  "body_hi": "#9a9ee1",
+  "body_shade": "#6d71bd",
+  "ball_hi": "#cbcdf0",
+  "ring": "#b8baea",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#212b49",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 4.73,
+  "body_vs_plate": 4.04,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

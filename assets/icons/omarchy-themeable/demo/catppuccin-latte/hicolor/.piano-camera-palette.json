@@ -1,0 +1,29 @@
+{
+ "source": "demo/palettes/catppuccin-latte.colors.toml",
+ "slots": {
+  "plate_top": "#f8f9fb",
+  "plate_mid": "#eff1f5",
+  "plate_bottom": "#c6cad1",
+  "glow": "#fafafc",
+  "floor_shadow": "#636568",
+  "body": "#1e66f5",
+  "body_hi": "#5088f7",
+  "body_shade": "#1a59d5",
+  "ball_hi": "#a5c2fb",
+  "ring": "#83abfa",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b3550",
+  "edge": "#000000",
+  "edge_opacity": "0.12"
+ },
+ "checks": {
+  "mode": "light",
+  "body_from": "accent",
+  "body_vs_ink": 3.33,
+  "body_vs_plate": 4.34,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

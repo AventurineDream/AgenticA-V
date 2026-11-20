@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/retro-82//colors.toml",
+ "slots": {
+  "plate_top": "#2c3746",
+  "plate_mid": "#05182e",
+  "plate_bottom": "#020c17",
+  "glow": "#616974",
+  "floor_shadow": "#01060c",
+  "body": "#faa968",
+  "body_hi": "#fbbc89",
+  "body_shade": "#da935a",
+  "ball_hi": "#fdddc3",
+  "ring": "#fcd0ac",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#212e4c",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 8.53,
+  "body_vs_plate": 6.28,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

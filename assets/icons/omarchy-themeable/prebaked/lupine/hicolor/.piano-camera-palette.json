@@ -1,0 +1,29 @@
+{
+ "source": "/tmp/omthemes/lupine//colors.toml",
+ "slots": {
+  "plate_top": "#fdfdfd",
+  "plate_mid": "#fafafa",
+  "plate_bottom": "#dcdcdc",
+  "glow": "#fefefe",
+  "floor_shadow": "#6e6e6e",
+  "body": "#3264eb",
+  "body_hi": "#5f86ef",
+  "body_shade": "#2c57cc",
+  "ball_hi": "#adc1f7",
+  "ring": "#8eaaf4",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b3550",
+  "edge": "#000000",
+  "edge_opacity": "0.12"
+ },
+ "checks": {
+  "mode": "light",
+  "body_from": "accent",
+  "body_vs_ink": 3.24,
+  "body_vs_plate": 4.84,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}
