@@ -1,0 +1,29 @@
+{
+ "source": "/usr/share/omarchy/themes/starship//colors.toml",
+ "slots": {
+  "plate_top": "#4a3c29",
+  "plate_mid": "#1c1c1e",
+  "plate_bottom": "#0e0e10",
+  "glow": "#776d5e",
+  "floor_shadow": "#070708",
+  "body": "#ff9f0a",
+  "body_hi": "#ffb440",
+  "body_shade": "#de8a09",
+  "ball_hi": "#ffd99d",
+  "ring": "#ffca78",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#262f49",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 7.96,
+  "body_vs_plate": 5.19,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

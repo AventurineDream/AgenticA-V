@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+"""piano-camera-theme-icon: recolour the piano-camera app icon to match the active Omarchy theme.
+
+Reads the current theme's palette (any theme, built-in or custom), fills the
+colour slots of the SVG templates, writes the scalable SVG plus hicolor PNGs
+(16 32 48 64 128 256 512) into ~/.local/share/icons/hicolor, and refreshes the
+icon cache. Safe to run from ~/.config/omarchy/hooks/theme-set.d/.
+
+  piano-camera-theme-icon                     use the active Omarchy theme and install
+  piano-camera-theme-icon --colors FILE       use a colors.toml / alacritty.toml instead
+  piano-camera-theme-icon --out DIR --no-install   just render into DIR (no ~/.local changes)
+  piano-camera-theme-icon --classic           the original orange-on-teal colours
+  piano-camera-theme-icon --name ID           icon name (must match Icon= in the .desktop file)
+
+Python 3 standard library only. PNGs need one of: rsvg-convert (librsvg),
+magick (ImageMagick), inkscape, or the cairosvg module; without any, only the
+scalable SVG is installed (GTK/Qt still use it).
+"""
+import argparse, colorsys, json, os, re, shutil, subprocess, sys, tempfile
+
+HOME = os.path.expanduser("~")
+HERE = os.path.dirname(os.path.realpath(__file__))
+SIZES = [16, 32, 48, 64, 128, 256, 512]
+W, K = "#ffffff", "#000000"
+
+# ---------- colour maths ----------
+def h2r(h):
+    h = h.strip().lstrip("#")
+    if len(h) == 3: h = "".join(c * 2 for c in h)
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+def r2h(c): return "#%02x%02x%02x" % tuple(max(0, min(255, round(v * 255))) for v in c)
+def mix(a, b, t): a, b = h2r(a), h2r(b); return r2h([a[i] * (1 - t) + b[i] * t for i in range(3)])
+def lum(h):
+    def ch(v): return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = (ch(v) for v in h2r(h)); return 0.2126 * r + 0.7152 * g + 0.0722 * b
+def contrast(a, b):
+    la, lb = sorted((lum(a), lum(b)), reverse=True); return (la + 0.05) / (lb + 0.05)
+def sat(h): return colorsys.rgb_to_hls(*h2r(h))[2]
+
+def norm(v):
+    """Accept #rgb, #rrggbb, #rrggbbaa, 0xRRGGBB, 0xAARRGGBB, rgb()/rgba(); return #rrggbb or None."""
+    if not isinstance(v, str): return None
+    v = v.strip().strip('"\'')
+    m = re.fullmatch(r"#([0-9a-fA-F]{6})([0-9a-fA-F]{2})?", v)
+    if m: return "#" + m.group(1).lower()
+    m = re.fullmatch(r"#([0-9a-fA-F]{3})", v)
+    if m: return "#" + "".join(c * 2 for c in m.group(1)).lower()
+    m = re.fullmatch(r"0x([0-9a-fA-F]{2})?([0-9a-fA-F]{6})", v)
+    if m: return "#" + m.group(2).lower()
+    m = re.fullmatch(r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+).*\)", v)
+    if m: return "#%02x%02x%02x" % tuple(min(255, int(x)) for x in m.groups())
+    return None
+
+# ---------- palette sources ----------
+def parse_flat_toml(path):
+    """key = "value" pairs from a colors.toml, plus [section] prefixes (alacritty)."""
+    out, sect = {}, ""
+    for line in open(path, encoding="utf-8", errors="replace"):
+        line = line.split("#", 1)[0] if not re.search(r'=\s*["\']#', line) else line
+        line = line.strip()
+        m = re.fullmatch(r"\[\s*([^\]]+)\s*\]", line)
+        if m: sect = m.group(1).strip(); continue
+        m = re.match(r'([A-Za-z0-9_.-]+)\s*=\s*["\']?([^"\'#\s][^"\']*|#[0-9A-Fa-f]{3,8})["\']?', line)
+        if m: out[(sect + "." if sect else "") + m.group(1)] = m.group(2).strip()
+    return out
+
+def from_alacritty(d):
+    p = {}
+    g = lambda *ks: next((d[k] for k in ks if k in d), None)
+    p["background"] = g("colors.primary.background")
+    p["foreground"] = g("colors.primary.foreground")
+    for c in ("red", "green", "yellow", "blue", "magenta", "cyan", "black", "white"):
+        p[c] = g("colors.normal." + c)
+    return {k: v for k, v in p.items() if v}
+
+def omarchy_cli():
+    """Newer Omarchy: `omarchy-theme-color --all` prints the resolved palette (aliases and fallbacks applied)."""
+    exe = shutil.which("omarchy-theme-color")
+    if not exe: return None
+    try:
+        out = subprocess.run([exe, "--all"], capture_output=True, text=True, timeout=10).stdout
+    except Exception: return None
+    p = dict(l.split("\t", 1) for l in out.splitlines() if "\t" in l)
+    return p or None
+
+def find_palette(colors_file=None):
+    if colors_file:
+        d = parse_flat_toml(colors_file)
+        return (from_alacritty(d) if "colors.primary.background" in d else d), colors_file
+    p = omarchy_cli()
+    if p and norm(p.get("background", "")): return p, "omarchy-theme-color --all"
+    for base in (os.path.join(HOME, ".local/state/omarchy/current/theme"),   # Omarchy 3.x+
+                 os.path.join(HOME, ".config/omarchy/current/theme")):       # older releases
+        f = os.path.join(base, "colors.toml")
+        if os.path.isfile(f): return parse_flat_toml(f), f
+        f = os.path.join(base, "alacritty.toml")
+        if os.path.isfile(f): return from_alacritty(parse_flat_toml(f)), f
+    return None, None
+
+# ---------- palette -> icon slots ----------
+CLASSIC = dict(plate_top="#2b6b78", plate_mid="#1b4656", plate_bottom="#0f2638", glow="#4fa3a8", floor_shadow="#06131d",
+               body="#f7a600", body_hi="#ffc53d", body_shade="#e08a00", ball_hi="#ffe7a3", ring="#ffd978",
+               keys="#fbf4e6", key_black="#1d1f2b", ink="#1d1f2b", glass="#2b3550", edge="#ffffff", edge_opacity="0.10")
+
+def slots(raw):
+    """Derive every icon colour from whatever the palette has. Missing keys fall back step by step."""
+    p = {k: norm(v) for k, v in raw.items() if norm(v)}
+    notes = []
+    bg = p.get("background") or p.get("bg")
+    fg = p.get("foreground") or p.get("fg")
+    if not bg:
+        notes.append("no background colour: using the classic icon"); return dict(CLASSIC), notes, {}
+    mode = (raw.get("mode") or raw.get("theme_type") or "").strip('"\' ').lower()
+    if mode not in ("light", "dark"): mode = "light" if lum(bg) > 0.4 else "dark"
+    if not fg: fg = "#1a1a1a" if mode == "light" else "#e6e6e6"; notes.append("no foreground: guessed")
+
+    # body colour: the theme accent, unless it's too weak against the plate; then the next vivid palette colour
+    cands = [("accent", p.get("accent")), ("blue", p.get("blue")), ("color4", p.get("color4")), ("yellow", p.get("yellow")),
+             ("orange", p.get("orange")), ("magenta", p.get("magenta")), ("cyan", p.get("cyan")), ("green", p.get("green")),
+             ("red", p.get("red")), ("foreground", fg)]
+    cands = [(n, c) for n, c in cands if c]
+    pick = next(((n, c) for n, c in cands if contrast(c, bg) >= 3.0), None)
+    if not pick:
+        pick = max(cands, key=lambda nc: contrast(nc[1], bg)); notes.append(f"no palette colour reaches 3:1 on the background; using the strongest ({pick[0]})")
+    elif pick[0] != "accent":
+        notes.append(f"accent missing or under 3:1 on the background; body uses {pick[0]}")
+    src, body = pick
+
+    # plate: built from the theme background so the icon sits in the theme
+    if mode == "dark":
+        top = mix(p.get("lighter_background") or mix(bg, fg, .10), body, .14)
+        bot = p.get("darker_background") or mix(bg, K, .40)
+        if contrast(top, bot) < 1.25: top = mix(top, fg, .12)
+        edge, edge_op = W, "0.10"
+    else:
+        top = mix(bg, W, .55)
+        bot = mix(p.get("lighter_background") or bg, K, .10)
+        edge, edge_op = K, "0.12"
+    mid = bg
+    ink = CLASSIC["ink"]
+    # contrast check: body must read against the outline ink (3:1) and against the plate (1.6:1)
+    for _ in range(40):
+        ci, cp = contrast(body, ink), min(contrast(body, mid), contrast(body, top))
+        if ci >= 3.0 and cp >= 1.6: break
+        if ci < 3.0: body = mix(body, W, .06)          # too dark for black outlines: lift it
+        elif lum(body) > lum(mid): body = mix(body, W, .06)
+        else: body = mix(body, K, .06)
+    else:
+        notes.append("contrast targets not fully met")
+    s = dict(plate_top=top, plate_mid=mid, plate_bottom=bot, glow=mix(top, W, .25), floor_shadow=mix(bot, K, .5),
+             body=body, body_hi=mix(body, W, .22), body_shade=mix(body, K, .13), ball_hi=mix(body, W, .6),
+             ring=mix(body, W, .45), keys=CLASSIC["keys"], key_black=ink, ink=ink,
+             glass=mix(p.get("darker_background") or mix(bg, K, .3), "#3a4a78", .55) if mode == "dark" else "#2b3550",
+             edge=edge, edge_opacity=edge_op)
+    report = {"mode": mode, "body_from": src, "body_vs_ink": round(contrast(body, ink), 2),
+              "body_vs_plate": round(min(contrast(body, mid), contrast(body, top)), 2), "plate_vs_background": 1.0}
+    return s, notes, report
+
+def fill(tmpl, s):
+    out = re.sub(r"\{\{\s*(\w+)\s*\}\}", lambda m: s.get(m.group(1), m.group(0)), tmpl)
+    left = re.findall(r"\{\{\s*\w+\s*\}\}", out)
+    if left: raise SystemExit(f"unfilled slots: {left}")
+    return out
+
+# ---------- rasterise ----------
+def rasteriser():
+    if shutil.which("rsvg-convert"): return lambda i, o, n: subprocess.run(["rsvg-convert", "-w", str(n), "-h", str(n), i, "-o", o], check=True)
+    if shutil.which("magick"): return lambda i, o, n: subprocess.run(["magick", "-background", "none", "-density", "384", i, "-resize", f"{n}x{n}", o], check=True)
+    if shutil.which("inkscape"): return lambda i, o, n: subprocess.run(["inkscape", i, "-w", str(n), "-h", str(n), "-o", o], check=True, capture_output=True)
+    try:
+        import cairosvg
+        return lambda i, o, n: cairosvg.svg2png(url=i, write_to=o, output_width=n, output_height=n)
+    except ImportError: return None
+
+def find_templates():
+    for d in (os.environ.get("PIANO_CAMERA_TEMPLATES"), os.path.join(HERE, "templates"),
+              os.path.join(HOME, ".local/share/piano-camera-icon/templates")):
+        if d and os.path.isfile(os.path.join(d, "piano-camera.svg.tmpl")): return d
+    raise SystemExit("templates not found (set PIANO_CAMERA_TEMPLATES)")
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--colors"); ap.add_argument("--out"); ap.add_argument("--name", default="piano-camera")
+    ap.add_argument("--no-install", action="store_true"); ap.add_argument("--classic", action="store_true")
+    ap.add_argument("theme", nargs="?", help="theme name (passed by the Omarchy hook; informational)")
+    a = ap.parse_args()
+    if a.classic: s, notes, rep, srcf = dict(CLASSIC), ["classic colours"], {}, "classic"
+    else:
+        raw, srcf = find_palette(a.colors)
+        if not raw: s, notes, rep = dict(CLASSIC), ["no Omarchy theme found: using the classic icon"], {}
+        else: s, notes, rep = slots(raw)
+    T = find_templates()
+    tm = {k: open(os.path.join(T, f), encoding="utf-8").read() for k, f in
+          (("big", "piano-camera.svg.tmpl"), ("s32", "piano-camera-32.svg.tmpl"), ("s16", "piano-camera-16.svg.tmpl"))}
+    svgs = {k: fill(v, s) for k, v in tm.items()}
+    root = a.out or os.path.join(os.environ.get("XDG_DATA_HOME", os.path.join(HOME, ".local/share")), "icons/hicolor")
+    if a.no_install and not a.out: raise SystemExit("--no-install needs --out")
+    os.makedirs(os.path.join(root, "scalable/apps"), exist_ok=True)
+    with open(os.path.join(root, "scalable/apps", a.name + ".svg"), "w") as f: f.write(svgs["big"])
+    r = rasteriser()
+    if r:
+        with tempfile.TemporaryDirectory() as td:
+            for k, v in svgs.items(): open(os.path.join(td, k + ".svg"), "w").write(v)
+            for n in SIZES:
+                d = os.path.join(root, f"{n}x{n}/apps"); os.makedirs(d, exist_ok=True)
+                tmp = os.path.join(d, f".{a.name}.png.tmp")
+                r(os.path.join(td, ("s16" if n == 16 else "s32" if n == 32 else "big") + ".svg"), tmp, n)
+                os.replace(tmp, os.path.join(d, a.name + ".png"))     # atomic swap: never a half-written icon
+    else: notes.append("no SVG rasteriser found: installed the scalable SVG only")
+    json.dump({"source": srcf, "slots": s, "checks": rep, "notes": notes}, open(os.path.join(root, f".{a.name}-palette.json"), "w"), indent=1)
+    if not a.no_install:
+        if shutil.which("gtk-update-icon-cache"):
+            subprocess.run(["gtk-update-icon-cache", "-f", "-t", "-q", root], check=False)
+        os.utime(root, None)
+    print(f"{a.name}: {srcf} -> {root}  body={s['body']} plate={s['plate_mid']} " + "; ".join(notes))
+
+if __name__ == "__main__": main()

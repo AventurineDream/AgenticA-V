@@ -1,0 +1,29 @@
+{
+ "source": "assets/icons/omarchy-themeable/demo/palettes/rose-pine.colors.toml",
+ "slots": {
+  "plate_top": "#fdfaf7",
+  "plate_mid": "#faf4ed",
+  "plate_bottom": "#dad2ca",
+  "glow": "#fefbf9",
+  "floor_shadow": "#6d6965",
+  "body": "#56949f",
+  "body_hi": "#7bacb4",
+  "body_shade": "#4b818a",
+  "ball_hi": "#bbd4d9",
+  "ring": "#a2c4ca",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#2b3550",
+  "edge": "#000000",
+  "edge_opacity": "0.12"
+ },
+ "checks": {
+  "mode": "light",
+  "body_from": "accent",
+  "body_vs_ink": 4.78,
+  "body_vs_plate": 3.14,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

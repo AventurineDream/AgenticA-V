@@ -1,0 +1,29 @@
+{
+ "source": "/usr/share/omarchy/themes/tokyo-night//colors.toml",
+ "slots": {
+  "plate_top": "#303955",
+  "plate_mid": "#1a1b26",
+  "plate_bottom": "#0e0e14",
+  "glow": "#646a80",
+  "floor_shadow": "#07070a",
+  "body": "#7aa2f7",
+  "body_hi": "#97b6f9",
+  "body_shade": "#6a8dd7",
+  "ball_hi": "#cadafc",
+  "ring": "#b6ccfb",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#262f4b",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 6.5,
+  "body_vs_plate": 4.53,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

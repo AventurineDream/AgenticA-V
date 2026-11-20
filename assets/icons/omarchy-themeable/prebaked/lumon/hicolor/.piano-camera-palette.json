@@ -1,0 +1,29 @@
+{
+ "source": "/usr/share/omarchy/themes/lumon//colors.toml",
+ "slots": {
+  "plate_top": "#2b4358",
+  "plate_mid": "#16242d",
+  "plate_bottom": "#0b1216",
+  "glow": "#607282",
+  "floor_shadow": "#06090b",
+  "body": "#8bc9eb",
+  "body_hi": "#a5d5ef",
+  "body_shade": "#79afcc",
+  "ball_hi": "#d1e9f7",
+  "ring": "#bfe1f4",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#25314c",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 9.08,
+  "body_vs_plate": 5.69,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

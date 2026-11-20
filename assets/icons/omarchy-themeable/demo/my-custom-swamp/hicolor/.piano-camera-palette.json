@@ -1,0 +1,31 @@
+{
+ "source": "assets/icons/omarchy-themeable/demo/palettes/my-custom-swamp.colors.toml",
+ "slots": {
+  "plate_top": "#424441",
+  "plate_mid": "#1b2a1f",
+  "plate_bottom": "#101913",
+  "glow": "#717370",
+  "floor_shadow": "#080c0a",
+  "body": "#c06fa8",
+  "body_hi": "#ce8fbb",
+  "body_shade": "#a76192",
+  "ball_hi": "#e6c5dc",
+  "ring": "#dcb0cf",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#28364c",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "magenta",
+  "body_vs_ink": 4.74,
+  "body_vs_plate": 2.85,
+  "plate_vs_background": 1.0
+ },
+ "notes": [
+  "accent missing or under 3:1 on the background; body uses magenta"
+ ]
+}
