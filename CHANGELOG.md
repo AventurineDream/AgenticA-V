@@ -39,6 +39,7 @@ All notable changes to this project are documented here.
 ### Fixed
 
 - Install the variant's `AppIcon.svg` as the scalable hicolor icon. Docks prefer the scalable SVG when present, and install never wrote it, so a stale SVG could keep showing after a pick. Stale copies of the app's icon at sizes install never writes (22/24/48, left by old hand-installs) are removed for the same reason.
+- Fix the piano-camera icon sheen: the top-light gradient started at full brightness exactly on the tile's top edge, which read as faint sharp corners at small sizes. The sheen now fades in below the edge in all nine variants; the SVGs and their re-rendered PNG iconsets are updated. The .icns files and preview sheets still carry the previous art (no macOS bundle tooling on Linux).
 - Still motion keeps the selected visual program when transport crosses a chapter. A seek, chapter skip, or leaving still updates it.
 - Canceling the theme gallery with Escape no longer changes the next theme cycle.
 - SIGTERM restores canonical mode, echo, the cursor, and the primary screen.
