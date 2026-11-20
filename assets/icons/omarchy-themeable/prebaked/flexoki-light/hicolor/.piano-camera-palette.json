@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/flexoki-light//colors.toml",
+ "source": "/usr/share/omarchy/themes/flexoki-light//colors.toml",
  "slots": {
   "plate_top": "#fffef8",
   "plate_mid": "#fffcf0",

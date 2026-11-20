@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/ethereal//colors.toml",
+ "source": "/usr/share/omarchy/themes/ethereal//colors.toml",
  "slots": {
   "plate_top": "#222950",
   "plate_mid": "#060b1e",

@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/ristretto//colors.toml",
+ "source": "/usr/share/omarchy/themes/ristretto//colors.toml",
  "slots": {
   "plate_top": "#563c34",
   "plate_mid": "#2c2525",

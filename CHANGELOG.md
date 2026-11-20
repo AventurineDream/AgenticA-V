@@ -39,6 +39,7 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- Scale the piano-camera icon tile up inside its canvas: the whole tile (plate + camera together, camera proportions unchanged) is drawn 1.2x larger, so the icon reads the same size as other app icons instead of ~20% smaller. SVGs, re-rendered PNGs, and the Omarchy kit templates plus prebaked/demo renders are updated; .icns files still carry the previous art (no macOS tooling on Linux).
 - Replace the piano-camera icon set with Fog's corrected set: the top highlight fade and the glow behind it are drawn in the rounded plate shape itself instead of relying on clip-paths, so viewers that ignore clipping no longer show faint square corners at the top of the icon. The artwork is otherwise unchanged. This supersedes the sheen fade-in in the entry below.
 - Install the variant's `AppIcon.svg` as the scalable hicolor icon. Docks prefer the scalable SVG when present, and install never wrote it, so a stale SVG could keep showing after a pick. Stale copies of the app's icon at sizes install never writes (22/24/48, left by old hand-installs) are removed for the same reason.
 - Fix the piano-camera icon sheen: the top-light gradient started at full brightness exactly on the tile's top edge, which read as faint sharp corners at small sizes. The sheen now fades in below the edge in all nine variants; the SVGs and their re-rendered PNG iconsets are updated. The .icns files and preview sheets still carry the previous art (no macOS bundle tooling on Linux).

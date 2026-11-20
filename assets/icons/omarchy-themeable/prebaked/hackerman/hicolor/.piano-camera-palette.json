@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/hackerman//colors.toml",
+ "source": "/usr/share/omarchy/themes/hackerman//colors.toml",
  "slots": {
   "plate_top": "#243838",
   "plate_mid": "#0b0c16",

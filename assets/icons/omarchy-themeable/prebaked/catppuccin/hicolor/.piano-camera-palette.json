@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/catppuccin//colors.toml",
+ "source": "/usr/share/omarchy/themes/catppuccin//colors.toml",
  "slots": {
   "plate_top": "#3d445d",
   "plate_mid": "#1e1e2e",

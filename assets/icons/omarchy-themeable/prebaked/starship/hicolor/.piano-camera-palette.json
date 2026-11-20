@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/starship//colors.toml",
+ "source": "/usr/share/omarchy/themes/starship//colors.toml",
  "slots": {
   "plate_top": "#4a3c29",
   "plate_mid": "#1c1c1e",

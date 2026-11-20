@@ -1,5 +1,5 @@
 {
- "source": "demo/palettes/legacy-alacritty.toml",
+ "source": "assets/icons/omarchy-themeable/demo/palettes/legacy-alacritty.toml",
  "slots": {
   "plate_top": "#4a3c56",
   "plate_mid": "#2a1e2e",

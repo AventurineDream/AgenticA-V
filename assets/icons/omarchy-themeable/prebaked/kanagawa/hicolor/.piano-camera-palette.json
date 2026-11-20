@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/kanagawa//colors.toml",
+ "source": "/usr/share/omarchy/themes/kanagawa//colors.toml",
  "slots": {
   "plate_top": "#3c4959",
   "plate_mid": "#1f1f28",

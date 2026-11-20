@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/last-horizon//colors.toml",
+ "source": "/usr/share/omarchy/themes/last-horizon//colors.toml",
  "slots": {
   "plate_top": "#3e3a39",
   "plate_mid": "#0c0b0c",

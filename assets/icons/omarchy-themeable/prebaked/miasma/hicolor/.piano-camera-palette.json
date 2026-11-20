@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/miasma//colors.toml",
+ "source": "/usr/share/omarchy/themes/miasma//colors.toml",
  "slots": {
   "plate_top": "#373830",
   "plate_mid": "#222222",

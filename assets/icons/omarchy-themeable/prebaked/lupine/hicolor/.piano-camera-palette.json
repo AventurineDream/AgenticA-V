@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/lupine//colors.toml",
+ "source": "/usr/share/omarchy/themes/lupine//colors.toml",
  "slots": {
   "plate_top": "#fdfdfd",
   "plate_mid": "#fafafa",

@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/rose-pine//colors.toml",
+ "source": "/usr/share/omarchy/themes/rose-pine//colors.toml",
  "slots": {
   "plate_top": "#fdfaf7",
   "plate_mid": "#faf4ed",

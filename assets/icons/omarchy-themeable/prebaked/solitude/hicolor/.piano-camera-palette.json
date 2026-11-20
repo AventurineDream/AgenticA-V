@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/solitude//colors.toml",
+ "source": "/usr/share/omarchy/themes/solitude//colors.toml",
  "slots": {
   "plate_top": "#343639",
   "plate_mid": "#101315",

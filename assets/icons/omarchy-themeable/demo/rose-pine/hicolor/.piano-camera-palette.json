@@ -1,5 +1,5 @@
 {
- "source": "demo/palettes/rose-pine.colors.toml",
+ "source": "assets/icons/omarchy-themeable/demo/palettes/rose-pine.colors.toml",
  "slots": {
   "plate_top": "#fdfaf7",
   "plate_mid": "#faf4ed",

@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/matte-black//colors.toml",
+ "source": "/usr/share/omarchy/themes/matte-black//colors.toml",
  "slots": {
   "plate_top": "#3a2e1c",
   "plate_mid": "#121212",

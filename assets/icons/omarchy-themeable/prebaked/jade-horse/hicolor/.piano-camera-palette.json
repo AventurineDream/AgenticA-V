@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/jade-horse//colors.toml",
+ "source": "/usr/share/omarchy/themes/jade-horse//colors.toml",
  "slots": {
   "plate_top": "#2f4f43",
   "plate_mid": "#142620",

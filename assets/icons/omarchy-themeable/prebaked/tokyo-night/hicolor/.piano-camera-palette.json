@@ -1,5 +1,5 @@
 {
- "source": "/tmp/omthemes/tokyo-night//colors.toml",
+ "source": "/usr/share/omarchy/themes/tokyo-night//colors.toml",
  "slots": {
   "plate_top": "#303955",
   "plate_mid": "#1a1b26",

@@ -1,5 +1,5 @@
 {
- "source": "demo/palettes/gruvbox.colors.toml",
+ "source": "assets/icons/omarchy-themeable/demo/palettes/gruvbox.colors.toml",
  "slots": {
   "plate_top": "#454945",
   "plate_mid": "#282828",
