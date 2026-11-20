@@ -6,7 +6,7 @@ Eight albums are bundled as self-contained HTML players: the four completed A-01
 
 ## Album library
 
-`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums and the A-02 albums recorded in ADR 0002 belong in the catalog. Each A-02 record also names its cover file and SHA-256 (`CoverArt`); `validate_catalog` checks their form.
+`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums and the A-02 albums recorded in ADR 0002 belong in the catalog. Each record also names its cover file and SHA-256 (`CoverArt`); `validate_catalog` checks their form.
 
 `library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
 
@@ -110,7 +110,7 @@ The abstract demo transport is a monotonic visual clock, not an audio player. Pa
 - `viz/`: numpy surfaces, drawing/effects, audio and score queries, mosaic fitting, encoding, Stage, album scenes, previews, and regional risk measurement.
 - `viz/cover.py`: hash-checked JPEG decoding and bounded mosaic rendering for album covers.
 - `albums/*.html.gz`: authorized public album players. Read-only package data.
-- `artwork/*.jpg`: the bundled A-02 covers. Read-only package data, hash-checked on load.
+- `artwork/*.jpg`: the bundled A-01 and A-02 covers. Read-only package data, hash-checked on load.
 - `palette.py` and `omarchy.py`: role definitions and read-only theme resolution.
 - `field.py`: deterministic abstract luminance/hue samples.
 - `paint.py`: fixed-grid composition, half-block stage, theme-atlas cards, and ANSI serialization.

@@ -19,7 +19,8 @@ All notable changes to this project are documented here.
 - Bundle Quiet Machinery A-02, *Instruments for Measuring Dusk* (six instrumentals, 26:36, made by anthropic/claude-opus-5-5), with its agent-proposed cover, under Aven's 2026-11-18 run instruction. Its visuals are six numpy scenes (survey, sheets, bell, faults, warm-room, transmission) in a `dusk` family, separate from the A-01 rooms painter. With two Quiet Machinery albums, `preview` now needs the family or album title rather than the artist name, as Nurse Log already did.
 - Add an abstract terminal A/V player, nine named palettes, live Omarchy theme sync, and preview/gallery commands.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
-- Show the bundled A-02 covers as a still panel beside the native player's stage. Each cover's SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport. The four A-01 cover images were not available to this build, so A-01 albums show no panel.
+- Show each album's bundled cover as a still panel beside the native player's stage. Each cover's SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport.
+- Bundle the four A-01 covers Aven selected on 2026-11-18 (Saturn 4, Fish 1, Ground 3, Atlas 4) as hash-pinned `CoverArt` records, byte-identical to their Drive selection receipts (ADR 0002 amendment). Every bundled album now shows a cover.
 
 ### Changed
 
