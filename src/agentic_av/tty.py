@@ -10,6 +10,7 @@ short silence so a split arrow is not Escape plus a letter.
 
 from __future__ import annotations
 
+import contextlib
 import fcntl
 import os
 import select
@@ -21,7 +22,8 @@ import time
 import tty
 from collections.abc import Callable
 
-from agentic_av.omarchy import load_omarchy
+from agentic_av.icons import IconError, load_follow_theme, sync_followed_icon
+from agentic_av.omarchy import OmarchyTheme, load_omarchy
 from agentic_av.paint import FrameRequest, compose, render_ansi
 from agentic_av.palette import PaletteError
 from agentic_av.session import Session
@@ -275,6 +277,15 @@ def _sync_omarchy(session: Session) -> None:
     session.align_gallery_index()
 
 
+def _sync_followed_icon(theme: OmarchyTheme) -> None:
+    """Best-effort: install the followed icon variant for a loaded theme.
+
+    Failures never break the player; the next theme change retries.
+    """
+    with contextlib.suppress(IconError, OSError, PaletteError):
+        sync_followed_icon(theme=theme)
+
+
 def _handle(session: Session, key: str) -> bool:
     """Apply one key action; return False only when the player should quit.
 
@@ -363,7 +374,13 @@ def _on_sigterm(_signum: int, _frame: object) -> None:
     raise _PlayerTerminatedError
 
 
-def run_player(session: Session, *, input_stream=None, output_stream=None) -> int:
+def run_player(
+    session: Session,
+    *,
+    input_stream=None,
+    output_stream=None,
+    follow_icon: bool | None = None,
+) -> int:
     """Run the interactive player until Q or Ctrl-C, including from help and gallery.
 
     SIGTERM is catchable around raw mode so it also leaves through cleanup.
@@ -374,6 +391,9 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
         session: Prepared session with palette, show, and transport.
         input_stream: Optional TTY stream for isolated integration tests.
         output_stream: Optional TTY stream for isolated integration tests.
+        follow_icon: Optional icon-follow override; None reads the saved
+            preference. Tests pass False so a developer's live preference
+            cannot install icons during a player test.
 
     Returns:
         Zero after orderly terminal restoration, including after SIGTERM.
@@ -389,6 +409,9 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
     original = termios.tcgetattr(fd)
     previous_sigterm = signal.getsignal(signal.SIGTERM)
     last_sync = 0.0
+    last_icon_sync = 0.0
+    last_icon_generation: str | None = None
+    follow_override = follow_icon
     decoder = KeyDecoder()
     try:
         # Before setraw: the default SIGTERM action would skip the finally below.
@@ -413,6 +436,21 @@ def run_player(session: Session, *, input_stream=None, output_stream=None) -> in
                 except PaletteError:
                     session.omarchy_note = "unavailable"
                 last_sync = now
+            if now - last_icon_sync >= 2:
+                # The icon follows the live theme even when the stage uses a
+                # built-in palette; the stage palette is never touched here.
+                # The preference is re-read each poll, so a pick in another
+                # terminal (which turns follow off) takes effect mid-session.
+                last_icon_sync = now
+                follow_on = load_follow_theme() if follow_override is None else follow_override
+                if follow_on:
+                    try:
+                        current = load_omarchy()
+                        if current.generation != last_icon_generation:
+                            _sync_followed_icon(current)
+                            last_icon_generation = current.generation
+                    except PaletteError:
+                        pass
             timeout = 1 / 12 if session.playhead.playing or session.mode != "play" else 0.25
             # Wake for a lone Escape before the frame poll, or a 250 ms idle
             # select would both delay Esc and flush a split CSI too early.

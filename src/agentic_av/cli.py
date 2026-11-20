@@ -10,6 +10,7 @@ configuration.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import sys
 from pathlib import Path
@@ -20,9 +21,13 @@ from agentic_av.icons import (
     install,
     installed_menubar,
     installed_variant,
+    load_follow_theme,
     load_variant,
     menubar_files,
     pick_variant,
+    resolve_variant,
+    save_follow_theme,
+    sync_followed_icon,
     variant_description,
     variant_names,
 )
@@ -91,7 +96,7 @@ def _make_parser() -> argparse.ArgumentParser:
             "n/p movement, m motion, g glyphs, q back. Visual: space play/pause, arrows seek, "
             "t themes, m motion, ? help, q quit. Icons: `aav icons` lists the piano-camera "
             "variants; `pick` saves and installs one, `install` applies the saved choice, "
-            "`show` reports it."
+            "`follow` follows the live Omarchy theme, `show` reports it."
         ),
     )
     parser.add_argument(
@@ -247,6 +252,16 @@ def _uses_album_library(args: argparse.Namespace) -> bool:
     return args.command == "play" and args.show is None and args.scene is None
 
 
+def _sync_followed_icon() -> None:
+    """Best-effort: if icon follow is on, install the live theme's variant.
+
+    Failures (no Omarchy theme, an install error) never break play; the
+    next launch or theme change retries.
+    """
+    with contextlib.suppress(IconError, OSError, PaletteError):
+        sync_followed_icon()
+
+
 def _open_library(args: argparse.Namespace) -> int:
     """Resolve the palette and run the interactive album library.
 
@@ -261,6 +276,7 @@ def _open_library(args: argparse.Namespace) -> int:
         PaletteError: The requested theme name is unknown.
         RuntimeError: Standard input or output is not a TTY.
     """
+    _sync_followed_icon()
     palette, _theme_id, _omarchy, _note = _resolve_theme(args.theme)
     mode = "none" if args.no_color else color_mode()
     from agentic_av.library import run_library
@@ -279,7 +295,7 @@ def _tracks() -> int:
 
 
 def _icons_parser() -> argparse.ArgumentParser:
-    """Build the `aav icons` parser with list, pick, install, and show."""
+    """Build the `aav icons` parser with list, pick, install, follow, and show."""
     parser = argparse.ArgumentParser(
         prog="aav icons",
         description="List, choose, and install the piano-camera app icon.",
@@ -289,16 +305,29 @@ def _icons_parser() -> argparse.ArgumentParser:
     pick = subparsers.add_parser("pick", help="save and install one variant")
     pick.add_argument("variant", help="variant name, or default")
     subparsers.add_parser("install", help="install the saved variant (or the default)")
+    subparsers.add_parser(
+        "follow",
+        help="follow the live Omarchy theme for the icon",
+    )
     subparsers.add_parser("show", help="show the saved variant and install state")
     return parser
 
 
 def _icons_list() -> int:
-    """Print the icon variants, marking the saved choice."""
+    """Print the icon variants, marking the saved choice and the followed one."""
     saved = load_variant()
+    followed = None
+    if load_follow_theme():
+        try:
+            theme = load_omarchy()
+            followed = resolve_variant(theme.palette, theme.slug)
+        except PaletteError:
+            followed = None
     print("AAV ICONS   /   pick with `aav icons pick <variant>`\n")
     for index, name in enumerate(variant_names(), start=1):
         marker = "  ← saved" if name == saved else ""
+        if name == followed:
+            marker += "  ← followed (live theme)"
         print(f" {index:>2}  {name:<14} {variant_description(name)}{marker}")
     if menubar_files():
         print("Menu bar: menubar/MenuBarIconTemplate.png (template image; no color variants)")
@@ -309,7 +338,10 @@ def _icons_pick(variant: str) -> int:
     """Save an icon variant and install it, reporting what was written."""
     result = pick_variant(variant)
     print(f"Icon set to {variant}.")
+    print("Theme follow is off; a manual pick wins over the live theme.")
     print(f"Installed {len(result.icon_paths)} icon sizes and {result.desktop_path}.")
+    if result.svg_path is not None:
+        print(f"Scalable SVG: {result.svg_path}")
     if result.menubar_paths:
         print(f"Menu-bar template: {len(result.menubar_paths)} sizes installed.")
     if not result.refreshed:
@@ -321,11 +353,31 @@ def _icons_install() -> int:
     """Install the saved icon variant, or the default when none is saved."""
     result = install()
     print(f"Installed the {result.variant} icon: {len(result.icon_paths)} sizes.")
+    if result.svg_path is not None:
+        print(f"Scalable SVG: {result.svg_path}")
     if result.menubar_paths:
         print(f"Menu-bar template: {len(result.menubar_paths)} sizes installed.")
     print(f"Launcher: {result.desktop_path}")
     if not result.refreshed:
         print("Restart your launcher to pick up the new icon.")
+    return 0
+
+
+def _icons_follow() -> int:
+    """Turn on theme follow and install the live theme's variant."""
+    save_follow_theme(True)
+    try:
+        theme = load_omarchy()
+    except PaletteError:
+        print("Icon follow is on. No Omarchy theme is available right now;")
+        print("the icon will follow the live theme once one is available.")
+        return 0
+    resolved = resolve_variant(theme.palette, theme.slug)
+    was_installed = installed_variant()
+    sync_followed_icon(theme=theme)
+    change = "installed" if was_installed != resolved else "already installed"
+    print(f"Icon follow is on: {resolved} matches the live Omarchy theme ({theme.slug}).")
+    print(f"The {resolved} icon is {change}.")
     return 0
 
 
@@ -335,6 +387,15 @@ def _icons_show() -> int:
     installed = installed_variant()
     launcher = desktop_path()
     print(f"Saved icon: {saved}")
+    follow = load_follow_theme()
+    print(f"Follow theme: {'on' if follow else 'off'}")
+    if follow:
+        try:
+            theme = load_omarchy()
+            resolved = resolve_variant(theme.palette, theme.slug)
+            print(f"Followed variant: {resolved} (live theme: {theme.slug})")
+        except PaletteError:
+            print("Followed variant: unavailable (no Omarchy theme)")
     if installed is None:
         print("Installed icon: none — run `aav icons install`")
     elif installed == saved:
@@ -367,6 +428,8 @@ def _icons_command(args: list[str]) -> int:
             return _icons_pick(parsed.variant)
         if parsed.action == "install":
             return _icons_install()
+        if parsed.action == "follow":
+            return _icons_follow()
         return _icons_show()
     except (IconError, OSError) as error:
         print(f"aav: {error}", file=sys.stderr)
@@ -400,6 +463,7 @@ def main(argv: list[str] | None = None) -> int:
             return _preview(session, args)
         if args.command == "gallery":
             return _preview(session, args, gallery=True)
+        _sync_followed_icon()
         from agentic_av.tty import run_player
 
         return run_player(session)
