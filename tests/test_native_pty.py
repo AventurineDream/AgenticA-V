@@ -64,7 +64,9 @@ def test_native_frame_over_pty_restores_terminal(
                 output.extend(os.read(master, 65536))
             except OSError:
                 return
-            if not rendered.is_set() and b"\x1b[?2026l" in output:
+            # The first synchronized write is the loading splash, sent before the
+            # player installs its SIGTERM handler; wait for a playback frame.
+            if not rendered.is_set() and output.count(b"\x1b[?2026l") >= 2:
                 rendered.set()
                 if terminate:
                     os.kill(os.getpid(), signal.SIGTERM)

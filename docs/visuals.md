@@ -130,9 +130,13 @@ marimba and percussion place marks that ramp in rather than stepping on their on
 5. **The Warm Room Opens a Window:** a one-point room whose back window widens across the track; flute light spills out.
 6. **Antenna, Lit:** a guyed mast whose head sways in picture time, rings on accented percussion, and lights late.
 
-## Cover panel
+## Cover panel and now-playing chrome
 
-Every bundled album shows its 1024×1024 cover in a panel at the left of the stage: the four A-01 albums and *The Forest Has a Pocket* (creator-selected covers), and *The Shape That Stays*, *Buy One, Haunt One Free*, and *Instruments for Measuring Dusk* (agent-proposed covers, approved at merge). The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows. It is omitted if fewer than six canvas rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 44 columns; taller cells may need more. Half blocks draw it on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw it in glyphs with no color. An album record without a cover keeps the full-width stage.
+Every bundled album shows its 1024×1024 cover in a panel at the left of the stage, after a two-column margin: the four A-01 albums and *The Forest Has a Pocket* (creator-selected covers), and *The Shape That Stays*, *Buy One, Haunt One Free*, and *Instruments for Measuring Dusk* (agent-proposed covers, approved at merge). The panel keeps the image's proportions, uses at most 40% of the width, and is vertically centered on the canvas rows together with a caption: the album title in the album accent and the artist in the theme's muted color. The caption is dropped first when rows run short. The panel is omitted if fewer than six cover rows or a 30-column stage cannot fit. With square art and 2:1 terminal cells, it appears from 46 columns; taller cells may need more. Covers are averaged in linear light and Lanczos-resampled, so bright detail stays crisp instead of muddying. Half blocks draw them on every tier except ASCII, which uses printable characters. Color follows the color mode; `NO_COLOR` and `--no-color` draw them in glyphs with no color. An album record without a cover keeps the full-width stage.
+
+While an album extracts, a splash shows its cover, letter-spaced title, and artist, with “Listening…” on the last row. Each movement then opens with a four-second title card at the stage's lower left: “MOVEMENT n OF N” in the accent above the title, on a scrim that darkens the picture beneath. In truecolor full motion it fades in and out; reduced, still, 256-color, and no-color show it without a fade. Movement changes crossfade the scenes with an eased (smoothstep) 1.5 s blend in full motion.
+
+The album accent is the cover's dominant vivid hue, so Dusk reads amber and *The Shape That Stays* teal; without a cover it follows each movement's palette highlight. It is lifted until it reaches 3:1 contrast against the theme background. The transport rail brightens toward a half-cell playhead, with section ticks rising from the line. The status row reads state, clock, movement position, title, and section, with key hints receding in the muted color.
 
 ## Display and motion
 
@@ -140,7 +144,7 @@ Every bundled album shows its 1024×1024 cover in a panel at the left of the sta
 explicit `--glyphs octant|sextant|quadrant|half|braille|ascii` wins over it. Use `g`
 to cycle if a font lacks a glyph. Large mosaics step down resolution to bound
 sub-pixel work. `--no-color` uses ordered monochrome patterns; interactive cursor
-controls are still emitted. The UI theme colors transport, not album palettes.
+controls are still emitted. The UI theme colors transport text; the album accent colors its rail and labels.
 
 `--motion reduced` uses 0.22× picture time and reduced reactive gain. `--motion
 still` holds a complete composition; `m` holds/releases during playback. Pause

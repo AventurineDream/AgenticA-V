@@ -28,7 +28,9 @@ Before starting current audio, `movement_signals` loads cached audio analysis an
 the normalized score. One lock serializes analysis and cache publication across
 foreground opens and daemon next-movement prefetch. Prefetch is never joined on
 exit. Only expected `AudioError` becomes quiet visuals; other failures propagate.
-The loading line says “Listening…” and failed analysis remains visible in the
+While the album extracts, a splash shows the cover (when there is one), the
+letter-spaced album title, and the artist, with “Listening…” on the last row;
+later loads replace only that row. Failed analysis remains visible in the
 transport. ffmpeg is needed for first analysis, not for the synthetic CI fixtures.
 
 The native pipeline is:
@@ -37,7 +39,7 @@ The native pipeline is:
 mpv media position → movement-relative audio t / picture tau
 cached Features + Score → Stage → album Scene → linear RGB Surface
 → tone map → glyph fit → Cells → incremental FrameEncoder bytes
-→ synchronized canvas + progress + status write
+→ synchronized cover/caption repaint + canvas + title card + transport write
 ```
 
 `viz/audio.py` uses Hann STFT analysis, seven envelopes, onsets, tracked beats,
@@ -47,7 +49,7 @@ per-movement tempo hints; movement views shift time without copying arrays.
 and motifs. A score remains usable when audio analysis fails.
 
 `viz/stage.py` owns scene lifecycle, size-dependent surfaces, seeks, motion gain,
-and full-motion crossfades. Its latest `.surface` and fitted `.cells` are exposed
+and full-motion crossfades, eased with smoothstep over 1.5 picture seconds. Its latest `.surface` and fitted `.cells` are exposed
 for previews and regression measurement. Seeds are stable per movement. Native
 picture time is anchored independently: full runs at 1×, reduced at 0.22× with
 0.35 reactive gain, and still holds the exact image. Pausing also holds pixels,
@@ -62,16 +64,18 @@ cursor writes and skips unchanged rows. Native adds progress/status and one
 Binary TTY buffers receive UTF-8 bytes; text-only output streams receive an
 explicit UTF-8 decode. Short writes fail visibly.
 
-The cover panel is still image data, not scene data. An album with a catalog cover keeps a panel left of the stage when six canvas rows and a 30-column stage remain. With a square cover and 2:1 terminal cells, it fits from 44 columns; taller cells or a nonsquare cover change that threshold. `viz/cover.py` checks the JPEG's SHA-256 before Pillow decodes it, then renders it through the same encoder at a column offset. A new movement, a resize, or a tier change repaints the whole canvas; with a panel, the canvas rows are erased first in the same synchronized write. A failed check omits the panel and notes it in the transport.
+The cover panel is still image data, not scene data. `nowplaying.py` composes it and the rest of the presentation around the stage as pure byte builders; `native.py` decides when each is drawn. An album with a catalog cover keeps a panel left of the stage, after a two-column margin and before a two-column gap, when six canvas rows and a 30-column stage remain. Below the cover, the album title and artist form a caption, which is dropped before the cover would shrink below six rows. With a square cover and 2:1 terminal cells, the panel fits from 46 columns; taller cells or a nonsquare cover change that threshold. `viz/cover.py` checks the JPEG's SHA-256 before Pillow decodes it, then converts it once to linear light and area-reduces it (`prepare_cover`), so later repaints only Lanczos-resample and fit it through the same encoder at a column offset. A new movement, a resize, or a tier change repaints the whole canvas; with a panel, the canvas rows are erased first in the same synchronized write. A failed check omits the panel and notes it in the transport.
+
+Each movement opens with a title card ("MOVEMENT n OF N" and the title) on a scrim at the stage's lower left for four wall seconds. In truecolor full motion it eases in and out over 0.6 s; otherwise it simply appears and leaves. It is written after the canvas in the same frame and redrawn every frame while it lasts, and its expiry repaints the stage rows it covered. It needs an 8-row, 24-column stage.
 
 Glyph selection is explicit `--glyphs`, otherwise `AAV_GLYPHS` then conservative
 terminal detection: kitty octants, Linux/dumb ASCII, otherwise half-blocks.
 `g` cycles all tiers. A ~110k sub-pixel budget steps large mosaics down through
 sextants/quadrants/halves. Color modes are truecolor, xterm-256, and monochrome
 ordered dithering without SGR; terminal control sequences are still required.
-The theme colors transport, not album art. Status preserves state, clock, and
-`q back`; current sections appear when available. At ten rows or more a
-movement-accent hairline and section ticks sit above status.
+The theme colors transport text, not album art. One album accent ties the chrome to the album: `cover_accent` picks the cover's dominant vivid hue family (chroma-squared votes, brightened to a display value), and albums without a cover use the movement palette's highlight. The accent is lifted toward the theme foreground until it reaches 3:1 against the theme background, then colors the caption title, the state label, the title-card kicker, and the rail. Status runs keep state, clock, and
+`q back` from 30 columns (only `q back` below that); movement position, title, and the current section are cut first. At ten rows or more a
+rail sits above status: a heavy line that brightens toward a half-cell playhead, with section ticks.
 
 `viz/safety.py` measures conservative regional luminance/red reversals and a
 whole-canvas guard on displayed cells. Region size and viewing geometry are
@@ -107,8 +111,9 @@ The abstract demo transport is a monotonic visual clock, not an audio player. Pa
 - `catalog.py`: typed public albums, sort order, and the plain `tracks` listing.
 - `library.py`: library frame, Enter/`o` dispatch, versioned cache materialization, and browser deep link.
 - `native.py`: album audio and score extraction with a JSON score cache, the mpv/ffplay players, and the playback loop.
+- `nowplaying.py`: pure byte builders for the native player's presentation: cover layout and caption, loading splash, movement title card, album accent, rail, and status runs.
 - `viz/`: numpy surfaces, drawing/effects, audio and score queries, mosaic fitting, encoding, Stage, album scenes, previews, and regional risk measurement.
-- `viz/cover.py`: hash-checked JPEG decoding and bounded mosaic rendering for album covers.
+- `viz/cover.py`: hash-checked JPEG decoding, linear-light preparation, bounded mosaic rendering, and the cover accent.
 - `albums/*.html.gz`: authorized public album players. Read-only package data.
 - `artwork/*.jpg`: the bundled A-01 and A-02 covers. Read-only package data, hash-checked on load.
 - `palette.py` and `omarchy.py`: role definitions and read-only theme resolution.

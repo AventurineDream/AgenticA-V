@@ -28,20 +28,20 @@ import numpy as np
 import pyte
 import pytest
 
+from agentic_av import nowplaying
 from agentic_av.catalog import ALBUMS, Album, CatalogEntry, Track
 from agentic_av.library import AlbumError
 from agentic_av.native import (
     Ffplay,
     Mpv,
     NativeError,
-    _layout,
     _player_for,
-    _status_line,
     _write_output,
     extract_album,
     movement_signals,
     play_native,
 )
+from agentic_av.nowplaying import Panel, layout, status_parts
 from agentic_av.palette import builtin_palettes
 from agentic_av.tty import _PlayerTerminatedError
 from agentic_av.viz.audio import AudioError, Segment, analyze
@@ -84,7 +84,10 @@ def _forest_html(count: int = 2) -> str:
             "number": index + 1,
             "scene": scenes[index],
             "events": [["harp", 0.0, 1.0, 60, 0.5, 0.0]] if index == 0 else [],
-            "sections": [{"name": "Ground", "start": 0, "end": 60, "intensity": 0.5}],
+            "sections": [
+                {"name": "Ground", "start": 0, "end": 30, "intensity": 0.5},
+                {"name": "Canopy", "start": 30, "end": 60, "intensity": 0.7},
+            ],
             "audio": f"data:audio/mpeg;base64,{_b64(NAMES[index])}",
         }
         for index in range(count)
@@ -385,23 +388,54 @@ def test_extraction_fails_cleanly_without_data_or_audio(tmp_path: Path, html: st
 # --- frames ------------------------------------------------------------------
 
 
+def _status_line(
+    width: int, playing: bool, title: str, note: str = "", motion: str = "full", position=""
+) -> str:
+    """Join the styled status runs into the text a terminal would show."""
+    parts = status_parts(
+        width,
+        playing=playing,
+        clock="0:12 / 1:56",
+        position=position,
+        title=title,
+        scene="Orbital traffic",
+        motion=motion,
+        note=note,
+    )
+    return "".join(text for text, _ in parts)
+
+
 def test_status_line_keeps_clock_and_way_out_at_80_columns() -> None:
     title = "Mall Cop on the Astral Plane Has Opinions About Saturn"
-    line = _status_line(80, "PLAYING", "0:12 / 1:56", title, "Orbital traffic", "full", "")
+    line = _status_line(80, True, title, position="2/7")
     assert len(line) <= 80
-    assert line.startswith(" PLAYING  0:12 / 1:56")
+    assert line.startswith(" ▸ PLAYING  0:12 / 1:56  2/7  Mall Cop")
     assert line.rstrip().endswith("q back")
-    noted = _status_line(80, "PAUSED", "0:12 / 1:56", title, "x", "still", "ffplay cannot seek")
+    noted = _status_line(80, False, title, "ffplay cannot seek", "still")
     assert "0:12 / 1:56" in noted and "ffplay cannot seek" in noted and "q back" in noted
-    assert "q back" in _status_line(12, "PLAYING", "0:12 / 1:56", title, "x", "full", "")
+    assert "q back" in _status_line(12, True, title)
 
 
 def test_a_long_note_gives_way_before_the_clock() -> None:
-    note = "ffplay cannot seek; choose another movement"
-    line = _status_line(60, "PAUSED", "0:12 / 1:56", "Rain Has Teeth", "rain", "full", note)
+    line = _status_line(60, False, "Rain Has Teeth", "ffplay cannot seek; choose another movement")
     assert len(line) <= 60
-    assert line.startswith(" PAUSED  0:12 / 1:56")
+    assert line.startswith(" ❚❚ PAUSED  0:12 / 1:56")
     assert line.rstrip().endswith("q back")
+
+
+def test_status_line_never_overflows_and_always_offers_a_way_out() -> None:
+    title = "Mall Cop on the Astral Plane Has Opinions About Saturn"
+    for width in range(1, 140):
+        for playing in (True, False):
+            line = _status_line(width, playing, title, position="7/7")
+            assert len(line) <= width, width
+            if width < len("q back") + 1:
+                assert line == "q back"[:width], width
+            else:
+                assert "q back" in line, width
+            # State, clock, and way out fit together from 30 columns.
+            if width >= 30:
+                assert "0:12 / 1:56" in line, width
 
 
 # --- playback loop -------------------------------------------------------------
@@ -1166,12 +1200,14 @@ def test_quit_remains_responsive_while_foreground_analysis_waits_for_prefetch(
     assert players[0].closed
 
 
-def test_section_and_hairline_are_visible_in_transport(tmp_path: Path) -> None:
-    """The source score reaches listener-visible section text and progress ticks."""
+def test_section_and_rail_are_visible_in_transport(tmp_path: Path) -> None:
+    """The source score reaches listener-visible section text and a section tick."""
     _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q")
     assert "Ground" in frames[0]
-    assert "\x1b[23;1H" in frames[0]
-    assert "│" in frames[0] and "─" in frames[0]
+    rail = _replay(frames[:1], 80, 24).display[22]
+    # The second section starts halfway through the 60 s movement: column 40.
+    assert rail[40] == "┴"
+    assert set(rail[:40] + rail[41:]) <= {"─", "━", "╸"}
 
 
 @pytest.mark.parametrize(
@@ -1249,18 +1285,23 @@ def _glyphs(screen: pyte.Screen, rows: range, cols: range) -> str:
     return "".join(screen.buffer[row][col].data for row in rows for col in cols)
 
 
-def test_a02_shows_its_cover_left_of_the_stage_in_color(tmp_path: Path) -> None:
+def test_a02_shows_its_framed_captioned_cover_left_of_the_stage_in_color(tmp_path: Path) -> None:
     _, frames = _play(
         tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2, color_mode="truecolor"
     )
     screen = _replay(frames, 80, 24)
-    # A 32x16 panel centered on the 22 canvas rows: rows 4-19, columns 1-32 (one-based).
-    assert _painted(screen, range(3, 19), range(0, 32)) == 32 * 16
-    assert _painted(screen, range(0, 3), range(0, 32)) == 0
-    assert _painted(screen, range(19, 22), range(0, 32)) == 0
-    # The two-column gap is erased; the stage keeps its 46 columns on the right.
-    assert _painted(screen, range(0, 22), range(32, 34)) == 0
-    assert _painted(screen, range(0, 22), range(34, 80)) == 22 * 46
+    # A 32x16 panel after a two-column margin, centered with its caption on the 22
+    # canvas rows: rows 2-17 and columns 3-34 (one-based), caption on rows 19-20.
+    assert _painted(screen, range(1, 17), range(2, 34)) == 32 * 16
+    assert _painted(screen, range(0, 22), range(0, 2)) == 0
+    assert _painted(screen, range(0, 1), range(2, 34)) == 0
+    assert _painted(screen, range(17, 18), range(2, 34)) == 0
+    assert POCKET_ALBUM.title in screen.display[18]
+    assert POCKET_ALBUM.artist in screen.display[19]
+    assert _painted(screen, range(20, 22), range(2, 34)) == 0
+    # The two-column gap is erased; the stage keeps its 44 columns on the right.
+    assert _painted(screen, range(0, 22), range(34, 36)) == 0
+    assert _painted(screen, range(0, 22), range(36, 80)) == 22 * 44
     assert "PLAYING" in screen.display[23]
 
 
@@ -1268,8 +1309,8 @@ def test_a02_cover_is_glyphs_only_without_color(tmp_path: Path) -> None:
     _, frames = _play(tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2)
     assert not any(_SGR_SEQUENCE.search(frame) for frame in frames)
     screen = _replay(frames, 80, 24)
-    assert _glyphs(screen, range(3, 19), range(0, 32)).strip()
-    assert _painted(screen, range(0, 22), range(32, 34)) == 0
+    assert _glyphs(screen, range(1, 17), range(2, 34)).strip()
+    assert _painted(screen, range(0, 22), range(34, 36)) == 0
     assert "PLAYING" in screen.display[23]
 
 
@@ -1278,7 +1319,7 @@ def test_linux_console_tier_draws_the_cover_in_ascii(tmp_path: Path) -> None:
         tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2, glyphs="ascii"
     )
     screen = _replay(frames, 80, 24)
-    panel = _glyphs(screen, range(3, 19), range(0, 32))
+    panel = _glyphs(screen, range(1, 17), range(2, 34))
     assert panel.strip()
     assert all(ord(char) < 128 for char in panel)
 
@@ -1307,11 +1348,13 @@ def test_resizing_the_panel_leaves_no_stale_pixels(
     )
     assert len(calls) >= 4, "the widening must happen before the quit"
     screen = _replay(frames, 100, 24)
-    # At 100 columns the panel grows to 40x20 and stays centered: rows 2-21, columns 1-40.
-    assert _painted(screen, range(1, 21), range(0, 40)) == 40 * 20
+    # At 100 columns the panel grows to 38x19 and moves up to keep its caption:
+    # rows 1-19 and columns 3-40, caption on rows 21-22, stage from column 43.
+    assert _painted(screen, range(0, 19), range(2, 40)) == 38 * 19
+    assert _painted(screen, range(0, 22), range(0, 2)) == 0
     assert _painted(screen, range(0, 22), range(40, 42)) == 0
-    assert _painted(screen, range(0, 1), range(0, 40)) == 0
-    assert _painted(screen, range(21, 22), range(0, 40)) == 0
+    assert _painted(screen, range(19, 20), range(2, 40)) == 0
+    assert POCKET_ALBUM.title in screen.display[20]
     assert _painted(screen, range(0, 22), range(42, 100)) == 22 * 58
     assert "PLAYING" in screen.display[23]
 
@@ -1335,9 +1378,9 @@ def test_cover_remains_visible_after_movement_and_tier_changes(
     )
     screen = _replay(frames, 80, 24)
     assert expected_title in screen.display[23]
-    assert _painted(screen, range(3, 19), range(0, 32)) == 32 * 16
-    assert _painted(screen, range(0, 22), range(32, 34)) == 0
-    assert _painted(screen, range(0, 22), range(34, 80)) == 22 * 46
+    assert _painted(screen, range(1, 17), range(2, 34)) == 32 * 16
+    assert _painted(screen, range(0, 22), range(34, 36)) == 0
+    assert _painted(screen, range(0, 22), range(36, 80)) == 22 * 44
 
 
 def test_a_cover_that_fails_verification_is_omitted_with_a_note(
@@ -1354,12 +1397,56 @@ def test_a_cover_that_fails_verification_is_omitted_with_a_note(
 
 
 def test_cover_layout_keeps_the_stage_share_and_drops_the_panel_when_small() -> None:
-    layout = _layout(80, 22, 2.0, 1.0)
-    panel = layout.cover
-    assert (panel.top, panel.left, panel.cols, panel.rows) == (4, 0, 32, 16)
-    assert (layout.stage_left, layout.stage_cols) == (34, 46)
-    assert _layout(80, 22, 2.0, None).cover is None
+    plan = layout(80, 22, 2.0, 1.0)
+    panel = plan.cover
+    assert (panel.top, panel.left, panel.cols, panel.rows) == (2, 2, 32, 16)
+    assert (plan.stage_left, plan.stage_cols) == (36, 44)
+    assert plan.caption == Panel(top=19, left=2, cols=32, rows=2)
+    assert layout(80, 22, 2.0, None).cover is None
+    # Too short for a caption: the cover keeps its rows and the caption goes first.
+    short = layout(80, 8, 2.0, 1.0)
+    assert short.cover is not None and short.cover.rows == 8 and short.caption is None
     for width, rows in ((40, 22), (80, 5)):
-        small = _layout(width, rows, 2.0, 1.0)
+        small = layout(width, rows, 2.0, 1.0)
         assert small.cover is None
         assert (small.stage_left, small.stage_cols) == (0, width)
+
+
+def test_each_movement_opens_with_a_title_card_over_the_stage(tmp_path: Path) -> None:
+    _, frames = _play(
+        tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2, color_mode="truecolor"
+    )
+    screen = _replay(frames, 80, 24)
+    # Lower left of the stage, one row above the canvas bottom: canvas rows 20-21.
+    assert "MOVEMENT 1 OF 2" in screen.display[19][36:]
+    assert POCKET_ALBUM.tracks[0].title in screen.display[20][36:]
+    assert _painted(screen, range(0, 22), range(36, 80)) == 22 * 44
+
+
+def test_an_expired_title_card_restores_the_picture_beneath_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def still_screen(card_s: float) -> pyte.Screen:
+        monkeypatch.setattr(nowplaying, "TITLE_CARD_S", card_s)
+        _, frames = _play(
+            tmp_path / str(card_s),
+            _pocket_html(2),
+            1,
+            POCKET_ALBUM,
+            b"",
+            quit_after_frames=12,
+            motion="still",
+            color_mode="truecolor",
+        )
+        if card_s:
+            first = "".join(_replay(frames[:1], 80, 24).display)
+            assert "MOVEMENT 1 OF 2" in first, "the card must show first"
+        return _replay(frames, 80, 24)
+
+    expired, never = still_screen(0.1), still_screen(0.0)
+    assert not any("MOVEMENT" in row for row in expired.display[:22])
+    # Text and scrim both gone: the held picture matches a run that never had a card.
+    for row in range(22):
+        for col in range(36, 80):
+            got, want = expired.buffer[row][col], never.buffer[row][col]
+            assert (got.data, got.fg, got.bg) == (want.data, want.fg, want.bg), (row, col)

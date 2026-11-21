@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from agentic_av.colorutil import xterm256_hue_match
 from agentic_av.viz.glyphs import TIERS, Cells
 
 SYNC_BEGIN = b"\x1b[?2026h"
@@ -31,19 +32,29 @@ _XTERM_RGB = np.concatenate(
 
 
 def _quantize(rgb: np.ndarray, *, dither: bool = True) -> np.ndarray:
-    """Match colorutil's nearest cube/gray rule, with optional spatial dither."""
-    values = rgb.astype(np.int32)
+    """Match colorutil's `to_xterm256` rule, with optional spatial dither.
+
+    Dither moves the nearest cube/gray choice only. The hue match uses the
+    undithered color, so a flat muted field gets one cube color instead of
+    dithered specks, and ``dither=False`` equals `to_xterm256` exactly.
+    """
+    raw = rgb.astype(np.int32)
+    values = raw
     if dither:
         rows, cols = rgb.shape[:2]
         y, x = np.ogrid[:rows, :cols]
-        values = np.rint(values + _DITHER[y % 4, x % 4, None]).clip(0, 255).astype(np.int32)
+        values = np.rint(raw + _DITHER[y % 4, x % 4, None]).clip(0, 255).astype(np.int32)
     cube = _NEAREST[values]
     cube_rgb = _CUBE[cube]
     cube_dist = ((values - cube_rgb) ** 2).sum(axis=-1)
     slot = np.clip((values.sum(axis=-1) - 24 + 14) // 30, 0, 23)
     gray_dist = ((values - (8 + slot[..., None] * 10)) ** 2).sum(axis=-1)
     index = 16 + 36 * cube[..., 0].astype(np.int32) + 6 * cube[..., 1] + cube[..., 2]
-    return np.where(gray_dist < cube_dist, 232 + slot, index).astype(np.uint8)[..., None]
+    use_gray = gray_dist < cube_dist
+    nearest = np.where(use_gray, 232 + slot, index)
+    neutral = use_gray | ((cube[..., 0] == cube[..., 1]) & (cube[..., 1] == cube[..., 2]))
+    hue = xterm256_hue_match(raw)
+    return np.where(neutral & (hue > 0), hue, nearest).astype(np.uint8)[..., None]
 
 
 def displayed_cells(cells: Cells, color_mode: str) -> Cells:

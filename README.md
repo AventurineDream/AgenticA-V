@@ -78,7 +78,7 @@ uv run aav gallery --theme tungsten --width 80 --height 24
 uv run aav play --theme phosphor
 ```
 
-Nine built-ins are included: tungsten, phosphor, broadcast, newsprint, signal, glacier, carbon, marigold, and void. `omarchy`, `sync`, and `system` load the active Omarchy theme read-only. If unavailable, playback falls back to tungsten. `AAV_THEME` sets the default; `--theme` overrides it. `NO_COLOR`, `TERM=dumb`, a terminal without advertised color, and `--no-color` disable color escapes. Interactive output still uses cursor/control sequences. Native scenes use album palettes; the active theme colors their transport.
+Nine built-ins are included: tungsten, phosphor, broadcast, newsprint, signal, glacier, carbon, marigold, and void. `omarchy`, `sync`, and `system` load the active Omarchy theme read-only. If unavailable, playback falls back to tungsten. `AAV_THEME` sets the default; `--theme` overrides it. `NO_COLOR`, `TERM=dumb`, a terminal without advertised color, and `--no-color` disable color escapes. Interactive output still uses cursor/control sequences. Native scenes use album palettes; the active theme colors their transport text, and an accent from the album's cover or palette colors its rail and labels.
 
 ### App icon
 

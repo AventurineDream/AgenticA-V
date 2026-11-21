@@ -161,6 +161,19 @@ def test_color_cover_paints_exactly_its_panel(color_mode: str) -> None:
     assert len(colors) >= 4
 
 
+def test_fine_detail_averages_as_light_not_as_srgb_codes() -> None:
+    """A one-pixel black/white checkerboard must read as 50% light (sRGB 188).
+
+    Averaging sRGB codes instead would give 128, the muddy gray this guards against.
+    """
+    y, x = np.indices((512, 512))
+    checker = np.where((x + y) % 2 == 0, 255, 0).astype(np.uint8)
+    pixels = np.repeat(checker[..., None], 3, axis=-1)
+    frame = render_cover(pixels, cols=4, rows=2, tier="half", color_mode="truecolor", top=1, left=0)
+    screen = _replay(frame, 10, 4)
+    assert {screen.buffer[row][col].bg for row in range(2) for col in range(4)} == {"bcbcbc"}
+
+
 @pytest.mark.parametrize("tier", ["half", "ascii"])
 def test_colorless_cover_has_glyphs_inside_the_panel_and_no_sgr(tier: str) -> None:
     pixels = load_cover(_ASSET, _RECEIPT_SHA256)

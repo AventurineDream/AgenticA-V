@@ -1,11 +1,16 @@
-"""Decode bundled album covers and fit them into terminal panels.
+"""Decode bundled album covers, fit them into terminal panels, and pick their accent.
 
 `native.py` decides where the panel sits. This module verifies the packaged JPEG
-against its receipt SHA-256, decodes it with Pillow (a declared runtime
-dependency), resamples it in sRGB, converts to linear light, and fits it with the
-stage's mosaic fitter and row encoder. Color and no-color output therefore follow
-the stage's rules. Nothing here writes to the terminal; the caller places the
-returned bytes inside its synchronized frame.
+against its receipt SHA-256 and decodes it with Pillow (a declared runtime
+dependency). It converts the image to linear light before any resampling, so
+highlights and fine detail are averaged as light rather than as gamma-encoded
+numbers. A Lanczos filter keeps edges crisp at half-block resolution, and the
+stage's mosaic fitter and row encoder finish the job. Color and no-color output
+therefore follow the stage's rules. Nothing here writes to the terminal; the
+caller places the returned bytes inside its synchronized frame.
+
+`cover_accent` reduces a cover to one signature color, which the player uses to tie
+its chrome to the album. It never alters the image itself.
 """
 
 from __future__ import annotations
@@ -19,6 +24,22 @@ from PIL import Image
 
 from agentic_av.viz.encode import FrameEncoder
 from agentic_av.viz.glyphs import TIERS, fit
+
+# sRGB byte -> linear light; a gather is far cheaper than the power curve per pixel.
+_CODES = np.arange(256, dtype=np.float64) / 255
+_TO_LINEAR = np.where(_CODES <= 0.04045, _CODES / 12.92, ((_CODES + 0.055) / 1.055) ** 2.4).astype(
+    np.float32
+)
+# Accent search: a small thumbnail is enough to find a hue family, and 18 bins of 20
+# degrees separate the families a listener would name (teal versus green, amber versus red).
+_ACCENT_THUMB = 48
+_HUE_BINS = 18
+# Below this mean weight per pixel the cover is effectively gray, and its mean is the accent.
+_MIN_VIVID = 1e-3
+# The accent's brightest channel is raised to at least this, keeping hue and saturation.
+_ACCENT_VALUE = 0.85
+# Prepared covers keep at least this many pixels on their short side.
+_PREPARED_EDGE = 256
 
 
 class ArtworkError(RuntimeError):
@@ -84,12 +105,15 @@ def render_cover(
 ) -> bytes:
     """Fit a cover into a `cols` by `rows` panel and encode it as terminal rows.
 
-    The image is box-filtered to the tier's sub-pixel grid, then converted to
-    linear light because `fit` expects linear input. Every panel row is emitted,
-    so a caller that clears the area first gets the full picture.
+    The image is converted to linear light first, because `fit` expects linear
+    input and because averaging light keeps bright detail from muddying. It is
+    then Lanczos-resampled to the tier's sub-pixel grid; the filter's slight
+    overshoot is clipped. Every panel row is emitted, so a caller that clears the
+    area first gets the full picture.
 
     Args:
-        pixels: sRGB uint8 RGB image from `load_cover`.
+        pixels: sRGB uint8 RGB image from `load_cover`, or the float32 linear
+            image from `prepare_cover`, which skips the per-call conversion.
         cols: Panel width in character cells, positive.
         rows: Panel height in character cells, positive.
         tier: Mosaic tier key, such as ``half`` or ``ascii``.
@@ -102,16 +126,109 @@ def render_cover(
         Cursor-addressed UTF-8/ANSI bytes with no sync wrapper or clear.
 
     Raises:
-        ValueError: The panel size, offset, or color mode is invalid.
+        ValueError: The panel size, offset, color mode, or pixel dtype is invalid.
         KeyError: The tier is unknown.
     """
     if cols < 1 or rows < 1:
         raise ValueError("cover panel dimensions must be positive")
     spec = TIERS[tier]
-    sampled = Image.fromarray(pixels).resize(
-        (cols * spec.sub_w, rows * spec.sub_h), Image.Resampling.BOX
-    )
-    srgb = np.asarray(sampled, dtype=np.float32) / 255
-    linear_rgb = np.where(srgb <= 0.04045, srgb / 12.92, ((srgb + 0.055) / 1.055) ** 2.4)
-    cells = fit(linear_rgb.astype(np.float32), tier, mono=color_mode == "none")
+    if pixels.dtype == np.uint8:
+        linear = prepare_cover(pixels)
+    elif pixels.dtype == np.float32:
+        linear = pixels
+    else:
+        raise ValueError(f"cover pixels must be uint8 sRGB or float32 linear, not {pixels.dtype}")
+    size = (cols * spec.sub_w, rows * spec.sub_h)
+    # Pillow resamples float images one band at a time ("F" mode).
+    bands = [
+        np.asarray(
+            Image.fromarray(np.ascontiguousarray(linear[..., band])).resize(
+                size, Image.Resampling.LANCZOS
+            )
+        )
+        for band in range(3)
+    ]
+    linear_rgb = np.clip(np.stack(bands, axis=-1), 0, 1).astype(np.float32)
+    cells = fit(linear_rgb, tier, mono=color_mode == "none")
     return FrameEncoder(color_mode).encode(cells, top=top, left=left)
+
+
+def prepare_cover(pixels: np.ndarray) -> np.ndarray:
+    """Convert a decoded cover to linear light, area-reduced for repeated fitting.
+
+    Linearizing a full 1024-pixel cover costs tens of milliseconds, too much to
+    repeat on every layout change, so the player prepares a cover once. The image
+    is reduced by the largest integer factor that keeps its short side at least
+    `_PREPARED_EDGE` pixels, enough for a 128-row half-block panel; larger panels
+    upsample slightly, which Lanczos handles gracefully. Averaging
+    happens after linearization, so it is an exact area mean of light; a few edge
+    pixels are cropped when the size is not a multiple of the factor.
+
+    Args:
+        pixels: sRGB uint8 RGB image from `load_cover`.
+
+    Returns:
+        Owned, contiguous float32 linear RGB in 0..1, accepted by `render_cover`.
+    """
+    height, width = pixels.shape[:2]
+    factor = max(1, min(height, width) // _PREPARED_EDGE)
+    linear = _TO_LINEAR[pixels]
+    if factor > 1:
+        rows, cols = height // factor, width // factor
+        linear = (
+            linear[: rows * factor, : cols * factor]
+            .reshape(rows, factor, cols, factor, 3)
+            .mean(axis=(1, 3))
+        )
+    return np.ascontiguousarray(linear, dtype=np.float32)
+
+
+def cover_accent(pixels: np.ndarray) -> tuple[int, int, int]:
+    """Pick a cover's signature color: the dominant vivid hue family.
+
+    Each pixel of a small thumbnail votes for its hue with a weight of chroma
+    squared (saturation times value, squared). Near-black, near-gray, and
+    washed-out areas barely count, and a small lit feature outvotes a large dim
+    field (Dusk's amber light shaft over its blue-black room). The winning
+    20-degree hue bin, pooled with its two neighbors so a family split across a
+    bin edge is not penalized, is averaged by the same weights. A cover with no
+    meaningful color returns its plain mean, unscaled.
+
+    Args:
+        pixels: sRGB uint8 RGB image from `load_cover`.
+
+    Returns:
+        An sRGB byte triple. For a colorful cover it carries the family's hue and
+        saturation, scaled so its brightest channel reaches at least
+        `_ACCENT_VALUE`: dark covers still yield a color that reads as light on a
+        dark background. A gray or black cover returns its unscaled mean. Callers
+        enforce their own contrast, as `nowplaying.album_accent` does.
+    """
+    thumb = Image.fromarray(pixels).resize((_ACCENT_THUMB, _ACCENT_THUMB), Image.Resampling.BOX)
+    flat = np.asarray(thumb, dtype=np.float32).reshape(-1, 3) / 255
+    high, low = flat.max(axis=1), flat.min(axis=1)
+    chroma = high - low
+    weight = chroma**2
+    if weight.mean() < _MIN_VIVID:
+        return _bytes(flat.mean(axis=0))
+    red, green, blue = flat.T
+    safe = np.maximum(chroma, 1e-6)
+    hue = np.where(
+        high == red,
+        ((green - blue) / safe) % 6,
+        np.where(high == green, (blue - red) / safe + 2, (red - green) / safe + 4),
+    )
+    bins = (hue / 6 * _HUE_BINS).astype(np.int64) % _HUE_BINS
+    votes = np.bincount(bins, weights=weight, minlength=_HUE_BINS)
+    pooled = votes + np.roll(votes, 1) + np.roll(votes, -1)
+    best = int(pooled.argmax())
+    members = np.isin(bins, [(best - 1) % _HUE_BINS, best, (best + 1) % _HUE_BINS])
+    chosen = weight * members
+    mean = (flat * chosen[:, None]).sum(axis=0) / chosen.sum()
+    return _bytes(mean * max(1.0, _ACCENT_VALUE / max(float(mean.max()), 1e-6)))
+
+
+def _bytes(rgb: np.ndarray) -> tuple[int, int, int]:
+    """Round a 0..1 RGB triple to sRGB bytes."""
+    red, green, blue = (round(float(value) * 255) for value in rgb)
+    return red, green, blue
