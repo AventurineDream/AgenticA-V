@@ -33,7 +33,6 @@ All notable changes to this project are documented here.
 - Native playback targets 30 fps (5 transport updates/s when paused or still), batches one synchronized write per frame, and skips unchanged canvas rows. Add section names, progress, and section ticks to transport.
 - Add scene previews, benchmarks, and a conservative regional flash-risk regression meter. This is not flash-safety certification.
 - Replace extraction sidecar revision 2 with revision 3, retaining full normalized scores and removing obsolete simplified event rows.
-
 - Refine the four A-02 native visualizer families for denser detail and smoother motion without changing their album identities.
 - Add `f` full-screen mode to native album playback; the stage fills the terminal without transport chrome, survives resizes and movement changes, and returns to the normal page with `f`.
 - The abstract visual player is `aav demo`. `aav play --show` and `aav play --scene` keep the previous visual behavior. `preview`, `themes`, and `gallery` are unchanged.
