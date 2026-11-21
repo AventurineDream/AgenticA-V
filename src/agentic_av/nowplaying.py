@@ -60,7 +60,7 @@ _RAIL_STEPS = 8
 # Below this terminal height the rail is dropped and status takes the only spare row.
 RAIL_MIN_ROWS = 10
 _KEY_HINTS = (
-    "←/→ track  j/l seek  k/space pause  n/p track  m motion  g glyphs  f full  q back",
+    "←/→ track  j/l seek  k/space pause  m motion  g glyphs  f full  q back",
     "f full  q back",
 )
 _WAY_OUT = "q back"
