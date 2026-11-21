@@ -520,5 +520,5 @@ def format_catalog(entries: tuple[CatalogEntry, ...] | None = None) -> str:
         clock = format_clock(entry.track.start_s)
         lines.append(f"  {entry.track.number:02d}  {clock:>7}  {entry.track.title}")
     lines.append("")
-    lines.append("Play a movement with `aav play` and Enter, or press o there for the browser.")
+    lines.append("Play a movement with `aav play` and Enter.")
     return "\n".join(lines)
