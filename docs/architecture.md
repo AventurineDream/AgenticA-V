@@ -8,7 +8,7 @@ Eight albums are bundled as self-contained HTML players: the four completed A-01
 
 `catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. `aav tracks` keeps the stable album-artist/band/title/track order; the library starts by band and `s` toggles to album-title order. Catalog records include hash-pinned cover art and a short album description. Only the four completed A-01 albums and the A-02 albums recorded in ADR 0002 belong in the catalog; `validate_catalog` checks asset and credit form.
 
-`library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. From 72 columns by 16 rows, the highlighted album's verified cover and description appear beside the list; resizing redraws the panel. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
+`library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. From 72 columns by 16 rows, the highlighted album's verified cover and description appear beside the list; resizing redraws the panel. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin.
 
 ## Native album playback
 
@@ -94,7 +94,7 @@ family and reuses the object-row normalizer without flattening the two piano han
 
 ## Data flow
 
-`cli.py` parses commands. Bare `play` and `tracks` use the catalog. The visual commands load a TOML show. `omarchy.py` reads the resolved Omarchy palette read-only — applied `colors.toml` when present, otherwise the slug's user or stock `colors.toml` — plus `theme.name` and `theme.generation`. `palette.py` maps that palette into immutable semantic roles shared by built-in themes and the library frame. `field.py` samples abstract visuals, `paint.py` composes exact-size character-cell frames, and `tty.py` owns raw terminal mode and input for the visual player. The preview command and live TTY call the same composer. The library uses the same cell grid and the same key decoder, and it leaves raw mode before opening a browser.
+`cli.py` parses commands. Bare `play` and `tracks` use the catalog. The visual commands load a TOML show. `omarchy.py` reads the resolved Omarchy palette read-only — applied `colors.toml` when present, otherwise the slug's user or stock `colors.toml` — plus `theme.name` and `theme.generation`. `palette.py` maps that palette into immutable semantic roles shared by built-in themes and the library frame. `field.py` samples abstract visuals, `paint.py` composes exact-size character-cell frames, and `tty.py` owns raw terminal mode and input for the visual player. The preview command and live TTY call the same composer. The library uses the same cell grid and the same key decoder.
 
 ## Theme contract
 
@@ -109,7 +109,7 @@ The abstract demo transport is a monotonic visual clock, not an audio player. Pa
 ## Files
 
 - `catalog.py`: typed public albums, sort order, and the plain `tracks` listing.
-- `library.py`: library frame, Enter/`o` dispatch, versioned cache materialization, and browser deep link.
+- `library.py`: library frame, Enter dispatch into native playback, and versioned cache materialization.
 - `native.py`: album audio and score extraction with a JSON score cache, the mpv/ffplay players, and the playback loop.
 - `nowplaying.py`: pure byte builders for the native player's presentation: cover layout and caption, loading splash, movement title card, album accent, rail, and status runs.
 - `viz/`: numpy surfaces, drawing/effects, audio and score queries, mosaic fitting, encoding, Stage, album scenes, previews, and regional risk measurement.
