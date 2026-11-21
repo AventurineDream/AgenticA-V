@@ -9,8 +9,7 @@ Example::
     main(["tracks"])
 
 Bare ``play`` opens the album library: Enter plays a movement in the
-terminal, and ``o`` opens the bundled HTML in a browser, where the listener
-clicks Play. ``demo`` is the visual reel.
+terminal. ``demo`` is the visual reel.
 """
 
 __version__ = "0.1.0"
