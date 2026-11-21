@@ -865,13 +865,14 @@ def play_native(
     """Play `entry`'s album natively in the terminal until q or Escape.
 
     A splash appears during extraction, then audio drives the album-specific
-    scene. Space pauses, arrows seek, n/p change movement, m toggles motion,
-    g cycles glyph tiers, and f toggles a chrome-free full-screen stage.
-    Full-screen state persists across movements and terminal resizes.
+    scene. Space or k pauses, j/l seek by ten seconds, and left/right switch
+    movements; n/p and up/down remain movement aliases. m toggles motion, g
+    cycles glyph tiers, and f toggles a chrome-free full-screen stage. Full-screen
+    state persists across movements and terminal resizes.
     The caller's raw mode stays on: mpv and ffplay get no stdin, so the child
-    cannot consume keys and terminal cleanup remains with the library. Arrows
-    seek 10 seconds. The cover panel is omitted when too narrow or short, and a
-    cover that fails verification is noted in the transport.
+    cannot consume keys and terminal cleanup remains with the library. The
+    cover panel is omitted when too narrow or short, and a cover that fails
+    verification is noted in the transport.
     Side effects: Starts audio playback, writes terminal frames, and publishes extracted
         media/analysis cache files.
 
@@ -1015,10 +1016,12 @@ def play_native(
                         for key in keys:
                             if key in ("q", "Q", "esc", "quit"):
                                 return "quit"
-                            if key in ("n", "j", "down"):
+                            if key in ("n", "right", "down"):
                                 step += 1
-                            elif key in ("p", "k", "up"):
+                            elif key in ("p", "left", "up"):
                                 step -= 1
+                            elif key in (" ", "k", "K"):
+                                playing = not playing
                             elif key in ("f", "F"):
                                 full_screen = not full_screen
                                 canvas_rows = (
@@ -1039,8 +1042,8 @@ def play_native(
                             # The in-flight analysis is for the old movement.
                             # Drop it so the next iteration starts a fresh
                             # request for the new index instead of waiting
-                            # out the stale one; a late n/p during loading
-                            # must not make the player feel stuck and invite
+                            # out the stale one; a late movement key during
+                            # loading must not make the player feel stuck and invite
                             # a second press that overshoots by one more.
                             analysis_request = None
                         continue
@@ -1060,6 +1063,8 @@ def play_native(
                     cover_note,
                 )
                 player = factory(data.audio, data.offset_s)
+                if not playing:
+                    player.set_pause(True)
                 pending_open = False
                 # A fresh player's clock can still report the previous
                 # movement's position until its seek settles. Do not let
@@ -1187,7 +1192,7 @@ def play_native(
             for key in keys:
                 if key in ("q", "Q", "esc", "quit"):
                     return "quit"
-                if key == " ":
+                if key in (" ", "k", "K"):
                     playing = not playing
                     player.set_pause(not playing)
                     anchor_clock, anchor_scene = elapsed, scene_s
@@ -1212,8 +1217,8 @@ def play_native(
                 elif key in ("g", "G"):
                     requested_tier = TIER_ORDER[(TIER_ORDER.index(tier) + 1) % len(TIER_ORDER)]
                     dirty = True
-                elif key in ("left", "right"):
-                    delta = _SEEK_STEP_S if key == "right" else -_SEEK_STEP_S
+                elif key in ("j", "J", "l", "L"):
+                    delta = _SEEK_STEP_S if key in ("l", "L") else -_SEEK_STEP_S
                     rel = min(duration, max(0.0, elapsed + delta))
                     try:
                         player.seek(data.offset_s + rel)
@@ -1225,9 +1230,9 @@ def play_native(
                         stage.seek()
                         dirty = True
                         captured_clock = None
-                elif key in ("n", "j", "down"):
+                elif key in ("right", "n", "down"):
                     step += 1
-                elif key in ("p", "k", "up"):
+                elif key in ("left", "p", "up"):
                     step -= 1
             if step == 0:
                 proc = getattr(player, "proc", None)
@@ -1246,6 +1251,7 @@ def play_native(
                 player = None
                 pending_open = True
                 anchor_scene = anchor_clock = 0.0
+                scene_s = 0.0
                 playing = True
     finally:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)

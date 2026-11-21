@@ -1,22 +1,15 @@
-"""Interactive album library, native playback dispatch, and browser deep link.
+"""Interactive terminal album library, native playback dispatch, and cache helpers.
 
 `cli.py` calls `run_library` for bare `aav play`. The frame is a fixed
 character grid painted with the active palette; `NO_COLOR` is the renderer's
 no-color mode, and a `>` mark keeps the selection visible without color.
 Enter hands the selected movement to `native.play_native`, which plays the
-album's audio-reactive mosaic scene and audio in this terminal. `o` instead restores
-canonical terminal mode, materializes one bundled `.html.gz` into the
-versioned XDG cache, and opens that copy in the default browser. The
-compressed package asset is never rewritten. The injected script seeks
-`#audio` from a numeric `start` query after metadata loads and does not
-call `play()`; browser autoplay policy still requires a Play click.
+album's audio-reactive mosaic scene and audio in this terminal. Shared cache
+helpers keep packaged assets read-only and publish extracted files atomically.
 """
 
 from __future__ import annotations
 
-import gzip
-import hashlib
-import math
 import os
 import select
 import signal
@@ -25,12 +18,10 @@ import tempfile
 import termios
 import textwrap
 import tty
-import webbrowser
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
-from typing import Protocol
 
 from agentic_av import __version__
 from agentic_av.catalog import (
@@ -46,275 +37,9 @@ from agentic_av.paint import Cell, _put, _single_column, _text_row, render_ansi
 from agentic_av.palette import Palette
 from agentic_av.tty import KeyDecoder, _on_sigterm, _PlayerTerminatedError, _size, _terminal_frame
 
-# Bump when the injected script's contract changes. The filename also hashes
-# the script bytes, so an edited script is not served from an older file if
-# this revision is forgotten. The directory is the generation a person can wipe.
-SCRIPT_REVISION = "1"
-TRACK_START_ID = "aav-track-start"
-_HAVE_METADATA = 1
-
-_TRACK_START_SCRIPT = f"""<script id="{TRACK_START_ID}">
-(function () {{
-  var raw = new URLSearchParams(location.search).get("start");
-  var start = Number(raw);
-  if (!Number.isFinite(start) || start < 0) return;
-  var audio = document.getElementById("audio");
-  if (!audio) return;
-  var arm = function () {{
-    audio.currentTime = start;
-    var seek = document.getElementById("seek");
-    if (seek) seek.value = String(start);
-  }};
-  if (audio.readyState >= {_HAVE_METADATA}) arm();
-  else audio.addEventListener("loadedmetadata", arm);
-}})();
-</script>
-"""
-
 
 class AlbumError(RuntimeError):
-    """A bundled album cannot be prepared or opened in the browser."""
-
-
-class TerminalGate(Protocol):
-    """A terminal that can leave raw mode before a child inherits it."""
-
-    def leave(self) -> None:
-        """Restore canonical mode, echo, the cursor, and the primary screen."""
-
-    def enter(self) -> None:
-        """Return to raw mode and the alternate screen after a browser launch."""
-
-
-def track_start_script() -> str:
-    """Return the script inserted before ``</body>``.
-
-    The script reads a numeric `start` query parameter, sets `#audio`
-    `currentTime` after metadata is available, and updates `#seek` when that
-    element exists. It does not call `play()` and does not set autoplay.
-    Setting `#seek` does not dispatch `input`: several bundled players treat
-    that event as a user gesture and would start playback.
-
-    Returns:
-        An HTML script element. ASCII only, so it cannot change the page encoding.
-    """
-    return _TRACK_START_SCRIPT
-
-
-def inject_track_start(html: str, script: str | None = None) -> str:
-    """Insert the track-start script immediately before the last ``</body>``.
-
-    Args:
-        html: Decoded album document. Not modified in place.
-        script: Override for tests. Defaults to `track_start_script`.
-
-    Returns:
-        A new document. A document that already contains the script id is
-        returned unchanged so a second inject cannot stack seekers.
-
-    Raises:
-        AlbumError: The document has no closing body tag. Refusing to append
-            keeps a truncated archive from gaining a script the browser will
-            ignore, and keeps the failure out of the cache.
-    """
-    payload = track_start_script() if script is None else script
-    if f'id="{TRACK_START_ID}"' in html:
-        return html
-    index = html.lower().rfind("</body>")
-    if index < 0:
-        raise AlbumError("album HTML has no </body>; the track-start script was not injected")
-    prefix = "" if index == 0 or html[index - 1] == "\n" else "\n"
-    return f"{html[:index]}{prefix}{payload}\n{html[index:]}"
-
-
-def album_cache_dir(
-    cache_home: Path | None = None, *, env: Mapping[str, str] | None = None
-) -> Path:
-    """Return the versioned directory for materialized album HTML.
-
-    Args:
-        cache_home: Override for the XDG cache home. Tests pass a temp
-            directory. When omitted, `$XDG_CACHE_HOME` is used, then
-            `~/.cache`.
-        env: Environment for the XDG lookup. Defaults to the process environment.
-
-    Returns:
-        `<cache home>/agentic-av/<package version>/track-start-<revision>`.
-        The directory is not created.
-    """
-    if cache_home is None:
-        variables = os.environ if env is None else env
-        configured = variables.get("XDG_CACHE_HOME", "").strip()
-        cache_home = Path(configured) if configured else Path.home() / ".cache"
-    return cache_home / "agentic-av" / __version__ / f"track-start-{SCRIPT_REVISION}"
-
-
-_STEM_CHARS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
-
-
-def _asset_stem(asset_name: str) -> str:
-    """Return a cache filename stem, rejecting paths that could escape the cache."""
-    if asset_name != Path(asset_name).name:
-        raise AlbumError(f"refusing unsafe album asset name {asset_name!r}")
-    suffix = ".html.gz"
-    stem = asset_name[: -len(suffix)] if asset_name.endswith(suffix) else asset_name
-    if not stem or stem in {".", ".."} or any(char not in _STEM_CHARS for char in stem):
-        raise AlbumError(f"refusing unsafe album asset name {asset_name!r}")
-    return stem
-
-
-def _published(path: Path) -> bool:
-    """Report whether a cache file looks like a finished injected document."""
-    try:
-        size = path.stat().st_size
-    except OSError:
-        return False
-    if size < 64:
-        return False
-    with path.open("rb") as handle:
-        handle.seek(max(0, size - 4096))
-        tail = handle.read().lower()
-    return b"aav-track-start" in tail and b"</body>" in tail
-
-
-def _atomic_write(path: Path, payload: bytes) -> None:
-    """Publish `payload` by renaming a complete temp file in the same directory.
-
-    A crash before the rename leaves a `.partial` file, never a short HTML
-    file at `path`. The rename is atomic on the same filesystem.
-
-    Raises:
-        OSError: The cache directory cannot be created or the file cannot be
-            published.
-    """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".partial", dir=path.parent)
-    tmp = Path(tmp_name)
-    try:
-        with os.fdopen(fd, "wb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-        dir_fd = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(dir_fd)
-        finally:
-            os.close(dir_fd)
-    finally:
-        if tmp.exists():
-            tmp.unlink()
-
-
-def materialize_html(gz_bytes: bytes, asset_name: str, cache_home: Path | None = None) -> Path:
-    """Decompress album HTML, inject the seek script, and publish it atomically.
-
-    The cache name includes the package version, the script revision, a hash
-    of the gzip bytes, and a hash of the script. A repeat call with the same
-    bytes reuses a complete file and does not decompress again. This function
-    does not open or write the packaged asset; the caller passes bytes.
-
-    Args:
-        gz_bytes: Compressed HTML. Not modified.
-        asset_name: Basename used only as the cache stem.
-        cache_home: XDG cache home override. None uses the process default.
-
-    Returns:
-        Path of the cached `.html` file.
-
-    Raises:
-        AlbumError: The bytes are not gzip UTF-8 HTML, the asset name is
-            unsafe, or the document has no ``</body>``.
-        OSError: The cache file cannot be published.
-    """
-    stem = _asset_stem(asset_name)
-    script = track_start_script()
-    source_digest = hashlib.sha256(gz_bytes).hexdigest()[:16]
-    script_digest = hashlib.sha256(script.encode("utf-8")).hexdigest()[:8]
-    dest = album_cache_dir(cache_home) / f"{stem}-{source_digest}-{script_digest}.html"
-    if _published(dest):
-        return dest
-    try:
-        text = gzip.decompress(gz_bytes).decode("utf-8")
-    except gzip.BadGzipFile as error:
-        raise AlbumError(f"{asset_name} is not a gzip HTML album") from error
-    except UnicodeDecodeError as error:
-        raise AlbumError(f"{asset_name} is not UTF-8 HTML") from error
-    html = inject_track_start(text, script)
-    _atomic_write(dest, html.encode("utf-8"))
-    return dest
-
-
-def format_start(start_s: float) -> str:
-    """Format a movement start for the `start` query parameter.
-
-    Catalog values are decimal seconds with at most six fractional digits.
-    Six digits round-trips those literals. A wider binary value is still
-    emitted in fixed point, never scientific notation, so `Number()` in the
-    page sees a finite decimal.
-
-    Args:
-        start_s: Start offset in seconds.
-
-    Returns:
-        A numeric token such as ``77.5715`` or ``0``.
-
-    Raises:
-        AlbumError: `start_s` is negative or not finite.
-    """
-    if not math.isfinite(start_s) or start_s < 0:
-        raise AlbumError(f"track start must be a non-negative number of seconds, not {start_s!r}")
-    text = f"{start_s:.6f}".rstrip("0").rstrip(".")
-    return text or "0"
-
-
-def track_url(path: Path, start_s: float) -> str:
-    """Build a file URL that opens `path` at `start_s` seconds.
-
-    Args:
-        path: Materialized HTML file, not the compressed asset.
-        start_s: Movement start in seconds.
-
-    Returns:
-        `path` as a file URI plus a `start` query.
-
-    Raises:
-        AlbumError: `start_s` cannot be formatted.
-    """
-    return f"{path.as_uri()}?start={format_start(start_s)}"
-
-
-def open_track(
-    path: Path,
-    start_s: float,
-    *,
-    opener: Callable[[str], object] | None = None,
-) -> str:
-    """Open a materialized album in the default browser.
-
-    Args:
-        path: Cached HTML file.
-        start_s: Movement start in seconds, passed as the `start` query.
-        opener: Launcher receiving the URL. Defaults to `webbrowser.open`,
-            which honors the default browser and `$BROWSER`. Tests inject this.
-            A return of False is failure; None is treated as success because
-            some launchers do not return a bool.
-
-    Returns:
-        The URL passed to the launcher.
-
-    Raises:
-        AlbumError: The start is invalid, or the browser did not open.
-    """
-    url = track_url(path, start_s)
-    launch = webbrowser.open if opener is None else opener
-    try:
-        opened = launch(url)
-    except (OSError, webbrowser.Error) as error:
-        raise AlbumError(f"could not open the default browser: {error}") from error
-    if opened is False:
-        raise AlbumError("the default browser did not open the album")
-    return url
+    """A bundled album or cache asset cannot be read or safely addressed."""
 
 
 def read_bundled_album(asset: str) -> bytes:
@@ -338,67 +63,69 @@ def read_bundled_album(asset: str) -> bytes:
         raise AlbumError(f"bundled album {asset} is unreadable: {error}") from error
 
 
-def prepare_track(
-    entry: CatalogEntry,
-    cache_home: Path | None = None,
-    source: bytes | None = None,
+_STEM_CHARS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-")
+_CACHE_GENERATION = "track-start-1"
+
+
+def _asset_stem(asset_name: str) -> str:
+    """Return a safe cache filename stem derived from a packaged archive name."""
+    if asset_name != Path(asset_name).name:
+        raise AlbumError(f"refusing unsafe album asset name {asset_name!r}")
+    suffix = ".html.gz"
+    stem = asset_name[: -len(suffix)] if asset_name.endswith(suffix) else asset_name
+    if not stem or stem in {".", ".."} or any(char not in _STEM_CHARS for char in stem):
+        raise AlbumError(f"refusing unsafe album asset name {asset_name!r}")
+    return stem
+
+
+def album_cache_dir(
+    cache_home: Path | None = None, *, env: Mapping[str, str] | None = None
 ) -> Path:
-    """Materialize the album that owns `entry`.
+    """Return the stable root for extracted album media and score caches.
+
+    The historical directory name is retained so native-only playback can reuse
+    warm caches created before the browser shortcut was removed.
 
     Args:
-        entry: Movement being opened. The album asset name selects the file.
-        cache_home: XDG cache home override.
-        source: Compressed bytes. When omitted, the packaged asset is read.
-            Tests pass a tiny gzip so they do not rewrite or expand the
-            bundled archives.
+        cache_home: Override for the XDG cache home. When omitted, `$XDG_CACHE_HOME`
+            is used, then `~/.cache`.
+        env: Environment for the XDG lookup. Defaults to the process environment.
 
     Returns:
-        Cached HTML path.
+        `<cache home>/agentic-av/<package version>/track-start-1`. The directory
+        is not created.
+    """
+    if cache_home is None:
+        variables = os.environ if env is None else env
+        configured = variables.get("XDG_CACHE_HOME", "").strip()
+        cache_home = Path(configured) if configured else Path.home() / ".cache"
+    return cache_home / "agentic-av" / __version__ / _CACHE_GENERATION
+
+
+def _atomic_write(path: Path, payload: bytes) -> None:
+    """Publish cache bytes atomically, syncing the file and its parent directory.
 
     Raises:
-        AlbumError: The asset is unknown, unreadable, or not injectable HTML.
+        OSError: The cache directory cannot be created or the file cannot be
+            published.
     """
-    data = read_bundled_album(entry.album.asset) if source is None else source
-    return materialize_html(data, entry.album.asset, cache_home)
-
-
-def open_selected_and_resume(
-    terminal: TerminalGate,
-    entry: CatalogEntry,
-    *,
-    cache_home: Path | None = None,
-    opener: Callable[[str], object] | None = None,
-    source: bytes | None = None,
-) -> str:
-    """Leave raw mode, open the movement, then return the terminal to raw mode.
-
-    `leave` runs before decompression and before the browser. xdg-open and a
-    terminal browser inherit the TTY; launching them from raw mode eats input
-    and prints off-column. `enter` runs even when materialize or the browser
-    fails, so the library can show the error. If `leave` itself fails, raw
-    mode is not re-entered.
-
-    Args:
-        terminal: Raw-mode owner. Must implement `leave` and `enter`.
-        entry: Movement to open.
-        cache_home: XDG cache home override.
-        opener: Browser launcher. Defaults to the system default browser.
-        source: Optional compressed HTML override for tests.
-
-    Returns:
-        The URL opened in the browser.
-
-    Raises:
-        AlbumError: The album could not be prepared or opened. The terminal
-            has been returned to raw mode unless `leave` failed.
-        OSError: Publishing the cache file failed, after the same restore.
-    """
-    terminal.leave()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".partial", dir=path.parent)
+    tmp = Path(tmp_name)
     try:
-        path = prepare_track(entry, cache_home, source)
-        return open_track(path, entry.track.start_s, opener=opener)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp, path)
+        dir_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
     finally:
-        terminal.enter()
+        if tmp.exists():
+            tmp.unlink()
 
 
 @dataclass
@@ -430,7 +157,6 @@ _KEY_ACTIONS = {
     "end": "last",
     "G": "last",
     "enter": "open",
-    "o": "open_browser",
     "s": "sort",
     "S": "sort",
     "?": "help",
@@ -444,19 +170,18 @@ _KEY_ACTIONS = {
 def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
     """Apply one library key.
 
-    j/k and the arrow keys move the selection and wrap. Enter asks the
-    caller to play the selected movement natively; `o` asks for the browser
-    page. `s` toggles band/album order. Neither sorting nor navigation fires
-    while help is open. q and Ctrl-C quit even from help. Escape closes help
-    and does not quit the list.
+    j/k and the arrow keys move and wrap. Enter plays the selected movement
+    natively; `s` toggles band/album order. Neither sorting nor navigation
+    fires while help is open. q and Ctrl-C quit even from help. Escape closes
+    help and does not quit the list.
 
     Args:
         state: Selection and overlay, mutated in place.
         key: Action name from the key decoder.
-        count: Number of movements. Zero disables open and movement.
+        count: Number of movements. Zero disables opening and movement.
 
     Returns:
-        ``quit``, ``open``, ``open_browser``, ``sort``, or ``stay``.
+        ``quit``, ``open``, ``sort``, or ``stay``.
     """
     action = _KEY_ACTIONS.get(key)
     if action is None:
@@ -478,7 +203,7 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
     if count <= 0:
         state.selected = 0
         return "stay"
-    if action in {"open", "open_browser"}:
+    if action == "open":
         state.selected %= count
         return action
     if action == "next":
@@ -579,23 +304,16 @@ def _window_start(focus: int, size: int, total: int) -> int:
 
 
 def _help_lines() -> tuple[str, ...]:
-    """Return help text, with the playback summary before the key list.
-
-    Short terminals top-align this list, so what Enter and `o` do stays on
-    screen when the key column does not fit.
-    """
+    """Return the native playback and library controls for the help plate."""
     return (
         "LIBRARY",
         "",
-        "Enter plays the album's code-only visuals and audio here.",
-        "o opens the synchronized web page instead; click Play there.",
+        "Enter plays the selected movement in the terminal.",
         "",
         "j / down      next track",
         "k / up        previous track",
         "home / end    first or last track",
         "s             toggle band / album order",
-        "enter         play the selected movement in the terminal",
-        "o             open the album page in the browser",
         "?             this guide",
         "esc           close this guide",
         "q             leave the library",
@@ -702,9 +420,9 @@ def _track_row(
 
 def _hint_text(width: int) -> str:
     """Choose a key legend that fits without clipping the quit key."""
-    wide = "j/k select    s sort band/album    enter play    o browser    ? help    q quit"
-    mid = "j/k select  s sort  enter play  o web  ? help  q quit"
-    short = "j/k s enter o ? q"
+    wide = "j/k select    s sort band/album    enter play    ? help    q quit"
+    mid = "j/k select  s sort  enter play  ? help  q quit"
+    short = "j/k s enter ? q"
     if width >= len(wide):
         return wide
     if width >= len(mid):
@@ -885,10 +603,9 @@ def _library_panel_bytes(
 
 
 class _TTY:
-    """Raw-mode alternate screen that can be left before a browser launch.
+    """Raw-mode alternate screen for the interactive album library.
 
-    `leave` is idempotent. Launching a browser from raw mode is unsafe: the
-    child inherits that state.
+    `leave` is idempotent and restores the terminal when the library exits.
     """
 
     def __init__(self, source: object, target: object) -> None:
@@ -939,7 +656,6 @@ def run_library(
     glyphs: str = "auto",
     input_stream: object | None = None,
     output_stream: object | None = None,
-    opener: Callable[[str], object] | None = None,
     cache_home: Path | None = None,
     entries: Sequence[CatalogEntry] | None = None,
 ) -> int:
@@ -948,10 +664,10 @@ def run_library(
     The `s` key switches band/album ordering while keeping the same movement
     selected. At 72 columns by 16 rows, the highlighted album's art and
     description occupy a panel beside the track list. Enter plays natively;
-    `o` opens the web page.
+    q and Ctrl-C exit; Escape closes help and does not quit the library.
 
     Side effects: Enters raw terminal mode, writes frames, and may launch
-        native audio or a browser in response to the selected keys.
+        native audio when Enter selects a movement.
 
     Args:
         palette: Active palette. Roles color the frame; `color_mode` decides
@@ -962,7 +678,6 @@ def run_library(
         glyphs: Native mosaic tier; ``auto`` honors AAV_GLYPHS and terminal hints.
         input_stream: Optional TTY for tests.
         output_stream: Optional TTY for tests.
-        opener: Browser launcher override.
         cache_home: XDG cache home override.
         entries: Catalog override. Defaults to the bundled public catalog.
 
@@ -1069,30 +784,21 @@ def run_library(
                 if action == "quit":
                     active = False
                     break
-                if action in {"open", "open_browser"}:
+                if action == "open":
                     entry = catalog[state.selected]
                     try:
-                        if action == "open_browser":
-                            open_selected_and_resume(
-                                term,
-                                entry,
-                                cache_home=cache_home,
-                                opener=opener,
-                            )
-                            state.note = f"Opened {entry.track.title} - click Play in the browser"
-                        else:
-                            play_native(
-                                entry,
-                                catalog,
-                                palette,
-                                color_mode,
-                                motion=motion,
-                                glyphs=glyphs,
-                                input_stream=source,
-                                output_stream=target,
-                                cache_home=cache_home,
-                            )
-                            state.note = ""
+                        play_native(
+                            entry,
+                            catalog,
+                            palette,
+                            color_mode,
+                            motion=motion,
+                            glyphs=glyphs,
+                            input_stream=source,
+                            output_stream=target,
+                            cache_home=cache_home,
+                        )
+                        state.note = ""
                     except (AlbumError, NativeError, OSError) as error:
                         state.note = str(error)
                     last_size = (-1, -1)

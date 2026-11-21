@@ -15,7 +15,7 @@ uv run aav play
 uv run aav demo
 ```
 
-`play` with no `--show` or `--scene` needs an interactive TTY. Enter plays a movement with a new numpy-painted, audio-reactive mosaic scene. Playback needs `mpv` (preferred; its media position is the clock) or `ffplay`. `ffmpeg` enables cached audio analysis; without it, audio still plays and the transport explicitly reports quiet visuals. `o` opens the synchronized web page instead; click Play there, since browser autoplay is blocked.
+`play` with no `--show` or `--scene` needs an interactive TTY. Enter plays a movement with a new numpy-painted, audio-reactive mosaic scene. Playback needs `mpv` (preferred; its media position is the clock) or `ffplay`. `ffmpeg` enables cached audio analysis; without it, audio still plays and the transport explicitly reports quiet visuals.
 
 `aav demo` is the abstract visual player. `aav play --show /path/to/show.toml` and `aav play --scene garden` stay on that visual player too.
 
@@ -35,13 +35,12 @@ uv run aav demo
 - `s`: toggle sorting by band or album; the highlighted movement stays selected.
 - At 72 columns by 16 rows or larger, the highlighted song's album cover and description appear beside the list.
 - `Enter`: play that movement in the terminal.
-- `o`: open the album's web page in the default browser at that movement. Click Play on the page.
 - `?`: help. `Esc`: close help. `q`: leave the library.
 
 ### Album playback controls
 
-- `Space`: pause or resume. `←` / `→`: seek 10 seconds.
-- `n` / `p` (or `j` / `k`): next or previous movement. Playback continues into the next movement on its own.
+- `Space` or `k`: pause or resume. `j` / `l`: seek backward or forward by 10 seconds.
+- `←` / `→`: previous or next movement. `n` / `p` and `↑` / `↓` remain alternatives.
 - `m`: hold the picture (still) or let it move again. `aav play --motion reduced` slows the picture to 0.22×, and `--motion still` starts held. Audio is unaffected.
 - `f`: toggle full-screen visuals; the stage fills the terminal and hides the transport.
 - `q` / `Esc`: back to the library.
