@@ -33,7 +33,7 @@ uv sync --group dev
 
 ## Conventions
 
-- Public scope is eight albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02, Coupon Seance A-02, and Quiet Machinery A-02 under her 2026-11-18 make/bundle/PR run instruction (ADR 0002). Merge is her publication approval. Nurse Log's cover is creator-selected; the Drowning Collective, Coupon Seance, and Quiet Machinery covers are agent-proposed and approved at merge. All are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
+- Public scope is eight albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02, Coupon Seance A-02, and Quiet Machinery A-02 under her 2026-11-18 make/bundle/PR run instruction (ADR 0002). Merge is her publication approval. The four A-01 covers and Nurse Log A-02's cover are creator-selected; the Drowning Collective, Coupon Seance, and Quiet Machinery A-02 covers are agent-proposed and approved at merge. All are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
 - Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
 - Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.
@@ -54,7 +54,7 @@ Do not add private band content or choose a code/media license on Aven's behalf.
 
 - `src/agentic_av/` — CLI, album catalog, palettes, field programs, TTY runtime, and renderer.
 - `src/agentic_av/albums/` — authorized public album HTML archives. Do not overwrite them.
-- `src/agentic_av/artwork/` — the bundled A-02 cover JPEGs, hash-checked on load. Do not overwrite them.
+- `src/agentic_av/artwork/` — the bundled album cover JPEGs (A-01 and A-02), hash-checked on load. Do not overwrite them.
 - `src/agentic_av/viz/albums/undertow.py` — six Drowning Collective A-02 scenes; object score rows preserve Iris's separate `right`/`left` voices.
 - `tests/` — isolated palette, layout, CLI, transport, library, and input tests.
 - `docs/` — architecture and decision records.

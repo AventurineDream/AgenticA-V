@@ -1,4 +1,4 @@
-"""Verify the bundled A-02 covers: receipt bytes, refusal paths, and bounded rendering.
+"""Verify the bundled album covers: receipt bytes, refusal paths, and bounded rendering.
 
 The receipt hashes and sizes come from the records in docs/decisions/0002. Rendering
 tests replay the emitted bytes through pyte, so they check what a terminal would show:
@@ -34,6 +34,30 @@ _HAUNT_SHA256 = "4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047
 _DUSK_ALBUM = "quiet-machinery-instruments-for-measuring-dusk.html.gz"
 _DUSK_ASSET = "quiet-machinery-instruments-for-measuring-dusk.jpg"
 _DUSK_SHA256 = "cd29193cde9fc0a53e40fd8b37fda8fa845ffc397dd0c39451fb19bf1db4c81a"
+# The four A-01 covers Aven selected on 2026-11-18 (ADR 0002 amendment):
+# album asset -> (cover asset, receipt SHA-256, receipt bytes).
+_A01_RECEIPTS = {
+    "coupon-seance-saturn.html.gz": (
+        "coupon-seance-saturn.jpg",
+        "b44173b91ff51c4bada8fb601180858a414c931d049e429f4205049d608d1dbe",
+        402_633,
+    ),
+    "drowning-collective-are-we-fish.html.gz": (
+        "drowning-collective-are-we-fish.jpg",
+        "07eb2ef0caa9977f9f4f905dce13bb92fece2e6f0a049468c609dcff72c38385",
+        416_511,
+    ),
+    "nurse-log-ground-moves-anyway.html.gz": (
+        "nurse-log-ground-moves-anyway.jpg",
+        "76762a94a87b14db5f5b8a1cb2576fe3784cb9012eba710a33cad57c2ed8cbbd",
+        779_334,
+    ),
+    "quiet-machinery-atlas-unlit-rooms.html.gz": (
+        "quiet-machinery-atlas-unlit-rooms.jpg",
+        "d479b0d15146192fa17fe76f4929c3e520b4bc1c56861a4ed9bc06294901244f",
+        315_007,
+    ),
+}
 _SGR = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -68,7 +92,7 @@ def test_packaged_cover_is_the_approved_receipt_file() -> None:
     assert pixels.dtype == np.uint8
 
 
-def test_only_approved_a02_covers_are_recorded_and_the_artwork_folder_holds_only_them() -> None:
+def test_only_approved_covers_are_recorded_and_the_artwork_folder_holds_only_them() -> None:
     """Bundled cover scope is exact, with each file matching its recorded bytes."""
     validate_catalog()
     covered = {
@@ -81,13 +105,17 @@ def test_only_approved_a02_covers_are_recorded_and_the_artwork_folder_holds_only
         _DC2_ALBUM: (_DC2_ASSET, _DC2_SHA256),
         _HAUNT_ALBUM: (_HAUNT_ASSET, _HAUNT_SHA256),
         _DUSK_ALBUM: (_DUSK_ASSET, _DUSK_SHA256),
+        **{album: (asset, sha256) for album, (asset, sha256, _) in _A01_RECEIPTS.items()},
     }
     names = sorted(
         path.name
         for path in files("agentic_av").joinpath("artwork").iterdir()
         if not path.name.startswith(".") and path.name != "__pycache__"
     )
-    assert names == sorted([_ASSET, _DC2_ASSET, _HAUNT_ASSET, _DUSK_ASSET])
+    assert names == sorted(
+        [_ASSET, _DC2_ASSET, _HAUNT_ASSET, _DUSK_ASSET]
+        + [asset for asset, _, _ in _A01_RECEIPTS.values()]
+    )
     dc2 = files("agentic_av").joinpath("artwork", _DC2_ASSET).read_bytes()
     assert len(dc2) == 404_381
     assert hashlib.sha256(dc2).hexdigest() == _DC2_SHA256
@@ -98,6 +126,14 @@ def test_only_approved_a02_covers_are_recorded_and_the_artwork_folder_holds_only
     dusk = files("agentic_av").joinpath("artwork", _DUSK_ASSET).read_bytes()
     assert hashlib.sha256(dusk).hexdigest() == _DUSK_SHA256
     assert load_cover(_DUSK_ASSET, _DUSK_SHA256).shape == (1024, 1024, 3)
+
+
+@pytest.mark.parametrize(("asset", "sha256", "size"), list(_A01_RECEIPTS.values()))
+def test_a01_cover_is_the_selected_receipt_file(asset: str, sha256: str, size: int) -> None:
+    data = files("agentic_av").joinpath("artwork", asset).read_bytes()
+    assert len(data) == size
+    assert hashlib.sha256(data).hexdigest() == sha256
+    assert load_cover(asset, sha256).shape == (1024, 1024, 3)
 
 
 def test_altered_bytes_are_refused_before_decoding() -> None:

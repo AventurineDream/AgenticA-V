@@ -20,7 +20,7 @@ Aven approved public bundling of Nurse Log, *The Forest Has a Pocket* (A-02). Th
 
 ## Amendment: selected cover for A-02
 
-Aven directly approved public bundling of the selected cover for A-02 with the album, on 2026-11-18. The package adds `artwork/nurse-log-the-forest-has-a-pocket.jpg`: the selected JPEG `05_Selected-Artwork_Photo-3.jpg` from the A-02 album folder, 1024×1024 pixels, 370,848 bytes, SHA-256 `e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6`, verified against the selection receipt. Its bytes stay identical to the receipt. EXIF metadata contains orientation, resolution, sRGB color space, and pixel dimensions; there is no GPS, XMP, or ICC data. The catalog records this cover on A-02 alone. This amendment grants no approval for candidate artwork, the source archive, stems, or other images. The four A-01 selected cover images were not available to this build, so their artwork remains unbundled.
+Aven directly approved public bundling of the selected cover for A-02 with the album, on 2026-11-18. The package adds `artwork/nurse-log-the-forest-has-a-pocket.jpg`: the selected JPEG `05_Selected-Artwork_Photo-3.jpg` from the A-02 album folder, 1024×1024 pixels, 370,848 bytes, SHA-256 `e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6`, verified against the selection receipt. Its bytes stay identical to the receipt. EXIF metadata contains orientation, resolution, sRGB color space, and pixel dimensions; there is no GPS, XMP, or ICC data. The catalog records this cover on A-02 alone. This amendment grants no approval for candidate artwork, the source archive, stems, or other images. The four A-01 covers did not exist yet; they are recorded in the A-01 cover amendment below.
 
 ## Amendment 2026-11-18: CC0 for bundled albums, MIT for code
 
@@ -62,3 +62,16 @@ Aven's 2026-11-18 run instruction directed the remaining round-two A-02 albums t
 The package adds two assets. `albums/quiet-machinery-instruments-for-measuring-dusk.html.gz` is the `gzip -9 -n` of the built 52,814,897-byte player page (SHA-256 `9312ea491df87d3c75b0d9fe8d6011d084111682ab843120c2b7b7c37240a177`): 38,256,695 bytes, SHA-256 `881b22458e6d8bd1a04b5c330e5b276bd11a60036e559edb5841a2aff71c164b`. `artwork/quiet-machinery-instruments-for-measuring-dusk.jpg` is the album's selected cover, 1024×1024 pixels, 134,913 bytes, SHA-256 `cd29193cde9fc0a53e40fd8b37fda8fa845ffc397dd0c39451fb19bf1db4c81a`; it is a baseline JPEG with JFIF headers only (no EXIF, GPS, XMP, or ICC data). The cover is agent-proposed candidate A ("measuring instrument") of three candidates generated for this album; Aven's merge approves it together with the album. If she chooses a different cover, the replacement needs a new hash here and in the catalog.
 
 This amendment does not cover the source package, stems, masters, the other cover candidates, or any listening-review approval; the album's listening review is pending. Both assets are covered by the CC0 amendment above.
+
+## Amendment 2026-11-18: selected covers for the four A-01 albums
+
+No selected A-01 cover existed, so Malachite generated four candidates per A-01 album with `openai-codex/gpt-image-2` (`gpt-image-2-codex` through omp's image tool): 1024×1024, no typography, saved as JPEG quality 95 (4:4:4). On 2026-11-18 Aven chose one per album, in her own words: "Saturn 4, Fish 1, Ground 3, Atlas 4". These covers are **creator-selected**, not agent-proposed. Each album's Drive folder `03_Files/Artwork/` holds the selected file `05_Selected-Artwork_Candidate-N.jpg`, its receipt `06_Selection-Receipt.json` (same shape as A-02's: exact prompt, generator PNG hash, SHA-256, bytes, dimensions, format, and the remotely verified Drive copy), and every candidate under `Candidate-Archive/` with its manifest. The package adds four JPEGs, byte-identical to those receipts, each 1024×1024 RGB with JFIF headers only (no EXIF, GPS, XMP, or ICC data):
+
+| Album | Asset | Candidate | Bytes | SHA-256 |
+| --- | --- | ---: | ---: | --- |
+| Coupon Seance, *Saturn Has a Dollar Store* | `artwork/coupon-seance-saturn.jpg` | 4 | 402,633 | `b44173b91ff51c4bada8fb601180858a414c931d049e429f4205049d608d1dbe` |
+| Drowning Collective, *Are We Fish?* | `artwork/drowning-collective-are-we-fish.jpg` | 1 | 416,511 | `07eb2ef0caa9977f9f4f905dce13bb92fece2e6f0a049468c609dcff72c38385` |
+| Nurse Log, *The Ground Moves Anyway* | `artwork/nurse-log-ground-moves-anyway.jpg` | 3 | 779,334 | `76762a94a87b14db5f5b8a1cb2576fe3784cb9012eba710a33cad57c2ed8cbbd` |
+| Quiet Machinery, *The Atlas of Unlit Rooms* | `artwork/quiet-machinery-atlas-unlit-rooms.jpg` | 4 | 315,007 | `d479b0d15146192fa17fe76f4929c3e520b4bc1c56861a4ed9bc06294901244f` |
+
+Each A-01 catalog record names its own hash-pinned `CoverArt`. Unselected candidates, the generator's PNG output, contact sheets, and receipts stay out of the package. The four covers are covered by the CC0 amendment above; player code remains MIT.
