@@ -35,13 +35,13 @@ uv sync --group dev
 
 - Public scope is eight albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02, Coupon Seance A-02, and Quiet Machinery A-02 under her 2026-11-18 make/bundle/PR run instruction (ADR 0002). Merge is her publication approval. The four A-01 covers and Nurse Log A-02's cover are creator-selected; the Drowning Collective, Coupon Seance, and Quiet Machinery A-02 covers are agent-proposed and approved at merge. All are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
 - Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
-- Bundled `.html.gz` archives are read-only. The player materializes a cache copy and never rewrites the package asset.
+- Bundled `.html.gz` archives are read-only.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.
 - `colors.toml` is read-only. Omarchy theme changes are discovered from its applied state; the player never edits desktop configuration.
 - Time values are seconds, terminal dimensions are character cells, and palettes are immutable role sets.
 - Motion modes are `full`, `reduced`, and `still`; always preserve the no-color renderer.
 - Enter in the library plays natively: `native.py` extracts cached audio and normalized scores, loads audio features, and drives `viz/stage.py`. New numpy scenes in `viz/albums/` replace the legacy faithful glyph port (ADR 0004). mpv's `time-pos` is the clock; ffplay is the fallback. Preserve input, seek, exact held pictures, cleanup, no-color output, and quiet-analysis failure notes.
-- `o` opens the browser page, the full synchronized web album. Autoplay is blocked there, so the listener clicks Play.
+- Native album playback keys: `j` / `l` seek 10 seconds, `k` or `Space` pauses/resumes, `←` / `→` change movement, and `f` toggles full screen. In the library, `s` sorts by band or album.
 - Native images are linear RGB numpy surfaces, fitted to width-one mosaic cells and encoded as bytes. Keep one synchronized output write per frame; never clear the canvas per frame. Tier detection and sub-pixel budgeting belong in `viz/caps.py`.
 - Audio moves geometry, not beat-synchronized light. `FlashMeter` is a conservative regional regression heuristic with viewing assumptions, not WCAG certification. Preserve reduced/still controls and test visible behavior rather than pinning art glyphs.
 - For parallel work, format/lint/test only owned files; the integration owner runs the full gate after all slices land. Scene changes require deterministic, silent, motion, timing, and rendered-image review.

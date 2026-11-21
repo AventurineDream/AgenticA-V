@@ -37,6 +37,7 @@ _CHANNELS = 4
 # never steps a mark from dark to full light within one frame.
 _ATTACK_S = 0.12
 _S9 = np.linspace(0, 1, 9, dtype=np.float32)
+_ELLIPSE_T = np.linspace(0, 1, 129, dtype=np.float32)
 _GRID_ROWS = ((np.arange(8, dtype=np.float32) + 1) / 8) ** 1.6
 _GRID_SLANT = (np.arange(8, dtype=np.float32) - 3.5) * 0.012
 _GRID_WOBBLE = 0.01 * np.sin(np.arange(8, dtype=np.float32))
@@ -96,7 +97,7 @@ def _ellipse(cx: float, cy: float, rx: float, ry: float, angle: float, start=0.0
     Returns:
         Two float32 arrays of 129 vertices each.
     """
-    theta = np.linspace(start, stop, 129, dtype=np.float32)
+    theta = start + (stop - start) * _ELLIPSE_T
     px, py = rx * np.cos(theta), ry * np.sin(theta)
     c, s = math.cos(angle), math.sin(angle)
     return (cx + px * c - py * s).astype(np.float32), (cy + px * s + py * c).astype(np.float32)
@@ -186,6 +187,7 @@ class _Haunt(Scene):
         self._shape = None
         self._held = None
         self._mod = np.zeros(_CHANNELS, dtype=np.float32)
+        self._target = np.zeros_like(self._mod)
 
     def resize(self, surface: Surface) -> None:
         """Rebuild the background, vignette and scratch layers for a canvas.
@@ -198,8 +200,14 @@ class _Haunt(Scene):
         self._layer = surface.layer()
         self._detail = surface.layer()
         self._held = None
-        self._background = np.empty_like(surface.rgb)
-        self._background[:] = self.bg
+        u = surface.u / surface.half_w
+        v = surface.v
+        texture = (
+            1
+            + 0.06 * np.sin(u * 41 + v * 23 + self.coins[0, 0] * _TAU)
+            + 0.04 * np.sin(v * 57 - u * 19 + self.coins[1, 1] * _TAU)
+        )
+        self._background = (self.bg * texture[..., None]).astype(np.float32)
         self._vignette = np.clip(
             1.06 - 0.3 * (surface.v**2 + (surface.u / surface.half_w) ** 2), 0.2, 1
         ).astype(np.float32)
@@ -229,7 +237,8 @@ class _Haunt(Scene):
         Args:
             frame: Frame with calmed levels, optional score and section, and dt.
         """
-        target = np.zeros(_CHANNELS, dtype=np.float32)
+        target = self._target
+        target.fill(0)
         if frame.energy:
             level, score, t = frame.levels, frame.score, frame.t
             target[_BASS] = level.slow_bass
@@ -276,12 +285,12 @@ class _Haunt(Scene):
     def _grid(self, surface, frame):
         """Draw the crooked, perspective grid that follows the bar's meter groupings.
 
-        Column leans alternate with bar parity and the bass envelope pushes the lean;
-        strength is the scene's GRID constant, so zero draws nothing.
+        Column lean follows a continuous, alternating bar phase and the bass envelope
+        pushes its amplitude; strength is the scene's GRID constant, so zero draws nothing.
 
         Args:
             surface: Canvas to accumulate into.
-            frame: Frame whose picture clock sets bar parity and sway.
+            frame: Frame whose picture clock sets the smooth bar phase and sway.
         """
         if self.GRID <= 0:
             return
@@ -289,8 +298,8 @@ class _Haunt(Scene):
         push = float(self._mod[_BASS])
         # Tempo counts quarter notes, so a 7/8 bar lasts 3.5 beats, not its 7 columns.
         meter = self.movement.meter or (4, 4)
-        bar = math.floor(frame.tau * self.bpm / 60 / (meter[0] * 4 / meter[1]))
-        lean = (1 if bar % 2 else -1) * 0.07 * (1 + push)
+        bar_phase = frame.tau * self.bpm / 60 / (meter[0] * 4 / meter[1])
+        lean = 0.07 * (1 + push) * math.cos(math.pi * bar_phase)
         k = np.arange(-6, 7, dtype=np.float32)[:, None]
         g = np.asarray(bounds, dtype=np.float32)[None, :]
         xb = ((k * total + g) / total * 0.42 + lean).reshape(-1)
@@ -689,7 +698,10 @@ class _CoinReturn(_Haunt):
             fall = (self.coins[i, 1] + frame.tau * 0.06 * (0.6 + self.coins[i, 0])) % 1.5
             cy = -0.95 + fall / 1.5 * 1.8
             cx = 0.45 * (2 * self.coins[i, 0] - 1)
-            fade = np.clip((0.84 - cy) / 0.2, 0, 1)
+            phase = fall / 1.5
+            edge = min(phase, 1 - phase) / 0.12
+            edge = min(1.0, max(0.0, edge))
+            fade = edge * edge * (3 - 2 * edge)
             x, y = _ellipse(cx, cy, 0.07, 0.07 * self.TILT, tilt)
             self._stroke(surface, x, y, self.warm, float(0.5 * fade))
 

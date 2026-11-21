@@ -87,13 +87,13 @@ def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="aav",
         description=(
-            "Terminally Agentic A/V. Play a bundled album in the terminal, "
-            "open it in the browser, or play abstract visual programs."
+            "Terminally Agentic A/V. Play a bundled album in the terminal "
+            "or play abstract visual programs."
         ),
         epilog=(
-            "Library: j/k select, enter plays in the terminal, o opens the browser "
-            "(click Play there), ? help, q quit. Album: space pause, arrows seek, "
-            "n/p movement, m motion, g glyphs, q back. Visual: space play/pause, arrows seek, "
+            "Library: j/k select, s sort, enter plays in the terminal, ? help, "
+            "q quit. Album: j/l seek, k/space pause, arrows movement, f full, "
+            "m motion, g glyphs, q back. Visual: space play/pause, arrows seek, "
             "t themes, m motion, ? help, q quit. Icons: `aav icons` lists the piano-camera "
             "variants; `pick` saves and installs one, `install` applies the saved choice, "
             "`follow` follows the live Omarchy theme, `show` reports it."

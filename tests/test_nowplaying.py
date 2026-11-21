@@ -111,6 +111,23 @@ def test_without_a_cover_the_accent_follows_the_movement_palette() -> None:
     assert album_accent(None, (), palette) == album_accent(None, ("nonsense",), palette)
 
 
+def test_native_transport_hints_show_jkl_and_track_arrows() -> None:
+    parts = status_parts(
+        120,
+        playing=True,
+        clock="0:00",
+        position="",
+        title="",
+        scene="",
+        motion="full",
+        note="",
+    )
+    text = "".join(value for value, _ in parts)
+    assert "←/→ track" in text
+    assert "j/l seek" in text
+    assert "k/space pause" in text
+
+
 def _rail(progress: float, width: int = 20) -> str:
     parts = status_parts(
         width, playing=True, clock="0:00", position="", title="", scene="", motion="full", note=""

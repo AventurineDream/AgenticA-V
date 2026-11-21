@@ -606,10 +606,16 @@ def test_playback_starts_the_selected_movement_and_q_stops_it(tmp_path: Path) ->
     assert players[0].closed
 
 
-def test_seeks_are_relative_to_the_movement_in_a_shared_mix(tmp_path: Path) -> None:
-    """Two arrows in one read both count, from movement 2's start at 77.5 s."""
+def test_j_and_l_seek_relative_to_the_movement_in_a_shared_mix(tmp_path: Path) -> None:
+    """J and L each move the media position by ten seconds from movement 2."""
     players, _ = _play(
-        tmp_path, _coupon_html(), 2, COUPON_ALBUM, b"\x1b[C\x1b[C", quit_after_frames=2
+        tmp_path,
+        _coupon_html(),
+        2,
+        COUPON_ALBUM,
+        b"",
+        keys_after_frames={1: b"jl", 3: b"q"},
+        late_s=20,
     )
     assert players[0].seeks[:2] == [87.5, 97.5]
 
@@ -620,6 +626,13 @@ def test_n_and_p_step_through_per_movement_files(tmp_path: Path) -> None:
     assert [p.media.read_bytes() for p in forward] == [b"TWO", b"THREE"]
     assert [p.media.read_bytes() for p in back] == [b"TWO", b"ONE"]
     assert all(p.closed for p in forward + back)
+
+
+def test_arrow_keys_step_through_per_movement_files(tmp_path: Path) -> None:
+    forward, _ = _play(tmp_path, _forest_html(3), 2, FOREST_ALBUM, b"\x1b[C", after_switch=b"q")
+    back, _ = _play(tmp_path, _forest_html(3), 2, FOREST_ALBUM, b"\x1b[D", after_switch=b"q")
+    assert [p.media.read_bytes() for p in forward] == [b"TWO", b"THREE"]
+    assert [p.media.read_bytes() for p in back] == [b"TWO", b"ONE"]
 
 
 def test_p_at_a_movement_end_goes_back_not_forward(tmp_path: Path) -> None:
@@ -921,15 +934,18 @@ def test_frames_are_single_sync_wrapped_writes_without_canvas_clear(tmp_path: Pa
         assert not re.search(r"\x1b\[[0-9;]*m", frame)
 
 
-def test_pause_holds_display_even_if_player_clock_advances(tmp_path: Path) -> None:
-    """Hold the last pixels, rather than merely freezing geometric tau."""
+@pytest.mark.parametrize("pause_key", [b" ", b"k"])
+def test_pause_key_holds_display_even_if_player_clock_advances(
+    tmp_path: Path, pause_key: bytes
+) -> None:
+    """Space and k hold the last pixels, rather than merely freezing geometric tau."""
     _, frames = _play(
         tmp_path,
         _forest_html(),
         1,
         FOREST_ALBUM,
-        b" ",
-        quit_after_frames=3,
+        b"",
+        keys_after_frames={1: pause_key, 3: b"q"},
         tick_s=7,
     )
     pictures = _pictures(frames)
@@ -1077,7 +1093,7 @@ def test_seeking_updates_a_held_picture(tmp_path: Path) -> None:
         1,
         FOREST_ALBUM,
         b"",
-        keys_after_frames={1: b"\x1b[C", 3: b"q"},
+        keys_after_frames={1: b"l", 3: b"q"},
         motion="still",
     )
     pictures = _pictures(frames)

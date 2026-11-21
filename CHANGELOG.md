@@ -11,8 +11,8 @@ All notable changes to this project are documented here.
 - Bundle *The Shape That Stays* (Drowning Collective A-02): six original instrumentals, 27:12, made by `openai-codex/gpt-6.1-sol`. Add the `undertow` native scene family, independent piano-hand score queries, six inline MP3s and an agent-proposed baseline JPEG cover. Aven's 2026-11-18 instruction authorizes making, bundling and PR; merge is publication approval and cover confirmation/swap, not listening-review approval.
 - Add `aav icons`: list the nine piano-camera icon variants, pick one to save and install, install the saved choice, and show the install state. On Linux, install writes `agentic-av.desktop` and the chosen variant's iconset PNGs into the hicolor theme under `~/.local/share`; the choice is saved in `~/.config/agentic-av/icons.toml`. The default variant installs when no choice is saved. The menu-bar template is installed alongside as `agentic-av-menubar` at 18/36/54. macOS reports the chosen variant's .icns path instead of installing, since this repository has no app bundle.
 - Add the final piano-camera app icon set (v2.2) under `assets/icons/piano-camera-icons-final/`: default orange-on-teal plus eight color variants, full AppIcon.iconsets, .icns files, and a macOS menu bar template icon.
-- Add an album library. Bare `aav play` selects from six public albums, with native audio through mpv (or ffplay), movement navigation, seeking, and browser opening. Warm plays reuse cached extraction and scores.
-- `o` in the library opens the movement on the album's synchronized web page in the default browser. Click Play there; autoplay is blocked.
+- Add a CLI album library with native audio through mpv (or ffplay), movement navigation, and seeking. Warm plays reuse cached extraction and scores.
+- Change native album controls: `j` / `l` seek, `k` or `Space` pauses/resumes, and `←` / `→` switch movements. Remove the library browser shortcut.
 - Add `aav tracks`, a sorted noninteractive catalog. Album artist and band are the same credit.
 - Bundle the four completed A-01 album players as gzip HTML, plus *The Forest Has a Pocket* (Nurse Log, A-02) under Aven's single-album approval dated 2026-11-18. Bundled media follows the CC0 license amendment below.
 - Add *The Forest Has a Pocket* visuals: six numpy scenes (root, rain, spiral, canopy, spores, river) in a `pocket` family, separate from the A-01 forest painter.
@@ -22,6 +22,7 @@ All notable changes to this project are documented here.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
 - Show each album's bundled cover as a still panel beside the native player's stage. Each cover's SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport.
 - Bundle the four A-01 covers Aven selected on 2026-11-18 (Saturn 4, Fish 1, Ground 3, Atlas 4) as hash-pinned `CoverArt` records, byte-identical to their Drive selection receipts (ADR 0002 amendment). Every bundled album now shows a cover.
+- Add library sort modes for band and album, keeping the same highlighted movement when the order changes. On wide terminals, show the highlighted album's verified cover and description beside the track list.
 
 ### Changed
 
@@ -32,7 +33,8 @@ All notable changes to this project are documented here.
 - Native playback targets 30 fps (5 transport updates/s when paused or still), batches one synchronized write per frame, and skips unchanged canvas rows. Add section names, progress, and section ticks to transport.
 - Add scene previews, benchmarks, and a conservative regional flash-risk regression meter. This is not flash-safety certification.
 - Replace extraction sidecar revision 2 with revision 3, retaining full normalized scores and removing obsolete simplified event rows.
-
+- Refine the four A-02 native visualizer families for denser detail and smoother motion without changing their album identities.
+- Add `f` full-screen mode to native album playback; the stage fills the terminal without transport chrome, survives resizes and movement changes, and returns to the normal page with `f`.
 - The abstract visual player is `aav demo`. `aav play --show` and `aav play --scene` keep the previous visual behavior. `preview`, `themes`, and `gallery` are unchanged.
 
 - Color stages sample both halves of each cell, and the four scenes use distinct motifs instead of similar bands.

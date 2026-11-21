@@ -1,4 +1,4 @@
-"""Album catalog order, library frame bounds, deep links, and command dispatch."""
+"""Album catalog order, library frame bounds, and command dispatch."""
 
 import gzip
 import hashlib
@@ -6,9 +6,6 @@ import json
 from importlib.resources import files
 from pathlib import Path
 
-import pytest
-
-from agentic_av import __version__
 from agentic_av.catalog import (
     ALBUMS,
     Album,
@@ -22,21 +19,16 @@ from agentic_av.catalog import (
 )
 from agentic_av.cli import main
 from agentic_av.library import (
-    TRACK_START_ID,
-    AlbumError,
     LibraryState,
-    album_cache_dir,
+    _library_panel_bytes,
+    _resort_preserving_selection,
     apply_library_key,
     compose_library,
-    inject_track_start,
-    materialize_html,
-    open_selected_and_resume,
     run_library,
-    track_start_script,
-    track_url,
 )
 from agentic_av.paint import render_ansi, render_plain
 from agentic_av.palette import builtin_palettes
+from agentic_av.viz.cover import load_cover
 
 _AUTHORIZED = (
     (
@@ -369,6 +361,45 @@ def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
     assert titles.index("Antenna, Lit") < titles.index("Copper Gravity")
 
 
+def test_library_sort_modes_keep_highlight_and_show_selected_album_details() -> None:
+    """Sorting preserves the selected movement; its cover and blurb fill the side panel."""
+    original = catalog_entries()
+    assert all(album.description.strip() for album in ALBUMS)
+    state = LibraryState(selected=17)
+    highlighted = original[state.selected]
+    assert apply_library_key(state, "s", count=len(original)) == "sort"
+    assert state.sort_mode == "album"
+    ordered, selected = _resort_preserving_selection(original, state.selected, state.sort_mode)
+    assert ordered[selected] == highlighted
+    titles = [entry.album.title.casefold() for entry in ordered]
+    assert titles == sorted(titles)
+    assert apply_library_key(state, "s", count=len(ordered)) == "sort"
+    by_band, selected = _resort_preserving_selection(ordered, selected, state.sort_mode)
+    assert by_band[selected] == highlighted
+    bands = [entry.album.band.casefold() for entry in by_band]
+    assert bands == sorted(bands)
+
+    palette = builtin_palettes()[0]
+    rows = compose_library(
+        by_band, selected, 100, 30, palette, sort_mode=state.sort_mode, panel_start=62
+    )
+    assert all(len(row) == 100 for row in rows)
+    assert "BAND SORT" in render_plain(rows)
+    art = load_cover(highlighted.album.cover.asset, highlighted.album.cover.sha256)
+    panel = _library_panel_bytes(
+        highlighted,
+        art,
+        panel_start=62,
+        width=100,
+        height=30,
+        palette=palette,
+        color_mode="truecolor",
+    )
+    assert highlighted.album.title.encode() in panel
+    assert highlighted.album.description.split()[0].encode() in panel
+    assert b"[3;" in panel
+
+
 def test_tracks_listing_follows_catalog_order_without_ansi(capsys) -> None:
     """`aav tracks` is a sorted plain catalog and does not need a TTY."""
     assert main(["tracks", "--theme", "made-up", "--no-color"]) == 0
@@ -402,7 +433,7 @@ def test_library_frame_bounds_keep_the_selection_visible() -> None:
                 width,
                 height,
                 palette,
-                note="Opened in the browser - click Play",
+                note="Native playback stopped",
             )
             assert len(rows) == height
             assert all(len(row) == width for row in rows)
@@ -423,10 +454,10 @@ def test_library_frame_bounds_keep_the_selection_visible() -> None:
     assert len(help_rows) == 16
     assert all(len(row) == 80 for row in help_rows)
     help_text = render_plain(help_rows)
-    assert "code-only visuals" in help_text
-    assert "click Play" in help_text
+    assert "plays the selected movement in the terminal" in help_text
+    assert "click Play" not in help_text
     assert "j / down" in help_text
-    assert "enter" in help_text
+    assert "Enter" in help_text
     assert "q" in help_text
     colored = render_ansi(compose_library(entries, 1, 40, 8, palette), "truecolor")
     assert "\x1b[48;2;57;42;43m" in colored
@@ -450,8 +481,8 @@ def test_library_title_controls_cannot_break_the_grid() -> None:
     assert all(len(row) == 36 for row in rows)
 
 
-def test_keys_select_wrap_and_do_not_open_from_help() -> None:
-    """j/k and arrows move; Enter plays and o opens only when help is closed."""
+def test_keys_select_wrap_and_ignore_o() -> None:
+    """j/k and arrows move, Enter plays, and o has no library action."""
     state = LibraryState()
     assert apply_library_key(state, "k", count=25) == "stay"
     assert state.selected == 24
@@ -474,176 +505,10 @@ def test_keys_select_wrap_and_do_not_open_from_help() -> None:
     assert apply_library_key(state, "esc", count=25) == "stay"
     assert not state.show_help
     assert apply_library_key(state, "enter", count=25) == "open"
-    assert apply_library_key(state, "o", count=25) == "open_browser"
+    assert apply_library_key(state, "o", count=25) == "stay"
     assert apply_library_key(state, "q", count=25) == "quit"
     state.show_help = True
     assert apply_library_key(state, "quit", count=25) == "quit"
-
-
-def _html_gz() -> bytes:
-    html = (
-        '<!DOCTYPE html><html><body><audio id="audio"></audio>'
-        '<input id="seek" value="0">'
-        "<script>function startAlbum(){ document.getElementById('audio').play(); }</script>"
-        "</body></html>"
-    )
-    return gzip.compress(html.encode("utf-8"))
-
-
-def test_materialize_injects_before_body_and_leaves_source(tmp_path: Path) -> None:
-    """The cache copy seeks from the query string and does not rewrite the gzip."""
-    source = tmp_path / "coupon-seance-saturn.html.gz"
-    payload = _html_gz()
-    source.write_bytes(payload)
-    before = source.read_bytes()
-    stamp = source.stat().st_mtime_ns
-    cached = materialize_html(before, source.name, tmp_path / "cache")
-    assert source.read_bytes() == before
-    assert source.stat().st_mtime_ns == stamp
-    text = cached.read_text(encoding="utf-8")
-    script_at = text.index(f'id="{TRACK_START_ID}"')
-    body_at = text.lower().rfind("</body>")
-    assert script_at < body_at
-    script = text[script_at:body_at]
-    assert "currentTime" in script
-    assert "loadedmetadata" in script
-    assert 'getElementById("audio")' in script
-    assert 'getElementById("seek")' in script
-    assert "URLSearchParams" in script
-    assert ".play(" not in script
-    assert "autoplay" not in script.casefold()
-    assert ".partial" not in cached.name
-    assert not list(cached.parent.glob("*.partial"))
-    assert materialize_html(before, source.name, tmp_path / "cache") == cached
-    assert __version__ in cached.parts
-    assert "track-start-1" in cached.parts
-    other = materialize_html(
-        gzip.compress(b"<html><body></body></html>"),
-        source.name,
-        tmp_path / "cache",
-    )
-    assert other != cached
-
-
-def test_track_url_and_browser_wait_for_canonical_mode(tmp_path: Path) -> None:
-    """The browser sees a numeric start only after raw mode has been left."""
-    entry = next(e for e in catalog_entries() if e.track.title == "Rosin in the Subwoofer")
-    assert track_url(tmp_path / "album.html", entry.track.start_s).endswith("?start=77.5715")
-    assert track_url(tmp_path / "album.html", 0).endswith("?start=0")
-    assert track_url(tmp_path / "album.html", 418.116375).endswith("?start=418.116375")
-
-    class Gate:
-        """Fake terminal that records raw-mode leave and re-entry."""
-
-        def __init__(self) -> None:
-            self.raw = True
-            self.log: list[str] = []
-
-        def leave(self) -> None:
-            """Record that canonical mode was restored."""
-            self.raw = False
-            self.log.append("leave")
-
-        def enter(self) -> None:
-            """Record that raw mode was entered again."""
-            self.raw = True
-            self.log.append("enter")
-
-    gate = Gate()
-    opened: list[str] = []
-
-    def opener(url: str) -> bool:
-        assert gate.raw is False
-        opened.append(url)
-        return True
-
-    url = open_selected_and_resume(
-        gate,
-        entry,
-        cache_home=tmp_path / "cache",
-        opener=opener,
-        source=_html_gz(),
-    )
-    assert gate.log == ["leave", "enter"]
-    assert gate.raw is True
-    assert opened == [url]
-    assert "start=77.5715" in url
-    cached = list((tmp_path / "cache").rglob("*.html"))
-    assert len(cached) == 1
-    assert TRACK_START_ID in cached[0].read_text(encoding="utf-8")
-
-
-def test_failed_materialize_does_not_open_or_leave_a_partial(tmp_path: Path) -> None:
-    """A document without </body> never reaches the browser or the final cache name."""
-    entry = catalog_entries()[0]
-
-    class Gate:
-        """Fake terminal that records raw-mode leave and re-entry."""
-
-        def __init__(self) -> None:
-            self.log: list[str] = []
-
-        def leave(self) -> None:
-            """Record that canonical mode was restored."""
-            self.log.append("leave")
-
-        def enter(self) -> None:
-            """Record that raw mode was entered again."""
-            self.log.append("enter")
-
-    gate = Gate()
-
-    def opener(url: str) -> bool:
-        raise AssertionError(url)
-
-    with pytest.raises(AlbumError):
-        open_selected_and_resume(
-            gate,
-            entry,
-            cache_home=tmp_path / "cache",
-            opener=opener,
-            source=gzip.compress(b"<html><body>no end"),
-        )
-    assert gate.log == ["leave", "enter"]
-    cache = tmp_path / "cache"
-    assert not cache.exists() or list(cache.rglob("*.html")) == []
-    assert not cache.exists() or list(cache.rglob("*.partial")) == []
-    with pytest.raises(AlbumError):
-        materialize_html(b"not gzip", "coupon-seance-saturn.html.gz", tmp_path / "cache")
-    with pytest.raises(AlbumError):
-        materialize_html(_html_gz(), "../escape.html.gz", tmp_path / "cache")
-
-
-def test_inject_is_idempotent_and_script_does_not_play() -> None:
-    script = track_start_script()
-    assert ".play(" not in script
-    html = "<html><body><p>ok</p></body></html>"
-    once = inject_track_start(html)
-    twice = inject_track_start(once)
-    assert twice == once
-    assert once.lower().count("</body>") == 1
-
-
-def test_cache_dir_is_versioned_under_xdg(tmp_path: Path) -> None:
-    assert album_cache_dir(env={"XDG_CACHE_HOME": str(tmp_path)}) == (
-        tmp_path / "agentic-av" / __version__ / "track-start-1"
-    )
-    fallback = Path.home() / ".cache" / "agentic-av" / __version__ / "track-start-1"
-    assert album_cache_dir(env={}) == fallback
-
-
-def test_bundled_album_materialize_does_not_touch_the_archive(tmp_path: Path) -> None:
-    """The packaged gzip stays byte-for-byte identical after a cache publish."""
-    asset = "coupon-seance-saturn.html.gz"
-    resource = files("agentic_av").joinpath("albums", asset)
-    before = resource.read_bytes()
-    cached = materialize_html(before, asset, tmp_path)
-    assert resource.read_bytes() == before
-    with cached.open("rb") as handle:
-        handle.seek(-4096, 2)
-        tail = handle.read().decode("utf-8")
-    assert f'id="{TRACK_START_ID}"' in tail
-    assert tail.index(TRACK_START_ID) < tail.lower().rfind("</body>")
 
 
 def test_command_dispatch_separates_library_and_visual_player(
@@ -701,12 +566,10 @@ def test_motion_flag_reaches_native_playback(monkeypatch) -> None:
     assert seen == ["still", "full"]
 
 
-def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Path) -> None:
-    """Drive `run_library` on a real PTY and check which path each key takes.
-
-    The library drops the rest of a read after dispatching, so each fake
-    queues the next key only once it has been called.
-    """
+def test_library_sort_keeps_highlighted_song_for_native_playback(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Sort on a PTY, then ensure Enter keeps the song and reports playback errors."""
     import fcntl
     import os
     import pty
@@ -720,44 +583,38 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
     calls: list[str] = []
 
     def fake_native(entry, *_args, **kwargs) -> str:
-        calls.append(f"native:{entry.track.title}:{kwargs['motion']}")
+        calls.append(f"{entry.track.title}:{kwargs['motion']}")
         assert kwargs["glyphs"] == "braille"
-        if len(calls) == 1:
-            os.write(master, b"o")
-            return "quit"
-        os.write(master, b"q")
         raise NativeError("no audio player found; install mpv or ffplay")
-
-    def fake_opener(url: str) -> bool:
-        calls.append("browser")
-        return True
 
     monkeypatch.setattr("agentic_av.native.play_native", fake_native)
     output = bytearray()
-
     first = catalog_entries()[0].track.title
-    # A fresh PTY is 0x0; give it a real size so the library draws its list.
-    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 100, 0, 0))
+    visible: list[bytes] = []
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
 
     def drain() -> None:
-        # The PTY buffer is small; frames must be read or the library blocks.
-        # Entering raw mode flushes pending input (TCSAFLUSH), so each Enter
-        # waits for a frame drawn after raw mode is back: the list, then the
-        # browser note. Reading until EIO keeps the last frame.
-        cues = [first.encode("utf-8"), b"click Play in the browser"]
+        cues = [first.encode("utf-8"), b"ALBUM SORT", b"install mpv or ffplay"]
+        keys = [b"s", b"\r", b"q"]
         while True:
             try:
                 output.extend(os.read(master, 65536))
             except OSError:
                 return
             if cues and cues[0] in output:
-                cues.pop(0)
-                del output[:]  # the next cue must come from a later frame
-                os.write(master, b"\r")
+                visible.append(cues.pop(0))
+                del output[:]
+                os.write(master, keys.pop(0))
 
     reader = threading.Thread(target=drain, daemon=True)
     reader.start()
-    watchdog = threading.Timer(5.0, lambda: os.write(master, b"q"))
+    timed_out = threading.Event()
+
+    def rescue() -> None:
+        timed_out.set()
+        os.write(master, b"q")
+
+    watchdog = threading.Timer(5.0, rescue)
     watchdog.start()
     try:
         with (
@@ -771,7 +628,6 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
                 glyphs="braille",
                 input_stream=tty_in,
                 output_stream=tty_out,
-                opener=fake_opener,
                 cache_home=tmp_path,
             )
     finally:
@@ -780,5 +636,6 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
         reader.join(timeout=2)
         os.close(master)
     assert result == 0
-    assert calls == [f"native:{first}:reduced", "browser", f"native:{first}:reduced"]
-    assert b"install mpv or ffplay" in bytes(output)
+    assert calls == [f"{first}:reduced"]
+    assert b"install mpv or ffplay" in visible
+    assert not timed_out.is_set()

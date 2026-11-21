@@ -51,15 +51,15 @@ class _Undertow(Scene):
         self._detail = surface.layer()
         self._x = self.q * surface.half_w
         self._u = surface.u / surface.half_w
-        self._background = np.empty_like(surface.rgb)
-        depth = (surface.v + 1) * 0.5
-        for channel in range(3):
-            self._background[..., channel] = self.deep[channel] * (1.1 - 0.55 * depth)
         self._grain = (
             0.85
             + 0.07 * np.sin(self._u * 63 + np.sin(surface.v * 21) + self.phase[0])
             + 0.045 * np.sin(surface.v * 91 - self._u * 17 + self.phase[1])
         ).astype(np.float32)
+        self._background = np.empty_like(surface.rgb)
+        depth = (surface.v + 1) * 0.5
+        for channel in range(3):
+            self._background[..., channel] = self.deep[channel] * (1.1 - 0.55 * depth) * self._grain
         self._vignette = np.clip(1.08 - 0.20 * (self._u**2 + surface.v**2), 0.45, 1)
 
     def seek(self) -> None:
@@ -108,16 +108,22 @@ class _Undertow(Scene):
         surface.rgb *= (1 - 0.985 * np.clip(coverage, 0, 1))[..., None]
 
     def _currents(self, surface, frame, *, vertical=False):
+        """Paint the two independently scored currents with faint mineral echoes."""
         for hand, offset, color in (
             (_RIGHT, -0.22, self.chalk * 0.65),
             (_LEFT, 0.23, self.mid * 1.7),
         ):
-            wave = np.sin(self.q * 3.5 + frame.tau * 0.035 + self.phase[hand])
-            curve = offset + (0.035 + 0.11 * self._mod[hand]) * wave
-            if vertical:
-                self._stroke(surface, curve * surface.half_w, self.q, color, 0.85)
-            else:
-                self._stroke(surface, self._x, curve, color, 0.85)
+            curve = offset + (0.035 + 0.11 * self._mod[hand]) * np.sin(
+                self.q * 3.5 + frame.tau * 0.035 + self.phase[hand]
+            )
+            self._layer.fill(0)
+            for echo, weight in ((0.0, 0.85), (0.034, 0.24)):
+                if vertical:
+                    x, y = (curve + echo) * surface.half_w, self.q
+                else:
+                    x, y = self._x, curve + echo
+                lines(surface, self._layer, x, y, weight)
+            surface.add(self._layer, color)
 
     def _marks(self, surface, frame):
         if not frame.energy or frame.score is None:
