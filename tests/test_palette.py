@@ -21,6 +21,14 @@ def test_xterm256_uses_real_cube_and_gray_levels() -> None:
     assert to_xterm256("#000000") == 16
 
 
+def test_xterm256_keeps_the_hue_of_dark_muted_colors() -> None:
+    """A dark violet sky is a cube violet, not ramp gray; real grays stay gray."""
+    assert to_xterm256("#2b1b37") == 54  # Coupon Seance sky -> #5f0087, was gray 235
+    assert to_xterm256("#262626") == 235
+    assert to_xterm256("#53433f") == 238  # warm gray: too little chroma for a hue
+    assert to_xterm256("#1a1024") == 234  # near-black tint: violet would be too bright
+
+
 def test_builtin_palettes_have_distinct_roles_and_readable_chrome() -> None:
     palettes = builtin_palettes()
     assert len(palettes) == 9

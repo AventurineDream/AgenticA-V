@@ -98,11 +98,20 @@ def test_xterm_zero_dither_matches_scalar_reference():
     colors = np.concatenate(
         (
             rng.integers(0, 256, (1000, 3), dtype=np.uint8),
+            # Dark muted colors exercise the same-hue cube substitution.
+            rng.integers(0, 120, (1000, 3), dtype=np.uint8),
             np.repeat(np.arange(256, dtype=np.uint8)[:, None], 3, axis=1),
         )
     )
     expected = [to_xterm256(f"#{c[0]:02x}{c[1]:02x}{c[2]:02x}") for c in colors]
     np.testing.assert_array_equal(_quantize(colors, dither=False)[:, 0], expected)
+
+
+def test_dither_keeps_a_flat_muted_field_on_one_cube_color():
+    """The dithered 256 path does not speckle a flat violet with grays or blues."""
+    field = np.empty((8, 8, 3), dtype=np.uint8)
+    field[:] = (43, 27, 55)
+    assert set(_quantize(field).ravel().tolist()) == {54}
 
 
 def test_sgr_runs_and_space_foreground():
