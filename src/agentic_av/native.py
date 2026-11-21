@@ -1037,6 +1037,8 @@ def play_native(
                                     else nowplaying.layout(width, canvas_rows, aspect, ratio)
                                 )
                                 stage.resize(layout.stage_cols, canvas_rows, left=layout.stage_left)
+                                # Match the playback loop so the new layout paints right away.
+                                dirty = repaint = True
                         if step:
                             index = (index + step) % len(entries)
                             # The in-flight analysis is for the old movement.
