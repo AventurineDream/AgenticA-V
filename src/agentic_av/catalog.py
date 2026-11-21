@@ -13,6 +13,7 @@ the A-02 covers and the four A-01 covers Aven selected on 2026-11-18 (decision 0
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 
@@ -63,6 +64,7 @@ class Album:
         tracks: Movements in performance order.
         cover: Bundled cover art, creator-selected or agent-proposed (see the module
             header), or None when the album has no bundled image.
+        description: Short album blurb shown in the interactive library.
     """
 
     artist: str
@@ -72,6 +74,7 @@ class Album:
     asset: str
     tracks: tuple[Track, ...]
     cover: CoverArt | None = None
+    description: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,6 +92,7 @@ def _album(
     asset: str,
     tracks: tuple[tuple[float, str], ...],
     cover: CoverArt | None = None,
+    description: str = "",
 ) -> Album:
     """Build an album whose band credit is the album artist.
 
@@ -107,6 +111,7 @@ def _album(
             for index, (start, name) in enumerate(tracks, start=1)
         ),
         cover=cover,
+        description=description,
     )
 
 
@@ -127,6 +132,10 @@ ALBUMS: tuple[Album, ...] = (
             (507.116625, "Return Policy for a Black Hole"),
             (622.831, "We Kept the Receipt"),
         ),
+        description=(
+            "A discount-store space opera follows a receipt-barcode spectrum, "
+            "ringed planets, and a violin that remembers Earth."
+        ),
         cover=CoverArt(
             "coupon-seance-saturn.jpg",
             "b44173b91ff51c4bada8fb601180858a414c931d049e429f4205049d608d1dbe",
@@ -144,6 +153,10 @@ ALBUMS: tuple[Album, ...] = (
             (820, "Where the Downbeat Went Under"),
             (1108, "Two Notes, Then Air"),
             (1340, "The Water Learns Major"),
+        ),
+        description=(
+            "Ink suspended in a water column: piano places pigment, bass heaves the "
+            "membrane, and percussion disturbs the current."
         ),
         cover=CoverArt(
             "drowning-collective-are-we-fish.jpg",
@@ -163,6 +176,10 @@ ALBUMS: tuple[Album, ...] = (
             (1128, "Nurse Log, Open Hand"),
             (1356, "The Ground Moves Anyway"),
         ),
+        description=(
+            "Doom, harp, and reeds move through a weighted Pacific Northwest rainforest "
+            "as each chapter opens another part of the forest."
+        ),
         cover=CoverArt(
             "nurse-log-ground-moves-anyway.jpg",
             "76762a94a87b14db5f5b8a1cb2576fe3784cb9012eba710a33cad57c2ed8cbbd",
@@ -180,6 +197,10 @@ ALBUMS: tuple[Album, ...] = (
             (816, "Salt Geometry"),
             (1080, "An Empty Room Stays Warm"),
             (1320, "Antenna for the Unlit"),
+        ),
+        description=(
+            "Six mostly-black rooms sculpted from weight, copper, glass, wind, and breath "
+            "move from mineral fractures to a room that stays warm."
         ),
         cover=CoverArt(
             "quiet-machinery-atlas-unlit-rooms.jpg",
@@ -199,6 +220,10 @@ ALBUMS: tuple[Album, ...] = (
             (1076, "Five Spaces for a Fern"),
             (1284, "The Forest Has a Pocket"),
         ),
+        description=(
+            "Centered bass, patient fuzz, harp, and two breathing saxophones find a "
+            "modal-funk pocket among roots, rain, bark, canopy, and river."
+        ),
         cover=CoverArt(
             "nurse-log-the-forest-has-a-pocket.jpg",
             "e42821bc820a81a7f6b6e168dc772d1540aebfe256bfda23387bc9aecc9fdab6",
@@ -216,6 +241,10 @@ ALBUMS: tuple[Album, ...] = (
             (808, "A Fault Held Gently"),
             (1084, "Leave the Basin Unfilled"),
             (1316, "The Shape That Stays"),
+        ),
+        description=(
+            "Two piano currents, a melodic low voice, and a displaced kit hold a small "
+            "phrase in changing, asymmetric water."
         ),
         cover=CoverArt(
             "drowning-collective-the-shape-that-stays.jpg",
@@ -235,6 +264,10 @@ ALBUMS: tuple[Album, ...] = (
             (1070, "Layaway for a Dying Star"),
             (1326, "We Kept the Change"),
         ),
+        description=(
+            "At perihelion, a second-hand shop gathers crooked keys, a haunting theremin, "
+            "a bass with its own route home, and a violin keeping the receipt."
+        ),
         cover=CoverArt(
             "coupon-seance-buy-one-haunt-one-free.jpg",
             "4e0418ab45a0285967c980318bf976a11cf120f1a72243f05d7d49a8b5e3047f",
@@ -252,6 +285,10 @@ ALBUMS: tuple[Album, ...] = (
             (823, "Salt Fault, Seven Steps"),
             (1096, "The Warm Room Opens a Window"),
             (1346, "Antenna, Lit"),
+        ),
+        description=(
+            "Small dusk instruments measure the evening: a returning marimba cell, a "
+            "patient bell, crossing reeds, and an antenna that finally lights."
         ),
         cover=CoverArt(
             "quiet-machinery-instruments-for-measuring-dusk.jpg",
@@ -302,6 +339,34 @@ def sort_entries(albums: tuple[Album, ...] | list[Album]) -> tuple[CatalogEntry,
     """
     entries = [CatalogEntry(album, track) for album in albums for track in album.tracks]
     return tuple(sorted(entries, key=sort_key))
+
+
+def sort_entries_by(entries: Sequence[CatalogEntry], mode: str) -> tuple[CatalogEntry, ...]:
+    """Return library rows sorted by band or album, preserving track order within albums.
+
+    Args:
+        entries: Rows to order.
+        mode: ``band`` groups by band before album title; ``album`` groups by title first.
+
+    Returns:
+        A new tuple with stable case-insensitive ordering.
+
+    Raises:
+        ValueError: ``mode`` is not ``band`` or ``album``.
+    """
+    if mode not in ("band", "album"):
+        raise ValueError(f"unknown library sort mode {mode!r}")
+
+    def key(entry: CatalogEntry) -> tuple[str, str, int, str]:
+        album, track = entry.album, entry.track
+        primary, secondary = (
+            (album.band.casefold(), album.title.casefold())
+            if mode == "band"
+            else (album.title.casefold(), album.band.casefold())
+        )
+        return primary, secondary, track.number, track.title.casefold()
+
+    return tuple(sorted(entries, key=key))
 
 
 def validate_catalog(albums: tuple[Album, ...] | list[Album] = ALBUMS) -> None:

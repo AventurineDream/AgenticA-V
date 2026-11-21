@@ -864,47 +864,39 @@ def play_native(
 ) -> str:
     """Play `entry`'s album natively in the terminal until q or Escape.
 
-    Shows a splash with the cover, album title, and artist while it extracts
-    the album (decoded once into the cache; see `extract_album`), then runs the
-    scene loop. Space pauses, arrows seek 10 s, n/p change movement, m toggles
-    still motion, and g cycles glyph tiers. q/Escape return ``"quit"``. The
-    caller's raw mode stays on: unlike the browser launch, mpv/ffplay get no
-    stdin, so nothing needs the terminal restored and the child cannot eat keys.
-
-    An album with a catalog cover shows it in a captioned panel left of the
-    stage, and its color becomes the chrome accent. The panel is omitted silently
-    when the terminal is too narrow or short; a cover that fails verification is
-    omitted and noted in the transport. Each movement opens with a brief title
-    card over the stage.
+    A splash appears during extraction, then audio drives the album-specific
+    scene. Space pauses, arrows seek, n/p change movement, m toggles motion,
+    g cycles glyph tiers, and f toggles a chrome-free full-screen stage.
+    Full-screen state persists across movements and terminal resizes.
+    The caller's raw mode stays on: mpv and ffplay get no stdin, so the child
+    cannot consume keys and terminal cleanup remains with the library. Arrows
+    seek 10 seconds. The cover panel is omitted when too narrow or short, and a
+    cover that fails verification is noted in the transport.
+    Side effects: Starts audio playback, writes terminal frames, and publishes extracted
+        media/analysis cache files.
 
     Args:
-        entry: Selected movement.
-        album_entries: Catalog entries; only those of `entry`'s album are
-            used, in track order, so n/p stays inside the album.
-        palette: Active palette for status chrome.
-        color_mode: `render_ansi` mode: ``truecolor``, ``256``, or ``none``.
-        motion: ``full``, ``reduced`` (0.22x picture), or ``still`` (held
-            picture, as the original player's motion-off). Audio and the
-            clock are unaffected. Seeks and movement changes move the held
-            picture to the new time.
-        glyphs: ``auto`` detects the terminal; otherwise a named mosaic tier.
-        input_stream: TTY input; defaults to sys.stdin.
-        output_stream: TTY output; defaults to sys.stdout.
-        cache_home: XDG cache home override.
-        source: Optional compressed HTML override for tests.
-        player_factory: `(media_path, offset_s) -> player`; tests inject a
-            fake. Defaults to mpv then ffplay.
+        entry: Selected album movement.
+        album_entries: Catalog rows from which this album's movement order is taken.
+        palette: Active theme roles for transport and cover caption.
+        color_mode: ``truecolor``, ``256``, or ``none`` terminal output mode.
+        motion: ``full``, ``reduced``, or ``still`` picture motion.
+        glyphs: ``auto`` or an explicit mosaic tier.
+        input_stream: TTY input, defaulting to standard input.
+        output_stream: TTY output, defaulting to standard output.
+        cache_home: Optional cache root for materialized playback data.
+        source: Optional gzip archive bytes for deterministic tests.
+        player_factory: Optional ``(path, offset_s)`` audio-player factory.
 
     Returns:
-        ``"quit"`` when the listener leaves playback.
+        ``quit`` when the listener returns to the library.
 
     Raises:
         ValueError: Motion or glyph tier is unknown.
         NativeError: Extraction or player startup failed.
         AlbumError: The asset is not bundled.
         OSError: The cache cannot be written.
-        _PlayerTerminatedError: SIGTERM arrived; the audio child is already
-            stopped, and the caller restores the terminal and exits.
+        _PlayerTerminatedError: SIGTERM arrived; the caller restores the terminal.
     """
     if motion not in _MOTION_RATES:
         raise ValueError(f"unknown motion mode {motion!r}")
@@ -950,6 +942,7 @@ def play_native(
     ) or [entry]
     entries = entries[: len(album.tracks)]
     index = next((i for i, e in enumerate(entries) if e.track.number == entry.track.number), 0)
+    full_screen = False
     canvas_rows = max(1, height - (2 if height >= nowplaying.RAIL_MIN_ROWS else 1))
     layout = nowplaying.layout(width, canvas_rows, aspect, ratio)
     tier = budget_tier(requested_tier, layout.stage_cols, canvas_rows)
@@ -1026,6 +1019,21 @@ def play_native(
                                 step += 1
                             elif key in ("p", "k", "up"):
                                 step -= 1
+                            elif key in ("f", "F"):
+                                full_screen = not full_screen
+                                canvas_rows = (
+                                    height
+                                    if full_screen
+                                    else max(
+                                        1, height - (2 if height >= nowplaying.RAIL_MIN_ROWS else 1)
+                                    )
+                                )
+                                layout = (
+                                    nowplaying.Layout(0, width, None)
+                                    if full_screen
+                                    else nowplaying.layout(width, canvas_rows, aspect, ratio)
+                                )
+                                stage.resize(layout.stage_cols, canvas_rows, left=layout.stage_left)
                         if step:
                             index = (index + step) % len(entries)
                             # The in-flight analysis is for the old movement.
@@ -1078,8 +1086,16 @@ def play_native(
             size = _size(fd)
             if size != (width, height):
                 width, height = size
-                canvas_rows = max(1, height - (2 if height >= nowplaying.RAIL_MIN_ROWS else 1))
-                layout = nowplaying.layout(width, canvas_rows, aspect, ratio)
+                canvas_rows = (
+                    height
+                    if full_screen
+                    else max(1, height - (2 if height >= nowplaying.RAIL_MIN_ROWS else 1))
+                )
+                layout = (
+                    nowplaying.Layout(0, width, None)
+                    if full_screen
+                    else nowplaying.layout(width, canvas_rows, aspect, ratio)
+                )
                 stage.resize(layout.stage_cols, canvas_rows, left=layout.stage_left)
                 dirty = repaint = True
             desired_tier = budget_tier(requested_tier, layout.stage_cols, canvas_rows)
@@ -1108,7 +1124,7 @@ def play_native(
                 captured_clock = frame_t, frame_tau
                 dirty = False
             card = b""
-            if height == 1:
+            if height == 1 and not full_screen:
                 canvas = b""
             elif card_live:
                 card = nowplaying.title_card(
@@ -1139,20 +1155,24 @@ def play_native(
                     accent=accent,
                 )
                 repaint = False
-            transport = _transport_bytes(
-                entries[index],
-                movement,
-                score,
-                elapsed,
-                width,
-                height,
-                palette,
-                color_mode,
-                playing=playing,
-                motion=motion,
-                tier=tier,
-                note=note,
-                accent=accent,
+            transport = (
+                b""
+                if full_screen
+                else _transport_bytes(
+                    entries[index],
+                    movement,
+                    score,
+                    elapsed,
+                    width,
+                    height,
+                    palette,
+                    color_mode,
+                    playing=playing,
+                    motion=motion,
+                    tier=tier,
+                    note=note,
+                    accent=accent,
+                )
             )
             _write_output(target, SYNC_BEGIN + prefix + canvas + card + transport + SYNC_END)
             period = 0.2 if held else 1.0 / 30.0
@@ -1171,6 +1191,20 @@ def play_native(
                     playing = not playing
                     player.set_pause(not playing)
                     anchor_clock, anchor_scene = elapsed, scene_s
+                elif key in ("f", "F"):
+                    full_screen = not full_screen
+                    canvas_rows = (
+                        height
+                        if full_screen
+                        else max(1, height - (2 if height >= nowplaying.RAIL_MIN_ROWS else 1))
+                    )
+                    layout = (
+                        nowplaying.Layout(0, width, None)
+                        if full_screen
+                        else nowplaying.layout(width, canvas_rows, aspect, ratio)
+                    )
+                    stage.resize(layout.stage_cols, canvas_rows, left=layout.stage_left)
+                    dirty = repaint = True
                 elif key in ("m", "M"):
                     motion = moving if motion == "still" else "still"
                     anchor_clock = elapsed

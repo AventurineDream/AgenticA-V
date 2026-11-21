@@ -53,6 +53,7 @@ class _Pocket(Scene):
         self._shape = None
         self._held = None
         self._mod = np.zeros(_CHANNELS, dtype=np.float32)
+        self._target = np.zeros_like(self._mod)
 
     def resize(self, surface: Surface) -> None:
         """Rebuild the soil-to-sky backdrop, vignette and scratch layers for a canvas.
@@ -65,17 +66,25 @@ class _Pocket(Scene):
         self._layer = surface.layer()
         self._detail = surface.layer()
         self._held = None
-        y = (surface.v + 1) * 0.5
+        u = surface.u / surface.half_w
+        v = surface.v
+        self._texture = (
+            1
+            + 0.06 * np.sin(u * 45 + v * 17 + self.jitter[0, 0, 0])
+            + 0.04 * np.sin(v * 63 - u * 19 + self.jitter[0, 0, 1])
+        ).astype(np.float32)
+        y = (v + 1) * 0.5
         self._background = np.empty_like(surface.rgb)
         for channel in range(3):
-            self._background[..., channel] = np.interp(
-                y,
-                (0, 0.6, 1),
-                (self.deep[channel] * 0.5, self.mid[channel] * 0.25, _FLOOR[channel]),
+            self._background[..., channel] = (
+                np.interp(
+                    y,
+                    (0, 0.6, 1),
+                    (self.deep[channel] * 0.5, self.mid[channel] * 0.25, _FLOOR[channel]),
+                )
+                * self._texture
             )
-        self._vignette = np.clip(
-            1.06 - 0.3 * (surface.v**2 + (surface.u / surface.half_w) ** 2), 0.2, 1
-        ).astype(np.float32)
+        self._vignette = np.clip(1.06 - 0.3 * (v**2 + u**2), 0.2, 1).astype(np.float32)
 
     def seek(self) -> None:
         """Drop held pixels and smoothed deformation after a discontinuous clock jump."""
@@ -92,7 +101,8 @@ class _Pocket(Scene):
         Levels and score velocities arrive already scaled by energy from Stage, so this
         method only selects the channels and integrates them over picture time.
         """
-        target = np.zeros(_CHANNELS, dtype=np.float32)
+        target = self._target
+        target.fill(0)
         if frame.energy:
             level, score, t = frame.levels, frame.score, frame.t
             target[_BASS] = level.slow_bass
@@ -147,6 +157,23 @@ class _Pocket(Scene):
             )
             surface.add(self._detail, self.lit, 0.8)
 
+    def _atmosphere(self, surface: Surface, frame: Frame) -> None:
+        """Drift dim, seeded spores through the scene with a smooth fade at each wrap.
+
+        Args:
+            surface: Canvas to accumulate into.
+            frame: Picture clock drives the drift; no audio signal changes its light.
+        """
+        seed = self.spores
+        phase = (seed[:, 1] + frame.tau * (0.018 + 0.006 * seed[:, 0])) % 1.0
+        fade = np.sin(np.pi * phase) ** 2
+        x = (seed[:, 0] * 2 - 1) * self._half_w * 0.92
+        x += 0.015 * np.sin(frame.tau * 0.04 + seed[:, 2] * (2 * np.pi))
+        y = 1.05 - 2.1 * phase
+        self._detail.fill(0)
+        points(surface, self._detail, x, y, fade * (0.025 + 0.045 * seed[:, 2]))
+        surface.add(self._detail, self.lit, 0.25)
+
     def _paint(self, surface: Surface, frame: Frame, arc: float) -> None:
         """Paint this chapter's geometry; implemented by each painter."""
         raise NotImplementedError
@@ -171,6 +198,7 @@ class _Pocket(Scene):
         surface.rgb[:] = self._background
         self._signals(frame)
         self._paint(surface, frame, self._progress(frame))
+        self._atmosphere(surface, frame)
         self._marks(surface, frame)
         surface.rgb *= self._vignette[..., None]
         if self._held is None:
@@ -256,7 +284,9 @@ class _Rain(_Pocket):
             speed = 0.12 + depth * 0.08
             length = (0.04 + depth * 0.035) * (0.8 + arc * 0.4)
             dx = (drops[:, 0] * 2 - 1) * self._half_w * 1.2
-            dy = (drops[:, 1] * 2 + tau * speed) % 2.2 - 1.1
+            phase = (drops[:, 1] + tau * speed / 2.2) % 1
+            dy = phase * 2.2 - 1.1
+            fade = np.sin(np.pi * phase) ** 2
             self._layer.fill(0)
             segments(
                 surface,
@@ -265,7 +295,7 @@ class _Rain(_Pocket):
                 dy,
                 dx + slant * length,
                 dy + length,
-                0.2 + depth * 0.15,
+                (0.2 + depth * 0.15) * fade,
             )
             surface.add(self._layer, self.lit if depth == 2 else self.mid, 0.5)
         xs = self.ripple * self._half_w

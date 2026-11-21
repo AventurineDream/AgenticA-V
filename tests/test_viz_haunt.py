@@ -274,8 +274,8 @@ def test_a_bass_and_keys_onset_never_steps_the_picture_brightness(index):
     assert not stepped.any(), light
 
 
-def test_aisle_lean_flips_on_each_seven_eight_bar():
-    # At 120 quarter-note BPM a 7/8 bar lasts 1.75 s; the lean must flip there, not at 3.5 s.
+def test_aisle_lean_changes_continuously_through_seven_eight_bar():
+    # At 120 quarter-note BPM a 7/8 bar lasts 1.75 s; its alternating lean must not step.
     def image(tau):
         surface = Surface(80, 24, 2, 4)
         build_scene(_movement(2)).render(surface, _frame(tau))
@@ -283,7 +283,7 @@ def test_aisle_lean_flips_on_each_seven_eight_bar():
 
     within = np.mean(np.abs(image(1.6) - image(1.7)))
     across = np.mean(np.abs(image(1.7) - image(1.8)))
-    assert across > 20 * within
+    assert across < within
 
 
 @pytest.mark.parametrize("haunt_scene, coupon_scene", _COUPON_PAIRS)

@@ -32,6 +32,8 @@ uv run aav demo
 ### Library controls
 
 - `j` / `k` or `↑` / `↓`: select a track. The list wraps.
+- `s`: toggle sorting by band or album; the highlighted movement stays selected.
+- At 72 columns by 16 rows or larger, the highlighted song's album cover and description appear beside the list.
 - `Enter`: play that movement in the terminal.
 - `o`: open the album's web page in the default browser at that movement. Click Play on the page.
 - `?`: help. `Esc`: close help. `q`: leave the library.
@@ -41,6 +43,7 @@ uv run aav demo
 - `Space`: pause or resume. `←` / `→`: seek 10 seconds.
 - `n` / `p` (or `j` / `k`): next or previous movement. Playback continues into the next movement on its own.
 - `m`: hold the picture (still) or let it move again. `aav play --motion reduced` slows the picture to 0.22×, and `--motion still` starts held. Audio is unaffected.
+- `f`: toggle full-screen visuals; the stage fills the terminal and hides the transport.
 - `q` / `Esc`: back to the library.
 - `g`: cycle octant, sextant, quadrant, half-block, braille, and ASCII mosaics.
 

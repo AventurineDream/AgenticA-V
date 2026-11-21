@@ -25,6 +25,8 @@ from agentic_av.library import (
     TRACK_START_ID,
     AlbumError,
     LibraryState,
+    _library_panel_bytes,
+    _resort_preserving_selection,
     album_cache_dir,
     apply_library_key,
     compose_library,
@@ -37,6 +39,7 @@ from agentic_av.library import (
 )
 from agentic_av.paint import render_ansi, render_plain
 from agentic_av.palette import builtin_palettes
+from agentic_av.viz.cover import load_cover
 
 _AUTHORIZED = (
     (
@@ -367,6 +370,45 @@ def test_sort_orders_artist_band_album_then_track_number_and_title() -> None:
     assert titles.index("The Ground Moves Anyway") < titles.index("Copper Gravity")
     assert titles.index("We Kept the Change") < titles.index("Customs at the Edge of Saturn")
     assert titles.index("Antenna, Lit") < titles.index("Copper Gravity")
+
+
+def test_library_sort_modes_keep_highlight_and_show_selected_album_details() -> None:
+    """Sorting preserves the selected movement; its cover and blurb fill the side panel."""
+    original = catalog_entries()
+    assert all(album.description.strip() for album in ALBUMS)
+    state = LibraryState(selected=17)
+    highlighted = original[state.selected]
+    assert apply_library_key(state, "s", count=len(original)) == "sort"
+    assert state.sort_mode == "album"
+    ordered, selected = _resort_preserving_selection(original, state.selected, state.sort_mode)
+    assert ordered[selected] == highlighted
+    titles = [entry.album.title.casefold() for entry in ordered]
+    assert titles == sorted(titles)
+    assert apply_library_key(state, "s", count=len(ordered)) == "sort"
+    by_band, selected = _resort_preserving_selection(ordered, selected, state.sort_mode)
+    assert by_band[selected] == highlighted
+    bands = [entry.album.band.casefold() for entry in by_band]
+    assert bands == sorted(bands)
+
+    palette = builtin_palettes()[0]
+    rows = compose_library(
+        by_band, selected, 100, 30, palette, sort_mode=state.sort_mode, panel_start=62
+    )
+    assert all(len(row) == 100 for row in rows)
+    assert "BAND SORT" in render_plain(rows)
+    art = load_cover(highlighted.album.cover.asset, highlighted.album.cover.sha256)
+    panel = _library_panel_bytes(
+        highlighted,
+        art,
+        panel_start=62,
+        width=100,
+        height=30,
+        palette=palette,
+        color_mode="truecolor",
+    )
+    assert highlighted.album.title.encode() in panel
+    assert highlighted.album.description.split()[0].encode() in panel
+    assert b"[3;" in panel
 
 
 def test_tracks_listing_follows_catalog_order_without_ansi(capsys) -> None:
@@ -701,12 +743,10 @@ def test_motion_flag_reaches_native_playback(monkeypatch) -> None:
     assert seen == ["still", "full"]
 
 
-def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Path) -> None:
-    """Drive `run_library` on a real PTY and check which path each key takes.
-
-    The library drops the rest of a read after dispatching, so each fake
-    queues the next key only once it has been called.
-    """
+def test_library_sort_keeps_highlighted_song_for_native_playback(
+    monkeypatch, tmp_path: Path
+) -> None:
+    """Sort on a PTY, then ensure Enter keeps the song and reports playback errors."""
     import fcntl
     import os
     import pty
@@ -720,44 +760,38 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
     calls: list[str] = []
 
     def fake_native(entry, *_args, **kwargs) -> str:
-        calls.append(f"native:{entry.track.title}:{kwargs['motion']}")
+        calls.append(f"{entry.track.title}:{kwargs['motion']}")
         assert kwargs["glyphs"] == "braille"
-        if len(calls) == 1:
-            os.write(master, b"o")
-            return "quit"
-        os.write(master, b"q")
         raise NativeError("no audio player found; install mpv or ffplay")
-
-    def fake_opener(url: str) -> bool:
-        calls.append("browser")
-        return True
 
     monkeypatch.setattr("agentic_av.native.play_native", fake_native)
     output = bytearray()
-
     first = catalog_entries()[0].track.title
-    # A fresh PTY is 0x0; give it a real size so the library draws its list.
-    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 100, 0, 0))
+    visible: list[bytes] = []
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
 
     def drain() -> None:
-        # The PTY buffer is small; frames must be read or the library blocks.
-        # Entering raw mode flushes pending input (TCSAFLUSH), so each Enter
-        # waits for a frame drawn after raw mode is back: the list, then the
-        # browser note. Reading until EIO keeps the last frame.
-        cues = [first.encode("utf-8"), b"click Play in the browser"]
+        cues = [first.encode("utf-8"), b"ALBUM SORT", b"install mpv or ffplay"]
+        keys = [b"s", b"\r", b"q"]
         while True:
             try:
                 output.extend(os.read(master, 65536))
             except OSError:
                 return
             if cues and cues[0] in output:
-                cues.pop(0)
-                del output[:]  # the next cue must come from a later frame
-                os.write(master, b"\r")
+                visible.append(cues.pop(0))
+                del output[:]
+                os.write(master, keys.pop(0))
 
     reader = threading.Thread(target=drain, daemon=True)
     reader.start()
-    watchdog = threading.Timer(5.0, lambda: os.write(master, b"q"))
+    timed_out = threading.Event()
+
+    def rescue() -> None:
+        timed_out.set()
+        os.write(master, b"q")
+
+    watchdog = threading.Timer(5.0, rescue)
     watchdog.start()
     try:
         with (
@@ -771,7 +805,6 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
                 glyphs="braille",
                 input_stream=tty_in,
                 output_stream=tty_out,
-                opener=fake_opener,
                 cache_home=tmp_path,
             )
     finally:
@@ -780,5 +813,91 @@ def test_enter_plays_natively_and_o_opens_the_browser(monkeypatch, tmp_path: Pat
         reader.join(timeout=2)
         os.close(master)
     assert result == 0
-    assert calls == [f"native:{first}:reduced", "browser", f"native:{first}:reduced"]
-    assert b"install mpv or ffplay" in bytes(output)
+    assert calls == [f"{first}:reduced"]
+    assert b"install mpv or ffplay" in visible
+    assert not timed_out.is_set()
+
+
+def test_library_browser_key_dispatches_on_a_pty(monkeypatch, tmp_path: Path) -> None:
+    """Drive `o` through the real library input loop and verify its visible note."""
+    import fcntl
+    import os
+    import pty
+    import struct
+    import termios
+    import threading
+
+    master, slave = pty.openpty()
+    calls: list[str] = []
+    opened: list[CatalogEntry] = []
+
+    def fake_opener(url: str) -> bool:
+        calls.append("browser")
+        return True
+
+    def fake_open(terminal, entry, *, cache_home, opener, source=None) -> str:
+        opened.append(entry)
+        terminal.leave()
+        try:
+            opener("file:///fake-album.html?start=0")
+        finally:
+            terminal.enter()
+        return "file:///fake-album.html?start=0"
+
+    monkeypatch.setattr("agentic_av.library.open_selected_and_resume", fake_open)
+
+    output = bytearray()
+    visible: list[bytes] = []
+    entries = tuple(
+        entry for entry in catalog_entries() if entry.album.asset == "coupon-seance-saturn.html.gz"
+    )
+    first = entries[0].track.title
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 100, 0, 0))
+
+    def drain() -> None:
+        cues = [first.encode("utf-8"), b"click Play"]
+        keys = [b"o", b"q"]
+        while True:
+            try:
+                output.extend(os.read(master, 65536))
+            except OSError:
+                return
+            if cues and cues[0] in output:
+                visible.append(cues.pop(0))
+                del output[:]
+                os.write(master, keys.pop(0))
+
+    reader = threading.Thread(target=drain, daemon=True)
+    reader.start()
+    timed_out = threading.Event()
+
+    def rescue() -> None:
+        timed_out.set()
+        os.write(master, b"q")
+
+    watchdog = threading.Timer(5.0, rescue)
+    watchdog.start()
+    try:
+        with (
+            open(slave, "rb", buffering=0, closefd=False) as tty_in,
+            open(slave, "w", encoding="utf-8", closefd=False) as tty_out,
+        ):
+            result = run_library(
+                builtin_palettes()[0],
+                "none",
+                input_stream=tty_in,
+                output_stream=tty_out,
+                opener=fake_opener,
+                cache_home=tmp_path,
+                entries=entries,
+            )
+    finally:
+        watchdog.cancel()
+        os.close(slave)
+        reader.join(timeout=2)
+        os.close(master)
+    assert result == 0
+    assert calls == ["browser"]
+    assert len(opened) == 1 and opened[0].track.title == first
+    assert b"click Play" in visible
+    assert not timed_out.is_set()

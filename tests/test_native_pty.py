@@ -25,10 +25,14 @@ from agentic_av.viz.audio import analyze
 
 
 @pytest.mark.parametrize("terminate", [False, True], ids=["quit", "sigterm"])
+@pytest.mark.parametrize("full_screen", [False, True], ids=["windowed", "full-screen"])
 def test_native_frame_over_pty_restores_terminal(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, terminate: bool
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    terminate: bool,
+    full_screen: bool,
 ) -> None:
-    """Render real Stage output before q/SIGTERM and restore canonical mode/echo."""
+    """Render native frames, toggle/resize full screen, then restore the terminal."""
     master, slave = pty.openpty()
     fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 16, 60, 0, 0))
     original = termios.tcgetattr(slave)
@@ -57,6 +61,8 @@ def test_native_frame_over_pty_restores_terminal(
 
     output = bytearray()
     rendered = threading.Event()
+    screen_start: list[tuple[int, int]] = []
+    resized = [False]
 
     def drain():
         while True:
@@ -64,14 +70,32 @@ def test_native_frame_over_pty_restores_terminal(
                 output.extend(os.read(master, 65536))
             except OSError:
                 return
-            # The first synchronized write is the loading splash, sent before the
-            # player installs its SIGTERM handler; wait for a playback frame.
-            if not rendered.is_set() and output.count(b"\x1b[?2026l") >= 2:
+            frames = output.count(b"\x1b[?2026l")
+            ready = frames >= 2 and b"PLAYING" in output
+            if full_screen and not screen_start and ready:
+                screen_start.append((len(output), frames))
+                os.write(master, b"f")
+            elif full_screen and screen_start and not resized[0] and frames > screen_start[0][1]:
+                fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 20, 80, 0, 0))
+                resized[0] = True
+            elif (
+                terminate
+                and ready
+                and not rendered.is_set()
+                and (not full_screen or (resized[0] and frames > screen_start[0][1] + 1))
+            ):
                 rendered.set()
-                if terminate:
-                    os.kill(os.getpid(), signal.SIGTERM)
-                else:
-                    os.write(master, b"q")
+                os.kill(os.getpid(), signal.SIGTERM)
+            elif (
+                full_screen
+                and not terminate
+                and resized[0]
+                and screen_start
+                and not rendered.is_set()
+                and frames > screen_start[0][1] + 1
+            ) or (not full_screen and not terminate and ready and not rendered.is_set()):
+                rendered.set()
+                os.write(master, b"q")
 
     reader = threading.Thread(target=drain, daemon=True)
     reader.start()
@@ -130,3 +154,6 @@ def test_native_frame_over_pty_restores_terminal(
     assert b"\x1b[?2026h" in output
     assert b"\x1b[?25h" in output
     assert b"q back" in output
+    if full_screen:
+        assert b"f full" in output
+        assert screen_start and b"q back" not in output[screen_start[0][0] :]

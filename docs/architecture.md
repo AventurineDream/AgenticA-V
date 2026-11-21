@@ -6,9 +6,9 @@ Eight albums are bundled as self-contained HTML players: the four completed A-01
 
 ## Album library
 
-`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. Entries sort by album artist, band, album title, then track number and title. Only the four completed A-01 albums and the A-02 albums recorded in ADR 0002 belong in the catalog. Each record also names its cover file and SHA-256 (`CoverArt`); `validate_catalog` checks their form.
+`catalog.py` is the typed public catalog. Album artist and band are the same credit because the sources have no distinct per-track musician credits. `aav tracks` keeps the stable album-artist/band/title/track order; the library starts by band and `s` toggles to album-title order. Catalog records include hash-pinned cover art and a short album description. Only the four completed A-01 albums and the A-02 albums recorded in ADR 0002 belong in the catalog; `validate_catalog` checks asset and credit form.
 
-`library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
+`library.py` paints a fixed-grid selector with the active palette. `NO_COLOR`, `TERM=dumb`, and `--no-color` use the no-color renderer; selection stays visible as a `>` mark. j/k and arrows move the selection. From 72 columns by 16 rows, the highlighted album's verified cover and description appear beside the list; resizing redraws the panel. Enter hands the terminal to `native.play_native` and stays in raw mode, because the audio child gets no stdin. `o` restores canonical terminal mode before the browser launch, then returns to the library.
 
 ## Native album playback
 

@@ -23,6 +23,7 @@ import signal
 import sys
 import tempfile
 import termios
+import textwrap
 import tty
 import webbrowser
 from collections.abc import Callable, Mapping, Sequence
@@ -39,6 +40,7 @@ from agentic_av.catalog import (
     credit_line,
     format_clock,
     movement_duration_s,
+    sort_entries_by,
 )
 from agentic_av.paint import Cell, _put, _single_column, _text_row, render_ansi
 from agentic_av.palette import Palette
@@ -401,18 +403,19 @@ def open_selected_and_resume(
 
 @dataclass
 class LibraryState:
-    """Selection and overlay for the album library.
+    """Selection and overlays for the interactive album library.
 
     Attributes:
-        selected: Index into the sorted catalog. Wrapped by key handling.
+        selected: Index into the currently sorted catalog.
         show_help: Whether the help plate covers the list.
-        note: Status line: the last browser launch, or why native playback
-            stopped.
+        note: Status line shown above the key hints.
+        sort_mode: Current ordering, either band or album.
     """
 
     selected: int = 0
     show_help: bool = False
     note: str = ""
+    sort_mode: str = "band"
 
 
 _KEY_ACTIONS = {
@@ -428,6 +431,8 @@ _KEY_ACTIONS = {
     "G": "last",
     "enter": "open",
     "o": "open_browser",
+    "s": "sort",
+    "S": "sort",
     "?": "help",
     "esc": "esc",
     "q": "quit",
@@ -441,9 +446,9 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
 
     j/k and the arrow keys move the selection and wrap. Enter asks the
     caller to play the selected movement natively; `o` asks for the browser
-    page. Neither fires while help is open. Help is modal: movement keys do
-    not change the selection underneath it. q and Ctrl-C quit even from
-    help. Escape closes help and does not quit the list.
+    page. `s` toggles band/album order. Neither sorting nor navigation fires
+    while help is open. q and Ctrl-C quit even from help. Escape closes help
+    and does not quit the list.
 
     Args:
         state: Selection and overlay, mutated in place.
@@ -451,7 +456,7 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
         count: Number of movements. Zero disables open and movement.
 
     Returns:
-        ``quit``, ``open``, ``open_browser``, or ``stay``.
+        ``quit``, ``open``, ``open_browser``, ``sort``, or ``stay``.
     """
     action = _KEY_ACTIONS.get(key)
     if action is None:
@@ -467,6 +472,9 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
         return "stay"
     if action == "esc":
         return "stay"
+    if action == "sort":
+        state.sort_mode = "album" if state.sort_mode == "band" else "band"
+        return "sort"
     if count <= 0:
         state.selected = 0
         return "stay"
@@ -482,6 +490,31 @@ def apply_library_key(state: LibraryState, key: str, *, count: int) -> str:
     elif action == "last":
         state.selected = count - 1
     return "stay"
+
+
+def _resort_preserving_selection(
+    entries: Sequence[CatalogEntry], selected: int, mode: str
+) -> tuple[tuple[CatalogEntry, ...], int]:
+    """Reorder library rows without changing the highlighted movement.
+
+    Args:
+        entries: Current order.
+        selected: Current zero-based row.
+        mode: New ``band`` or ``album`` order.
+
+    Returns:
+        The sorted rows and the selected movement's new index.
+    """
+    if not entries:
+        return (), 0
+    focused = entries[selected % len(entries)]
+    ordered = sort_entries_by(entries, mode)
+    index = next(
+        i
+        for i, entry in enumerate(ordered)
+        if entry.album.asset == focused.album.asset and entry.track.number == focused.track.number
+    )
+    return ordered, index
 
 
 def _blank(width: int, palette: Palette) -> list[Cell]:
@@ -560,6 +593,7 @@ def _help_lines() -> tuple[str, ...]:
         "j / down      next track",
         "k / up        previous track",
         "home / end    first or last track",
+        "s             toggle band / album order",
         "enter         play the selected movement in the terminal",
         "o             open the album page in the browser",
         "?             this guide",
@@ -595,9 +629,10 @@ def _header_row(
     *,
     selected: int,
     count: int,
+    sort_mode: str,
     theme_label: str,
 ) -> list[Cell]:
-    """Paint the wordmark, position, and theme without overlapping them."""
+    """Paint the wordmark, position, sort mode, and theme without overlapping."""
     row = _blank(width, palette)
     if width < 8:
         _put(row, 0, "AAV"[:width], palette.accent, palette.background)
@@ -608,10 +643,14 @@ def _header_row(
     if theme and theme_at >= 12:
         _put(row, theme_at, theme, palette.muted, palette.background)
     counter = f"{selected + 1}/{count}" if count else "0/0"
+    sort_label = f"{sort_mode.upper()} SORT"
     room_end = theme_at if theme and theme_at >= 12 else width
-    counter_at = 12
-    if counter_at + len(counter) < room_end:
-        _put(row, counter_at, counter, palette.muted, palette.background)
+    sort_at = max(12, room_end - len(sort_label) - 1)
+    if sort_at + len(sort_label) <= room_end:
+        _put(row, sort_at, sort_label, palette.muted, palette.background)
+        room_end = sort_at - 1
+    if 12 + len(counter) < room_end:
+        _put(row, 12, counter, palette.muted, palette.background)
     return row
 
 
@@ -663,9 +702,9 @@ def _track_row(
 
 def _hint_text(width: int) -> str:
     """Choose a key legend that fits without clipping the quit key."""
-    wide = "j/k or arrows select    enter play    o browser    ? help    q quit"
-    mid = "j/k select  enter play  o web  ? help  q quit"
-    short = "j/k enter o ? q"
+    wide = "j/k select    s sort band/album    enter play    o browser    ? help    q quit"
+    mid = "j/k select  s sort  enter play  o web  ? help  q quit"
+    short = "j/k s enter o ? q"
     if width >= len(wide):
         return wide
     if width >= len(mid):
@@ -683,25 +722,28 @@ def compose_library(
     show_help: bool = False,
     note: str = "",
     theme_label: str = "",
+    sort_mode: str = "band",
+    panel_start: int | None = None,
 ) -> list[list[Cell]]:
     """Return an exact `height` by `width` library frame.
 
+    A wide layout may reserve a blank right-side panel for separately rendered
+    cover art and description; the track list remains in the left region.
     Very small terminals keep the selected movement and drop chrome from the
-    bottom up. Every row is `width` single-column cells. Track text goes
-    through the painter's normalizer, so a title cannot inject escapes or
-    widen a row. Non-positive sizes are raised to 1, matching `compose`.
+    bottom up. Track and panel text go through `_text_row`, so titles and blurbs
+    cannot inject escapes or widen a row. Non-positive sizes are raised to 1.
 
     Args:
-        entries: Movements in library order.
-        selected: Selected index. Out-of-range values wrap when the list
-            is non-empty.
+        entries: Movements in the active band or album order.
+        selected: Selected row, wrapped when the list is non-empty.
         width: Columns.
         height: Rows.
-        palette: Active role set. Ignored by the no-color renderer; the
-            `>` mark remains.
+        palette: Active role set. The `>` mark remains in no-color mode.
         show_help: Replace the list with the help plate.
         note: Status line above the hint, dropped when the row does not fit.
-        theme_label: Theme name shown on the header. Defaults to the palette name.
+        theme_label: Theme name shown on the header.
+        sort_mode: ``band`` or ``album``, displayed in the header.
+        panel_start: First zero-based column of the optional right-hand panel.
 
     Returns:
         A frame whose dimensions match the raised width and height.
@@ -709,6 +751,7 @@ def compose_library(
     width, height = max(1, width), max(1, height)
     if show_help:
         return _help_frame(width, height, palette)
+    list_width = max(1, min(width, panel_start if panel_start is not None else width))
     count = len(entries)
     index = 0 if count == 0 else selected % count
     header, note_rows, hint = _chrome(height, has_note=bool(note))
@@ -716,43 +759,129 @@ def compose_library(
     if header:
         rows.append(
             _header_row(
-                width,
+                list_width,
                 palette,
                 selected=index,
                 count=count,
+                sort_mode=sort_mode,
                 theme_label=theme_label or palette.name,
             )
         )
     if not count:
-        rows.append(_text_row(" No public albums", width, palette.muted, palette.background))
+        rows.append(_text_row(" No public albums", list_width, palette.muted, palette.background))
     body = height - header - note_rows - hint
     lines = _display_lines(entries)
-    focus = 0
-    for line_index, (kind, entry_index) in enumerate(lines):
-        if kind == "track" and entry_index == index:
-            focus = line_index
-            break
+    focus = next(
+        (
+            line_index
+            for line_index, (kind, entry_index) in enumerate(lines)
+            if kind == "track" and entry_index == index
+        ),
+        0,
+    )
     start = _window_start(focus, body, len(lines))
-    visible = lines[start : start + body]
-    for kind, entry_index in visible:
+    for kind, entry_index in lines[start : start + body]:
         entry = entries[entry_index]
         if kind == "group":
-            rows.append(_group_row(width, palette, entry))
+            rows.append(_group_row(list_width, palette, entry))
         else:
-            rows.append(_track_row(width, palette, entry, selected=entry_index == index))
+            rows.append(_track_row(list_width, palette, entry, selected=entry_index == index))
     while len(rows) < height - note_rows - hint:
-        rows.append(_blank(width, palette))
+        rows.append(_blank(list_width, palette))
     if note_rows:
-        rows.append(_text_row(f" {note}", width, palette.warning, palette.background))
+        rows.append(_text_row(f" {note}", list_width, palette.warning, palette.background))
     if hint:
-        rows.append(_text_row(_hint_text(width), width, palette.muted, palette.background))
-    pad = _blank(width, palette)
+        rows.append(
+            _text_row(_hint_text(list_width), list_width, palette.muted, palette.background)
+        )
+    pad = _blank(list_width, palette)
     rows = rows[:height]
     rows.extend(pad for _ in range(height - len(rows)))
     return [
-        row[:width] + [Cell(" ", palette.foreground, palette.background)] * max(0, width - len(row))
+        row[:list_width]
+        + [Cell(" ", palette.foreground, palette.background)] * (width - list_width)
         for row in rows
     ]
+
+
+def _library_panel_bytes(
+    entry: CatalogEntry,
+    pixels: object | None,
+    *,
+    panel_start: int,
+    width: int,
+    height: int,
+    palette: Palette,
+    color_mode: str,
+) -> bytes:
+    """Render highlighted-album art and its blurb in the reserved right panel.
+
+    Args:
+        entry: Highlighted song's album.
+        pixels: Verified cover pixels, or None when unavailable.
+        panel_start: First zero-based panel column.
+        width: Terminal columns.
+        height: Terminal rows.
+        palette: Active theme roles.
+        color_mode: ``truecolor``, ``256``, or ``none``.
+
+    Returns:
+        Cursor-addressed bytes over the already-painted blank panel.
+    """
+    from agentic_av.viz.cover import render_cover
+
+    panel_width = width - panel_start
+    if panel_width < 14 or height < 12:
+        return b""
+    title = entry.album.title
+    title_row = _text_row(
+        textwrap.shorten(title, width=panel_width, placeholder="…"),
+        panel_width,
+        palette.accent,
+        palette.background,
+    )
+    out = [
+        f"{chr(27)}[2;{panel_start + 1}H".encode() + render_ansi([title_row], color_mode).encode()
+    ]
+    top = 3
+    description_top = top
+    if pixels is not None:
+        rows = min(12, max(6, (height - 8) // 2))
+        cols = min(panel_width - 2, rows * 2)
+        if rows >= 6 and cols >= 12:
+            left = panel_start + (panel_width - cols) // 2
+            out.append(
+                render_cover(
+                    pixels,
+                    cols=cols,
+                    rows=rows,
+                    tier="half",
+                    color_mode=color_mode,
+                    top=top,
+                    left=left,
+                )
+            )
+            description_top = top + rows + 1
+    if pixels is None:
+        description_top += 1
+        out.append(
+            f"{chr(27)}[{top};{panel_start + 1}H".encode()
+            + render_ansi(
+                [_text_row("Art unavailable", panel_width, palette.muted, palette.background)],
+                color_mode,
+            ).encode()
+        )
+    description = entry.album.description or "No album description available."
+    lines = textwrap.wrap(
+        description, width=max(1, panel_width - 2), break_long_words=True, break_on_hyphens=False
+    )
+    for offset, line in enumerate(lines[: max(0, height - description_top + 1)]):
+        row = _text_row(f" {line}", panel_width, palette.foreground, palette.background)
+        out.append(
+            f"{chr(27)}[{description_top + offset};{panel_start + 1}H".encode()
+            + render_ansi([row], color_mode).encode()
+        )
+    return b"".join(out)
 
 
 class _TTY:
@@ -816,10 +945,13 @@ def run_library(
 ) -> int:
     """Run the album library until q or Ctrl-C.
 
-    SIGTERM leaves through the same cleanup as a normal exit, including
-    from native playback. Enter plays the movement in the terminal and
-    returns here on q. `o` restores the terminal before the browser launch
-    and returns afterward, with a note telling the listener to click Play.
+    The `s` key switches band/album ordering while keeping the same movement
+    selected. At 72 columns by 16 rows, the highlighted album's art and
+    description occupy a panel beside the track list. Enter plays natively;
+    `o` opens the web page.
+
+    Side effects: Enters raw terminal mode, writes frames, and may launch
+        native audio or a browser in response to the selected keys.
 
     Args:
         palette: Active palette. Roles color the frame; `color_mode` decides
@@ -843,13 +975,16 @@ def run_library(
     """
     # Imported here: `native` imports this module for its cache helpers.
     from agentic_av.native import NativeError, play_native
+    from agentic_av.viz.cover import ArtworkError, load_cover
 
     source = input_stream or sys.stdin
     target = output_stream or sys.stdout
     if not source.isatty() or not target.isatty():
         raise RuntimeError("interactive library needs a TTY; use `aav tracks` for the catalog")
-    catalog = tuple(catalog_entries() if entries is None else entries)
+    catalog = sort_entries_by(tuple(catalog_entries() if entries is None else entries), "band")
     state = LibraryState()
+    cover_cache: dict[str, object | None] = {}
+    panel_cache: dict[tuple[str, int, int, int, str], bytes] = {}
     term = _TTY(source, target)
     previous = signal.getsignal(signal.SIGTERM)
     decoder = KeyDecoder()
@@ -862,6 +997,23 @@ def run_library(
         while active:
             width, height = _size(source.fileno())
             if dirty or (width, height) != last_size:
+                panel_start = width * 5 // 8 if width >= 72 and height >= 16 else None
+                pixels = None
+                selected_entry = catalog[state.selected] if catalog else None
+                if panel_start is not None and selected_entry is not None and not state.show_help:
+                    key = selected_entry.album.asset
+                    if key not in cover_cache:
+                        if selected_entry.album.cover is None:
+                            cover_cache[key] = None
+                        else:
+                            try:
+                                cover_cache[key] = load_cover(
+                                    selected_entry.album.cover.asset,
+                                    selected_entry.album.cover.sha256,
+                                )
+                            except ArtworkError:
+                                cover_cache[key] = None
+                    pixels = cover_cache[key]
                 frame = render_ansi(
                     compose_library(
                         catalog,
@@ -872,10 +1024,34 @@ def run_library(
                         show_help=state.show_help,
                         note=state.note,
                         theme_label=theme_label or palette.name,
+                        sort_mode=state.sort_mode,
+                        panel_start=panel_start if not state.show_help else None,
                     ),
                     color_mode,
                 )
+                panel = b""
+                if panel_start is not None and selected_entry is not None and not state.show_help:
+                    panel_key = (
+                        selected_entry.album.asset,
+                        panel_start,
+                        width,
+                        height,
+                        color_mode,
+                    )
+                    if panel_key not in panel_cache:
+                        panel_cache[panel_key] = _library_panel_bytes(
+                            selected_entry,
+                            pixels,
+                            panel_start=panel_start,
+                            width=width,
+                            height=height,
+                            palette=palette,
+                            color_mode=color_mode,
+                        )
+                    panel = panel_cache[panel_key]
                 target.write("\x1b[H" + _terminal_frame(frame) + "\x1b[J")
+                if panel:
+                    target.write(panel.decode("utf-8"))
                 target.flush()
                 dirty = False
                 last_size = (width, height)
@@ -885,6 +1061,10 @@ def run_library(
             keys = decoder.feed(os.read(source.fileno(), 64)) if readable else decoder.flush()
             for key in keys:
                 action = apply_library_key(state, key, count=len(catalog))
+                if action == "sort":
+                    catalog, state.selected = _resort_preserving_selection(
+                        catalog, state.selected, state.sort_mode
+                    )
                 dirty = True
                 if action == "quit":
                     active = False

@@ -22,6 +22,7 @@ All notable changes to this project are documented here.
 - Add full, reduced, and still motion modes with a terminal-color fallback.
 - Show each album's bundled cover as a still panel beside the native player's stage. Each cover's SHA-256 is checked before Pillow decodes it. The panel is omitted below six canvas rows or when it would leave a stage narrower than 30 columns. For square art with 2:1 terminal cells, it appears from 44 columns; taller cells can require more. Failed verification is noted in the transport.
 - Bundle the four A-01 covers Aven selected on 2026-11-18 (Saturn 4, Fish 1, Ground 3, Atlas 4) as hash-pinned `CoverArt` records, byte-identical to their Drive selection receipts (ADR 0002 amendment). Every bundled album now shows a cover.
+- Add library sort modes for band and album, keeping the same highlighted movement when the order changes. On wide terminals, show the highlighted album's verified cover and description beside the track list.
 
 ### Changed
 
@@ -33,6 +34,8 @@ All notable changes to this project are documented here.
 - Add scene previews, benchmarks, and a conservative regional flash-risk regression meter. This is not flash-safety certification.
 - Replace extraction sidecar revision 2 with revision 3, retaining full normalized scores and removing obsolete simplified event rows.
 
+- Refine the four A-02 native visualizer families for denser detail and smoother motion without changing their album identities.
+- Add `f` full-screen mode to native album playback; the stage fills the terminal without transport chrome, survives resizes and movement changes, and returns to the normal page with `f`.
 - The abstract visual player is `aav demo`. `aav play --show` and `aav play --scene` keep the previous visual behavior. `preview`, `themes`, and `gallery` are unchanged.
 
 - Color stages sample both halves of each cell, and the four scenes use distinct motifs instead of similar bands.
