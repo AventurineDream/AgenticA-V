@@ -1,0 +1,29 @@
+{
+ "source": "/usr/share/omarchy/themes/last-horizon//colors.toml",
+ "slots": {
+  "plate_top": "#3e3a39",
+  "plate_mid": "#0c0b0c",
+  "plate_bottom": "#060606",
+  "glow": "#6e6b6a",
+  "floor_shadow": "#030303",
+  "body": "#b59790",
+  "body_hi": "#c5aea8",
+  "body_shade": "#9d837d",
+  "ball_hi": "#e1d5d3",
+  "ring": "#d6c6c2",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#232b45",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 6.07,
+  "body_vs_plate": 4.17,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}

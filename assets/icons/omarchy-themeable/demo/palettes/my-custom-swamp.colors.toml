@@ -1,0 +1,8 @@
+# A made-up custom theme to exercise the fallbacks: no `mode`, no lighter/darker
+# backgrounds, an 8-digit #rrggbbaa background, and an accent that is far too
+# dark to read on its own background (the script must pick something else).
+background = "#1b2a1fff"
+foreground = "#d8e6c8"
+accent = "#24412c"
+green = "#7fbf5a"
+magenta = "#c06fa8"

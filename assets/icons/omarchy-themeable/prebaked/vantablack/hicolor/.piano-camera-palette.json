@@ -1,0 +1,29 @@
+{
+ "source": "/usr/share/omarchy/themes/vantablack//colors.toml",
+ "slots": {
+  "plate_top": "#2a2a2a",
+  "plate_mid": "#000000",
+  "plate_bottom": "#070707",
+  "glow": "#5f5f5f",
+  "floor_shadow": "#040404",
+  "body": "#8d8d8d",
+  "body_hi": "#a6a6a6",
+  "body_shade": "#7b7b7b",
+  "ball_hi": "#d1d1d1",
+  "ring": "#c0c0c0",
+  "keys": "#fbf4e6",
+  "key_black": "#1d1f2b",
+  "ink": "#1d1f2b",
+  "glass": "#232c45",
+  "edge": "#ffffff",
+  "edge_opacity": "0.10"
+ },
+ "checks": {
+  "mode": "dark",
+  "body_from": "accent",
+  "body_vs_ink": 4.93,
+  "body_vs_plate": 4.32,
+  "plate_vs_background": 1.0
+ },
+ "notes": []
+}
