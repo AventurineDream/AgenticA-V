@@ -7,3 +7,4 @@
 - [Decision 0004](decisions/0004-numpy-mosaic-visualizers.md) — new numpy mosaic art, audio/score pipeline, fallback and performance; supersedes 0003's faithful-port requirement.
 - [Scene guide](visuals.md) — all 37 movement worlds, glyph controls, previews, and measurement limitations.
 - [Project roadmap](plans/PROJECT-ROADMAP.md) — project direction and release scope.
+- [MIDI input spike](spikes/2026-11-21-rtmidi-omarchy.md) — RtMidi binding validation on Omarchy (ALSA and JACK loopback; no hardware tested).
