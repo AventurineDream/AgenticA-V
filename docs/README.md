@@ -8,3 +8,4 @@
 - [Scene guide](visuals.md) — all 37 movement worlds, glyph controls, previews, and measurement limitations.
 - [Band and album spec](spec/band-album-spec.md) — band, visual group, album and track docs, their notation, and the validator; with a [worked test](spec/worked-test/README.md).
 - [Project roadmap](plans/PROJECT-ROADMAP.md) — project direction and release scope.
+- [MIDI input spike](spikes/2026-11-21-rtmidi-omarchy.md) — RtMidi binding validation on Omarchy (ALSA and JACK loopback; no hardware tested).
