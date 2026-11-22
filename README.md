@@ -27,6 +27,7 @@ uv run aav demo
 | Run tests | `uv run pytest` |
 | Lint | `uv run ruff check` |
 | Format | `uv run ruff format .` |
+| Check band/album docs | `uv run python -m agentic_av.registry` |
 | Full gate | `uv run ruff format --check && uv run ruff check && uv run pytest` |
 
 ### Library controls
@@ -101,12 +102,21 @@ Color frames sample the field twice per cell. `aav gallery` prints one stage fra
 
 A show TOML file requires `title`, positive `duration` in seconds, and a non-empty list of `programs` (`garden`, `aperture`, `scan`, `tide`). Optional `detail` and integer `tempo` fields are shown in the player.
 
+## Bands and albums
+
+Every band, visual group, album and track is a Markdown doc with a TOML card, written to the [band and album spec](docs/spec/band-album-spec.md) from the [templates](templates/). `uv run python -m agentic_av.registry` checks every doc in `bands/`, `visual-groups/` and `albums/` and prints `path:line: message` for each problem.
+
+To make an album, fill in the Commission block at the top of [prompts/swarm.md](prompts/swarm.md), paste the band and visual group docs into it, and paste the whole file into any AI chat or agent. The reply holds every track doc and the album doc; save each at its `File:` path and run the validator. The [worked test](docs/spec/worked-test/README.md) shows one track per band made this way.
+
 ## Layout
 
 - `src/agentic_av/` — CLI, album catalog, palettes, abstract field programs, renderer, and TTY loop.
 - `src/agentic_av/albums/` — authorized public album HTML archives.
 - `src/agentic_av/artwork/` — the bundled A-02 cover JPEGs, hash-checked on load.
-- `tests/` — isolated color, Omarchy, layout, clock, CLI, library, and input tests.
+- `src/agentic_av/registry.py`, `notation.py` — the band/album doc validator and its notation checks.
+- `bands/`, `visual-groups/`, `albums/` — band, visual group, album and track docs.
+- `templates/`, `prompts/` — doc templates and the swarm prompt.
+- `tests/` — isolated color, Omarchy, layout, clock, CLI, library, input, and band/album doc tests.
 - `docs/` — architecture and decisions.
 - `docs/plans/` — project roadmap.
 

@@ -1,10 +1,10 @@
 # Terminally Agentic A/V — Agent Guide
 
-<!-- Owner: Aven. Maintained by: Malachite. Last verified: 2026-11-14. -->
+<!-- Owner: Aven. Maintained by: Malachite. Last verified: 2026-11-21. -->
 
 ## Purpose and sources of truth
 
-This repository contains the terminal album library and reusable visual player tooling. Project direction and scope are in `docs/plans/PROJECT-ROADMAP.md`; implementation contracts are in `docs/architecture.md`. The project's vault note is `10_Projects/Active/Terminally Agentic AV.md`.
+This repository contains the terminal album library and reusable visual player tooling. Project direction and scope are in `docs/plans/PROJECT-ROADMAP.md`; implementation contracts are in `docs/architecture.md`. Band, visual group, album and track docs follow `docs/spec/band-album-spec.md`. The project's vault note is `10_Projects/Active/Terminally Agentic AV.md`.
 
 ## Setup
 
@@ -21,6 +21,7 @@ uv sync --group dev
 | Typecheck | Not configured |
 | Test (fast) | `uv run pytest` |
 | Test (full / slow) | `uv run pytest` |
+| Check band/album docs | `uv run python -m agentic_av.registry` |
 | Full gate (run before handoff) | `uv run ruff format --check && uv run ruff check && uv run pytest` |
 
 ## Definition of done
@@ -34,7 +35,9 @@ uv sync --group dev
 ## Conventions
 
 - Public scope is eight albums: the four completed A-01 albums, Nurse Log A-02 under Aven's single-album approval, and Drowning Collective A-02, Coupon Seance A-02, and Quiet Machinery A-02 under her 2026-11-18 make/bundle/PR run instruction (ADR 0002). Merge is her publication approval. The four A-01 covers and Nurse Log A-02's cover are creator-selected; the Drowning Collective, Coupon Seance, and Quiet Machinery A-02 covers are agent-proposed and approved at merge. All are hash-pinned. Bundled albums and covers are CC0; code is MIT (LICENSE and LICENSE-CC0). Do not add other albums, in-progress work, archives, stems, source ZIPs, candidate artwork, or private material.
-- Album artist and band are the same credit. The sources have no distinct per-track musician credits; do not invent any.
+- Album artist and band are the same credit. The A-01 and A-02 sources have no distinct per-track musician credits; do not invent any. Albums made under the band/album spec record per-track member credits, with models, in their track docs.
+- Bands and visual groups are docs with a TOML card in `bands/` and `visual-groups/`; albums are `albums/<B-NN-band>/<A-NN-album>/album.md` plus a `tracks/` folder. `docs/spec/band-album-spec.md` is the contract, `templates/` are the starting points, and `agentic_av.registry` (with `agentic_av.notation`) is the validator. Change the spec, templates, validator and `prompts/swarm.md` together: `tests/test_registry.py` fails when the prompt's templates drift from `templates/`.
+- Test-scope docs (`scope = "test"`) live under `docs/spec/worked-test/`, never in `albums/`.
 - Bundled `.html.gz` archives are read-only.
 - `aav play` with no `--show` or `--scene` is the album library. `aav demo`, and `aav play --show` or `--scene`, are the abstract visual player. `preview`, `themes`, and `gallery` stay on that visual path.
 - `colors.toml` is read-only. Omarchy theme changes are discovered from its applied state; the player never edits desktop configuration.
@@ -48,7 +51,7 @@ uv sync --group dev
 
 ## Boundaries
 
-Do not add private band content or choose a code/media license on Aven's behalf. Do not edit Omarchy configuration from this repository. Do not overwrite the bundled album archives. Avoid compatibility aliases that hide a changed CLI contract.
+Do not add private band content or choose a code/media license on Aven's behalf. The docs in `bands/`, `visual-groups/` and `albums/` are public by design: fictional personas, rosters and process records only; keep private notes, reviews in progress and unreleased album material out of them. Do not edit Omarchy configuration from this repository. Do not overwrite the bundled album archives. Avoid compatibility aliases that hide a changed CLI contract.
 
 ## Repository map
 
@@ -56,7 +59,13 @@ Do not add private band content or choose a code/media license on Aven's behalf.
 - `src/agentic_av/albums/` — authorized public album HTML archives. Do not overwrite them.
 - `src/agentic_av/artwork/` — the bundled album cover JPEGs (A-01 and A-02), hash-checked on load. Do not overwrite them.
 - `src/agentic_av/viz/albums/undertow.py` — six Drowning Collective A-02 scenes; object score rows preserve Iris's separate `right`/`left` voices.
-- `tests/` — isolated palette, layout, CLI, transport, library, and input tests.
+- `src/agentic_av/registry.py`, `src/agentic_av/notation.py` — the band/album doc validator (`python -m agentic_av.registry`) and its notation checks.
+- `bands/`, `visual-groups/` — band and visual group docs.
+- `albums/` — album and track docs, one folder per band and album.
+- `templates/` — band, visual group, album and track templates.
+- `prompts/swarm.md` — the one-shot swarm prompt that turns a commission into album docs.
+- `docs/spec/` — the band/album spec and its worked test.
+- `tests/` — isolated palette, layout, CLI, transport, library, input, and band/album doc tests.
 - `docs/` — architecture and decision records.
 - `docs/plans/` — project roadmap.
 

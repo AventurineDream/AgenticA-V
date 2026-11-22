@@ -6,4 +6,5 @@
 - [Decision 0003](decisions/0003-native-album-playback.md) — Enter plays the restored code-only visuals and audio in the terminal.
 - [Decision 0004](decisions/0004-numpy-mosaic-visualizers.md) — new numpy mosaic art, audio/score pipeline, fallback and performance; supersedes 0003's faithful-port requirement.
 - [Scene guide](visuals.md) — all 37 movement worlds, glyph controls, previews, and measurement limitations.
+- [Band and album spec](spec/band-album-spec.md) — band, visual group, album and track docs, their notation, and the validator; with a [worked test](spec/worked-test/README.md).
 - [Project roadmap](plans/PROJECT-ROADMAP.md) — project direction and release scope.
