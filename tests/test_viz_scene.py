@@ -5,11 +5,11 @@ from dataclasses import FrozenInstanceError
 import numpy as np
 import pytest
 
-from agentic_av.viz.albums import build_scene
-from agentic_av.viz.albums.generic import GenericScene
-from agentic_av.viz.audio import SILENT
-from agentic_av.viz.scene import Frame, Movement
-from agentic_av.viz.surface import Surface
+from clangor_visualis_machina.viz.albums import build_scene
+from clangor_visualis_machina.viz.albums.generic import GenericScene
+from clangor_visualis_machina.viz.audio import SILENT
+from clangor_visualis_machina.viz.scene import Frame, Movement
+from clangor_visualis_machina.viz.surface import Surface
 
 
 def _movement():
@@ -32,7 +32,7 @@ def test_unknown_registry_uses_generic():
 def test_known_import_failure_is_not_hidden(monkeypatch):
     from dataclasses import replace
 
-    import agentic_av.viz.albums as albums
+    import clangor_visualis_machina.viz.albums as albums
 
     def broken(_module):
         raise ImportError("broken album")

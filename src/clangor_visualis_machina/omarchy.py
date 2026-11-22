@@ -13,7 +13,7 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from agentic_av.palette import Palette, PaletteError, palette_from_omarchy
+from clangor_visualis_machina.palette import Palette, PaletteError, palette_from_omarchy
 
 
 @dataclass(frozen=True, slots=True)

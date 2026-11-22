@@ -15,10 +15,10 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass
 
-from agentic_av.colorutil import mix, parse_hex, to_xterm256
-from agentic_av.field import PROGRAM_LABELS, sample
-from agentic_av.palette import Palette
-from agentic_av.show import Show
+from clangor_visualis_machina.colorutil import mix, parse_hex, to_xterm256
+from clangor_visualis_machina.field import PROGRAM_LABELS, sample
+from clangor_visualis_machina.palette import Palette
+from clangor_visualis_machina.show import Show
 
 DENSITY = " ░▒▓█"
 # 4x4 Bayer matrix. Flat NO_COLOR fields otherwise collapse into solid bands.

@@ -23,8 +23,8 @@ from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
 
-from agentic_av import __version__
-from agentic_av.catalog import (
+from clangor_visualis_machina import __version__
+from clangor_visualis_machina.catalog import (
     CatalogEntry,
     bundled_assets,
     catalog_entries,
@@ -33,9 +33,15 @@ from agentic_av.catalog import (
     movement_duration_s,
     sort_entries_by,
 )
-from agentic_av.paint import Cell, _put, _single_column, _text_row, render_ansi
-from agentic_av.palette import Palette
-from agentic_av.tty import KeyDecoder, _on_sigterm, _PlayerTerminatedError, _size, _terminal_frame
+from clangor_visualis_machina.paint import Cell, _put, _single_column, _text_row, render_ansi
+from clangor_visualis_machina.palette import Palette
+from clangor_visualis_machina.tty import (
+    KeyDecoder,
+    _on_sigterm,
+    _PlayerTerminatedError,
+    _size,
+    _terminal_frame,
+)
 
 
 class AlbumError(RuntimeError):
@@ -56,7 +62,7 @@ def read_bundled_album(asset: str) -> bytes:
     """
     if asset not in bundled_assets():
         raise AlbumError(f"album asset {asset!r} is not in the public catalog")
-    resource = files("agentic_av").joinpath("albums", asset)
+    resource = files("clangor_visualis_machina").joinpath("albums", asset)
     try:
         return resource.read_bytes()
     except OSError as error:
@@ -83,8 +89,8 @@ def album_cache_dir(
 ) -> Path:
     """Return the stable root for extracted album media and score caches.
 
-    The historical directory name is retained so native-only playback can reuse
-    warm caches created before the browser shortcut was removed.
+    The directory is named for the app. Caches under the pre-rename `agentic-av`
+    name are not read, so the first play of each album re-extracts its cache.
 
     Args:
         cache_home: Override for the XDG cache home. When omitted, `$XDG_CACHE_HOME`
@@ -92,14 +98,14 @@ def album_cache_dir(
         env: Environment for the XDG lookup. Defaults to the process environment.
 
     Returns:
-        `<cache home>/agentic-av/<package version>/track-start-1`. The directory
+        `<cache home>/clangor-visualis-machina/<package version>/track-start-1`. The directory
         is not created.
     """
     if cache_home is None:
         variables = os.environ if env is None else env
         configured = variables.get("XDG_CACHE_HOME", "").strip()
         cache_home = Path(configured) if configured else Path.home() / ".cache"
-    return cache_home / "agentic-av" / __version__ / _CACHE_GENERATION
+    return cache_home / "clangor-visualis-machina" / __version__ / _CACHE_GENERATION
 
 
 def _atomic_write(path: Path, payload: bytes) -> None:
@@ -546,7 +552,7 @@ def _library_panel_bytes(
     Returns:
         Cursor-addressed bytes over the already-painted blank panel.
     """
-    from agentic_av.viz.cover import render_cover
+    from clangor_visualis_machina.viz.cover import render_cover
 
     panel_width = width - panel_start
     if panel_width < 14 or height < 12:
@@ -689,8 +695,8 @@ def run_library(
         CatalogError: The bundled catalog is inconsistent.
     """
     # Imported here: `native` imports this module for its cache helpers.
-    from agentic_av.native import NativeError, play_native
-    from agentic_av.viz.cover import ArtworkError, load_cover
+    from clangor_visualis_machina.native import NativeError, play_native
+    from clangor_visualis_machina.viz.cover import ArtworkError, load_cover
 
     source = input_stream or sys.stdin
     target = output_stream or sys.stdout

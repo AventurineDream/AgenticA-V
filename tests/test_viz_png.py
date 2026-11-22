@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from agentic_av.viz.glyphs import TIERS, Cells
-from agentic_av.viz.png import rasterize, write_png
+from clangor_visualis_machina.viz.glyphs import TIERS, Cells
+from clangor_visualis_machina.viz.png import rasterize, write_png
 
 
 @pytest.mark.parametrize("tier", ["octant", "sextant", "quadrant", "half"])

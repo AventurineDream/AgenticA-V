@@ -3,12 +3,12 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentic-av"
+name = "clangor-visualis-machina"
 version = "0.1.0"
-description = "Terminal album library and abstract visual player. All rights reserved."
+description = "Terminal album library and abstract visual player. Code MIT; bundled albums CC0."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "All rights reserved" }
+license = { text = "MIT" }
 authors = [{ name = "Aventurine Atalanta" }]
 keywords = ["terminal", "player", "omarchy", "theme"]
 classifiers = [
@@ -19,13 +19,13 @@ classifiers = [
 dependencies = ["numpy>=2.0", "Pillow>=11.0"]
 
 [project.scripts]
-aav = "agentic_av.cli:main"
+aav = "clangor_visualis_machina.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-agentic_av = ["demo/*.toml", "albums/*.html.gz", "artwork/*.jpg"]
+clangor_visualis_machina = ["demo/*.toml", "albums/*.html.gz", "artwork/*.jpg"]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.8", "pyte>=0.8.2"]

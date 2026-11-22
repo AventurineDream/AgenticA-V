@@ -6,7 +6,7 @@ files are kept as the model wrote them. They are test-scope docs (`scope = "test
 they live here and not in `albums/`. `tests/test_registry.py` validates them with the repository docs.
 
 ```bash
-uv run python -m agentic_av.registry . docs/spec/worked-test
+uv run python -m clangor_visualis_machina.registry . docs/spec/worked-test
 # 12 docs and album folders checked, 0 problems
 ```
 

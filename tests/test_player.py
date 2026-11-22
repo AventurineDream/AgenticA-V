@@ -1,13 +1,13 @@
 """Fixed-grid painting, motion programs, and monotonic playhead contracts."""
 
-from agentic_av.colorutil import relative_luminance
-from agentic_av.field import PROGRAM_LABELS, sample
-from agentic_av.paint import FrameRequest, _shade, compose, render_ansi, render_plain
-from agentic_av.palette import builtin_palette, builtin_palettes, palette_from_omarchy
-from agentic_av.session import Session
-from agentic_av.show import Show, ShowError, demo_show, load_show
-from agentic_av.transport import Playhead
-from agentic_av.tty import _terminal_frame
+from clangor_visualis_machina.colorutil import relative_luminance
+from clangor_visualis_machina.field import PROGRAM_LABELS, sample
+from clangor_visualis_machina.paint import FrameRequest, _shade, compose, render_ansi, render_plain
+from clangor_visualis_machina.palette import builtin_palette, builtin_palettes, palette_from_omarchy
+from clangor_visualis_machina.session import Session
+from clangor_visualis_machina.show import Show, ShowError, demo_show, load_show
+from clangor_visualis_machina.transport import Playhead
+from clangor_visualis_machina.tty import _terminal_frame
 
 
 class Clock:

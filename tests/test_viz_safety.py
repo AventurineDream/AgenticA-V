@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from agentic_av.viz.safety import FlashMeter
+from clangor_visualis_machina.viz.safety import FlashMeter
 
 
 def _swap(phase: int, shape: tuple[int, int] = (36, 60)) -> np.ndarray:

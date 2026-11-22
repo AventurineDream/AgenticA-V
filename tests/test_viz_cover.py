@@ -16,8 +16,8 @@ import numpy as np
 import pyte
 import pytest
 
-from agentic_av.catalog import ALBUMS, validate_catalog
-from agentic_av.viz.cover import ArtworkError, decode_cover, load_cover, render_cover
+from clangor_visualis_machina.catalog import ALBUMS, validate_catalog
+from clangor_visualis_machina.viz.cover import ArtworkError, decode_cover, load_cover, render_cover
 
 _ASSET = "nurse-log-the-forest-has-a-pocket.jpg"
 _POCKET_ALBUM = "nurse-log-the-forest-has-a-pocket.html.gz"
@@ -62,7 +62,7 @@ _SGR = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def _artwork_bytes() -> bytes:
-    return files("agentic_av").joinpath("artwork", _ASSET).read_bytes()
+    return files("clangor_visualis_machina").joinpath("artwork", _ASSET).read_bytes()
 
 
 def _replay(frame: bytes | str, width: int, height: int) -> pyte.Screen:
@@ -109,28 +109,28 @@ def test_only_approved_covers_are_recorded_and_the_artwork_folder_holds_only_the
     }
     names = sorted(
         path.name
-        for path in files("agentic_av").joinpath("artwork").iterdir()
+        for path in files("clangor_visualis_machina").joinpath("artwork").iterdir()
         if not path.name.startswith(".") and path.name != "__pycache__"
     )
     assert names == sorted(
         [_ASSET, _DC2_ASSET, _HAUNT_ASSET, _DUSK_ASSET]
         + [asset for asset, _, _ in _A01_RECEIPTS.values()]
     )
-    dc2 = files("agentic_av").joinpath("artwork", _DC2_ASSET).read_bytes()
+    dc2 = files("clangor_visualis_machina").joinpath("artwork", _DC2_ASSET).read_bytes()
     assert len(dc2) == 404_381
     assert hashlib.sha256(dc2).hexdigest() == _DC2_SHA256
     assert load_cover(_DC2_ASSET, _DC2_SHA256).shape == (1024, 1024, 3)
-    haunt = files("agentic_av").joinpath("artwork", _HAUNT_ASSET).read_bytes()
+    haunt = files("clangor_visualis_machina").joinpath("artwork", _HAUNT_ASSET).read_bytes()
     assert hashlib.sha256(haunt).hexdigest() == _HAUNT_SHA256
     assert load_cover(_HAUNT_ASSET, _HAUNT_SHA256).shape == (1024, 1024, 3)
-    dusk = files("agentic_av").joinpath("artwork", _DUSK_ASSET).read_bytes()
+    dusk = files("clangor_visualis_machina").joinpath("artwork", _DUSK_ASSET).read_bytes()
     assert hashlib.sha256(dusk).hexdigest() == _DUSK_SHA256
     assert load_cover(_DUSK_ASSET, _DUSK_SHA256).shape == (1024, 1024, 3)
 
 
 @pytest.mark.parametrize(("asset", "sha256", "size"), list(_A01_RECEIPTS.values()))
 def test_a01_cover_is_the_selected_receipt_file(asset: str, sha256: str, size: int) -> None:
-    data = files("agentic_av").joinpath("artwork", asset).read_bytes()
+    data = files("clangor_visualis_machina").joinpath("artwork", asset).read_bytes()
     assert len(data) == size
     assert hashlib.sha256(data).hexdigest() == sha256
     assert load_cover(asset, sha256).shape == (1024, 1024, 3)

@@ -6,7 +6,7 @@ import json
 from importlib.resources import files
 from pathlib import Path
 
-from agentic_av.catalog import (
+from clangor_visualis_machina.catalog import (
     ALBUMS,
     Album,
     CatalogEntry,
@@ -17,8 +17,8 @@ from agentic_av.catalog import (
     sort_entries,
     validate_catalog,
 )
-from agentic_av.cli import main
-from agentic_av.library import (
+from clangor_visualis_machina.cli import main
+from clangor_visualis_machina.library import (
     LibraryState,
     _library_panel_bytes,
     _resort_preserving_selection,
@@ -26,9 +26,9 @@ from agentic_av.library import (
     compose_library,
     run_library,
 )
-from agentic_av.paint import render_ansi, render_plain
-from agentic_av.palette import builtin_palettes
-from agentic_av.viz.cover import load_cover
+from clangor_visualis_machina.paint import render_ansi, render_plain
+from clangor_visualis_machina.palette import builtin_palettes
+from clangor_visualis_machina.viz.cover import load_cover
 
 _AUTHORIZED = (
     (
@@ -127,7 +127,7 @@ def test_public_catalog_is_the_authorized_albums() -> None:
     assert found == expected
     names = sorted(
         path.name
-        for path in files("agentic_av").joinpath("albums").iterdir()
+        for path in files("clangor_visualis_machina").joinpath("albums").iterdir()
         if not path.name.startswith(".")
     )
     assert names == sorted(album.asset for album in ALBUMS)
@@ -164,7 +164,7 @@ def test_pocket_catalog_metadata_and_archive_match_the_approved_source() -> None
         208,
         320,
     ]
-    data = files("agentic_av").joinpath("albums", _POCKET_ASSET).read_bytes()
+    data = files("clangor_visualis_machina").joinpath("albums", _POCKET_ASSET).read_bytes()
     assert len(data) == 49_982_951
     assert hashlib.sha256(data).hexdigest() == _POCKET_GZ_SHA256
     html = gzip.decompress(data)
@@ -200,7 +200,7 @@ def test_drowning_a02_metadata_and_archive_match_the_finished_album() -> None:
         232,
         316,
     ]
-    archive = files("agentic_av").joinpath("albums", asset).read_bytes()
+    archive = files("clangor_visualis_machina").joinpath("albums", asset).read_bytes()
     assert len(archive) == 38_275_169
     assert hashlib.sha256(archive).hexdigest() == (
         "e60a51ce7e5788c9a0b364c08a32e4a2ef5e81fa1a9eda6bb19e83504f090caa"
@@ -249,7 +249,7 @@ def test_haunt_catalog_metadata_and_archive_match_the_built_page() -> None:
         256,
         277,
     ]
-    data = files("agentic_av").joinpath("albums", _HAUNT_ASSET).read_bytes()
+    data = files("clangor_visualis_machina").joinpath("albums", _HAUNT_ASSET).read_bytes()
     assert len(data) == 38_493_904
     assert hashlib.sha256(data).hexdigest() == _HAUNT_GZ_SHA256
     html = gzip.decompress(data)
@@ -288,7 +288,7 @@ def test_dusk_catalog_metadata_and_archive_match_the_built_page() -> None:
         250,
         250,
     ]
-    data = files("agentic_av").joinpath("albums", _DUSK_ASSET).read_bytes()
+    data = files("clangor_visualis_machina").joinpath("albums", _DUSK_ASSET).read_bytes()
     assert len(data) == 38_256_695
     assert hashlib.sha256(data).hexdigest() == _DUSK_GZ_SHA256
     html = gzip.decompress(data)
@@ -525,8 +525,8 @@ def test_command_dispatch_separates_library_and_visual_player(
         calls.append("visual")
         return 0
 
-    monkeypatch.setattr("agentic_av.library.run_library", library)
-    monkeypatch.setattr("agentic_av.tty.run_player", visual)
+    monkeypatch.setattr("clangor_visualis_machina.library.run_library", library)
+    monkeypatch.setattr("clangor_visualis_machina.tty.run_player", visual)
     assert main(["play", "--theme", "void", "--no-color"]) == 0
     assert main([]) == 0
     show = tmp_path / "show.toml"
@@ -560,7 +560,7 @@ def test_motion_flag_reaches_native_playback(monkeypatch) -> None:
         seen.append(kwargs["motion"])
         return 0
 
-    monkeypatch.setattr("agentic_av.library.run_library", library)
+    monkeypatch.setattr("clangor_visualis_machina.library.run_library", library)
     assert main(["play", "--motion", "still", "--no-color"]) == 0
     assert main(["play", "--no-color"]) == 0
     assert seen == ["still", "full"]
@@ -577,7 +577,7 @@ def test_library_sort_keeps_highlighted_song_for_native_playback(
     import termios
     import threading
 
-    from agentic_av.native import NativeError
+    from clangor_visualis_machina.native import NativeError
 
     master, slave = pty.openpty()
     calls: list[str] = []
@@ -587,7 +587,7 @@ def test_library_sort_keeps_highlighted_song_for_native_playback(
         assert kwargs["glyphs"] == "braille"
         raise NativeError("no audio player found; install mpv or ffplay")
 
-    monkeypatch.setattr("agentic_av.native.play_native", fake_native)
+    monkeypatch.setattr("clangor_visualis_machina.native.play_native", fake_native)
     output = bytearray()
     first = catalog_entries()[0].track.title
     visible: list[bytes] = []

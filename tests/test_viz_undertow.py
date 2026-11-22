@@ -10,15 +10,15 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from agentic_av.viz.albums.undertow import build_scene
-from agentic_av.viz.audio import SILENT
-from agentic_av.viz.fx import tone_map
-from agentic_av.viz.glyphs import fit
-from agentic_av.viz.png import rasterize
-from agentic_av.viz.safety import FlashMeter
-from agentic_av.viz.scene import Frame, Movement
-from agentic_av.viz.score import Score, Section, normalize_track
-from agentic_av.viz.surface import Surface
+from clangor_visualis_machina.viz.albums.undertow import build_scene
+from clangor_visualis_machina.viz.audio import SILENT
+from clangor_visualis_machina.viz.fx import tone_map
+from clangor_visualis_machina.viz.glyphs import fit
+from clangor_visualis_machina.viz.png import rasterize
+from clangor_visualis_machina.viz.safety import FlashMeter
+from clangor_visualis_machina.viz.scene import Frame, Movement
+from clangor_visualis_machina.viz.score import Score, Section, normalize_track
+from clangor_visualis_machina.viz.surface import Surface
 
 _SCENES = ("seam", "shoal", "shelf", "fault", "hollow", "estuary")
 _DURATIONS = (268, 248, 292, 276, 232, 316)

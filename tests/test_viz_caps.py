@@ -4,8 +4,8 @@ import struct
 
 import pytest
 
-from agentic_av.viz import caps
-from agentic_av.viz.glyphs import TIERS
+from clangor_visualis_machina.viz import caps
+from clangor_visualis_machina.viz.glyphs import TIERS
 
 
 @pytest.mark.parametrize("tier", TIERS)

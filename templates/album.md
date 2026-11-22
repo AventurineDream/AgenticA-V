@@ -1,7 +1,7 @@
 <!-- Album template, spec v1 (docs/spec/band-album-spec.md §1.4–§1.9, §7). Save as
 albums/B-NN-<band-slug>/A-NN-<slug>/album.md, next to a tracks/ folder of track docs. Write it last,
 after every track's band decision, mastery and visuals: the title comes after the music. Check it
-with `uv run python -m agentic_av.registry`. -->
+with `uv run python -m clangor_visualis_machina.registry`. -->
 
 # Album Title
 

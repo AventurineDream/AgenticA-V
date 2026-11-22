@@ -22,11 +22,11 @@ import time
 import tty
 from collections.abc import Callable
 
-from agentic_av.icons import IconError, load_follow_theme, sync_followed_icon
-from agentic_av.omarchy import OmarchyTheme, load_omarchy
-from agentic_av.paint import FrameRequest, compose, render_ansi
-from agentic_av.palette import PaletteError
-from agentic_av.session import Session
+from clangor_visualis_machina.icons import IconError, load_follow_theme, sync_followed_icon
+from clangor_visualis_machina.omarchy import OmarchyTheme, load_omarchy
+from clangor_visualis_machina.paint import FrameRequest, compose, render_ansi
+from clangor_visualis_machina.palette import PaletteError
+from clangor_visualis_machina.session import Session
 
 _ESC = "\x1b"
 # 50 ms joins a CSI split across read(fd, 64) without making a lone Escape
@@ -162,25 +162,6 @@ class KeyDecoder:
         return keys
 
 
-def parse_keys(data: bytes) -> list[str]:
-    """Parse a finished chunk into named actions.
-
-    A trailing Escape is resolved immediately. Interactive reads must use
-    `KeyDecoder` so a sequence split across ``read(fd, 64)`` is not treated
-    as Escape plus the next chunk.
-
-    Args:
-        data: Bytes from one complete read, possibly containing several keys.
-
-    Returns:
-        Key names for letters, controls, and common CSI navigation keys.
-    """
-    decoder = KeyDecoder()
-    keys = decoder.feed(data, now=0.0)
-    keys.extend(decoder.flush(now=ESCAPE_HOLD_S))
-    return keys
-
-
 def _size(fd: int) -> tuple[int, int]:
     """Read current TTY rows and columns, with a usable fallback."""
     try:
@@ -298,7 +279,7 @@ def _handle(session: Session, key: str) -> bool:
 
     Args:
         session: Active playback and display state.
-        key: Action name from ``parse_keys``.
+        key: Action name from ``KeyDecoder``.
 
     Returns:
         False when the player should exit. True after any other action.

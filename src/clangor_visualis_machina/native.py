@@ -44,36 +44,36 @@ from typing import Any
 
 import numpy as np
 
-from agentic_av import nowplaying
-from agentic_av.catalog import (
+from clangor_visualis_machina import nowplaying
+from clangor_visualis_machina.catalog import (
     Album,
     CatalogEntry,
     bundled_assets,
     format_clock,
     movement_duration_s,
 )
-from agentic_av.library import (
+from clangor_visualis_machina.library import (
     AlbumError,
     _asset_stem,
     _atomic_write,
     album_cache_dir,
     read_bundled_album,
 )
-from agentic_av.palette import Palette
-from agentic_av.session import _REDUCED_FIELD_SCALE
-from agentic_av.tty import (
+from clangor_visualis_machina.palette import Palette
+from clangor_visualis_machina.session import _REDUCED_FIELD_SCALE
+from clangor_visualis_machina.tty import (
     KeyDecoder,
     _on_sigterm,
     _size,
 )
-from agentic_av.viz.audio import AudioError, Features, Segment, load_features
-from agentic_av.viz.caps import budget_tier, cell_aspect, detect_tier
-from agentic_av.viz.cover import ArtworkError, cover_accent, load_cover, prepare_cover
-from agentic_av.viz.encode import SYNC_BEGIN, SYNC_END
-from agentic_av.viz.glyphs import TIER_ORDER, TIERS
-from agentic_av.viz.scene import Movement
-from agentic_av.viz.score import Score, normalize_track
-from agentic_av.viz.stage import Stage
+from clangor_visualis_machina.viz.audio import AudioError, Features, Segment, load_features
+from clangor_visualis_machina.viz.caps import budget_tier, cell_aspect, detect_tier
+from clangor_visualis_machina.viz.cover import ArtworkError, cover_accent, load_cover, prepare_cover
+from clangor_visualis_machina.viz.encode import SYNC_BEGIN, SYNC_END
+from clangor_visualis_machina.viz.glyphs import TIER_ORDER, TIERS
+from clangor_visualis_machina.viz.scene import Movement
+from clangor_visualis_machina.viz.score import Score, normalize_track
+from clangor_visualis_machina.viz.stage import Stage
 
 # Bump when sidecar fields change; warm plays never reparse the archive.
 EXTRACT_REVISION = "3"

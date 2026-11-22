@@ -88,7 +88,9 @@ def main() -> None:
     """Generate the data using --font or the system's preferred monospace font."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--font", type=Path)
-    parser.add_argument("--out", type=Path, default=Path("src/agentic_av/viz/_ascii_shapes.py"))
+    parser.add_argument(
+        "--out", type=Path, default=Path("src/clangor_visualis_machina/viz/_ascii_shapes.py")
+    )
     args = parser.parse_args()
     font = args.font or Path(
         subprocess.check_output(["fc-match", "monospace", "-f", "%{file}"], text=True)

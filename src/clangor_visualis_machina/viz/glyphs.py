@@ -13,7 +13,7 @@ from types import MappingProxyType
 
 import numpy as np
 
-from agentic_av.viz._ascii_shapes import SAMPLE_WEIGHTS, SHAPES
+from clangor_visualis_machina.viz._ascii_shapes import SAMPLE_WEIGHTS, SHAPES
 
 
 @dataclass(frozen=True, slots=True)

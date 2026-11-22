@@ -1,7 +1,18 @@
 """Palette roles, color math, and built-in visual treatments."""
 
-from agentic_av.colorutil import contrast_ratio, mix, normalize_hex, parse_hex, to_xterm256
-from agentic_av.palette import PaletteError, builtin_palette, builtin_palettes, palette_from_omarchy
+from clangor_visualis_machina.colorutil import (
+    contrast_ratio,
+    mix,
+    normalize_hex,
+    parse_hex,
+    to_xterm256,
+)
+from clangor_visualis_machina.palette import (
+    PaletteError,
+    builtin_palette,
+    builtin_palettes,
+    palette_from_omarchy,
+)
 
 
 def test_color_helpers_normalize_and_quantize() -> None:

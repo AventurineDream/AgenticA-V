@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from agentic_av.colorutil import xterm256_hue_match
-from agentic_av.viz.glyphs import TIERS, Cells
+from clangor_visualis_machina.colorutil import xterm256_hue_match
+from clangor_visualis_machina.viz.glyphs import TIERS, Cells
 
 SYNC_BEGIN = b"\x1b[?2026h"
 SYNC_END = b"\x1b[?2026l"

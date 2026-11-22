@@ -15,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-from agentic_av.icons import (
+from clangor_visualis_machina.icons import (
     IconError,
     desktop_path,
     install,
@@ -31,12 +31,12 @@ from agentic_av.icons import (
     variant_description,
     variant_names,
 )
-from agentic_av.omarchy import load_omarchy
-from agentic_av.paint import FrameRequest, compose, render_ansi, render_plain
-from agentic_av.palette import Palette, PaletteError, builtin_palettes
-from agentic_av.session import Session
-from agentic_av.show import PROGRAMS, ShowError, demo_show, load_show
-from agentic_av.transport import Playhead
+from clangor_visualis_machina.omarchy import load_omarchy
+from clangor_visualis_machina.paint import FrameRequest, compose, render_ansi, render_plain
+from clangor_visualis_machina.palette import Palette, PaletteError, builtin_palettes
+from clangor_visualis_machina.session import Session
+from clangor_visualis_machina.show import PROGRAMS, ShowError, demo_show, load_show
+from clangor_visualis_machina.transport import Playhead
 
 
 def color_mode(env: dict[str, str] | None = None, *, stdout_tty: bool | None = None) -> str:
@@ -87,7 +87,7 @@ def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="aav",
         description=(
-            "Terminally Agentic A/V. Play a bundled album in the terminal "
+            "ClangorVisualisMachina. Play a bundled album in the terminal "
             "or play abstract visual programs."
         ),
         epilog=(
@@ -279,7 +279,7 @@ def _open_library(args: argparse.Namespace) -> int:
     _sync_followed_icon()
     palette, _theme_id, _omarchy, _note = _resolve_theme(args.theme)
     mode = "none" if args.no_color else color_mode()
-    from agentic_av.library import run_library
+    from clangor_visualis_machina.library import run_library
 
     return run_library(
         palette, mode, theme_label=palette.name, motion=args.motion, glyphs=args.glyphs
@@ -288,7 +288,7 @@ def _open_library(args: argparse.Namespace) -> int:
 
 def _tracks() -> int:
     """Print the sorted public catalog without a TTY or a browser launch."""
-    from agentic_av.catalog import format_catalog
+    from clangor_visualis_machina.catalog import format_catalog
 
     print(format_catalog())
     return 0
@@ -464,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "gallery":
             return _preview(session, args, gallery=True)
         _sync_followed_icon()
-        from agentic_av.tty import run_player
+        from clangor_visualis_machina.tty import run_player
 
         return run_player(session)
     except (PaletteError, ShowError, OSError, RuntimeError, ValueError) as error:

@@ -1,5 +1,5 @@
 <!-- Owner: Aven. Maintained by: Malachite. Spec version 1, 2026-11-21. Changing a rule here means changing
-the templates, the validator (src/agentic_av/registry.py, notation.py), the swarm prompt and the worked test
+the templates, the validator (src/clangor_visualis_machina/registry.py, notation.py), the swarm prompt and the worked test
 in the same change. -->
 
 # Bands, visual groups and albums — format and process spec
@@ -13,7 +13,7 @@ document formats that agents and people can follow without help, and that the va
 in [`templates/`](../../templates/). Check your work with:
 
 ```bash
-uv run python -m agentic_av.registry
+uv run python -m clangor_visualis_machina.registry
 ```
 
 To make a band, visual group or album in another agent harness, use the one-shot
@@ -446,8 +446,8 @@ sum. An album with scope `album` MUST total 25:00–30:00.
 ## 10. Validation
 
 ```bash
-uv run python -m agentic_av.registry              # every doc under the current directory
-uv run python -m agentic_av.registry . path/to/x  # also docs under x; references resolve across both
+uv run python -m clangor_visualis_machina.registry              # every doc under the current directory
+uv run python -m clangor_visualis_machina.registry . path/to/x  # also docs under x; references resolve across both
 ```
 
 It prints one line per problem (`path:line: message`) and exits 1 if there are any. `uv run pytest` runs it

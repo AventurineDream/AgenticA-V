@@ -1,6 +1,6 @@
 <!-- Visual group template, spec v1 (docs/spec/band-album-spec.md §1.2, §1.3, §1.8, §6). Save
 as visual-groups/V-NN-<slug>.md, replace every placeholder, and check it with
-`uv run python -m agentic_av.registry`. A visual group has two or three members. -->
+`uv run python -m clangor_visualis_machina.registry`. A visual group has two or three members. -->
 
 # Visual Group Name
 

@@ -11,7 +11,7 @@ import struct
 import termios
 from collections.abc import Mapping
 
-from agentic_av.viz.glyphs import TIERS
+from clangor_visualis_machina.viz.glyphs import TIERS
 
 
 def detect_tier(env: Mapping[str, str]) -> str:

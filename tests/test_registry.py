@@ -9,7 +9,13 @@ from pathlib import Path
 
 import pytest
 
-from agentic_av.registry import KINDS, main, slugify, validate_roots, validate_template
+from clangor_visualis_machina.registry import (
+    KINDS,
+    main,
+    slugify,
+    validate_roots,
+    validate_template,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "templates"

@@ -12,18 +12,26 @@ import termios
 import time
 from pathlib import Path
 
-from agentic_av.omarchy import OmarchyTheme
-from agentic_av.palette import builtin_palette, builtin_palettes, palette_from_omarchy
-from agentic_av.session import Session
-from agentic_av.show import Show
-from agentic_av.transport import Playhead
-from agentic_av.tty import ESCAPE_HOLD_S, KeyDecoder, _draw, _handle, _terminal_frame, parse_keys
+from clangor_visualis_machina.omarchy import OmarchyTheme
+from clangor_visualis_machina.palette import builtin_palette, builtin_palettes, palette_from_omarchy
+from clangor_visualis_machina.session import Session
+from clangor_visualis_machina.show import Show
+from clangor_visualis_machina.transport import Playhead
+from clangor_visualis_machina.tty import ESCAPE_HOLD_S, KeyDecoder, _draw, _handle, _terminal_frame
 
 
-def test_parse_keys_handles_navigation_and_multiple_actions() -> None:
-    assert parse_keys(b" \x1b[D\x1b[Ct?q\x03") == [" ", "left", "right", "t", "?", "q", "quit"]
-    assert parse_keys(b"\x1b[A\x1b[B\r") == ["up", "down", "enter"]
-    assert parse_keys(b"\x1b") == ["esc"]
+def _keys(data: bytes) -> list[str]:
+    """Decode one finished chunk, resolving a trailing Escape as the input loop does."""
+    decoder = KeyDecoder()
+    keys = decoder.feed(data, now=0.0)
+    keys.extend(decoder.flush(now=ESCAPE_HOLD_S))
+    return keys
+
+
+def test_key_decoder_handles_navigation_and_multiple_actions() -> None:
+    assert _keys(b" \x1b[D\x1b[Ct?q\x03") == [" ", "left", "right", "t", "?", "q", "quit"]
+    assert _keys(b"\x1b[A\x1b[B\r") == ["up", "down", "enter"]
+    assert _keys(b"\x1b") == ["esc"]
 
 
 def test_split_csi_resolves_to_navigation_not_escape() -> None:
@@ -107,7 +115,7 @@ def test_quit_leaves_help_and_gallery_while_esc_returns() -> None:
     session.mode = "help"
     assert _handle(session, "q") is False
     session.mode = "gallery"
-    assert parse_keys(b"\x03") == ["quit"]
+    assert _keys(b"\x03") == ["quit"]
     assert _handle(session, "quit") is False
     session.mode = "help"
     assert _handle(session, "esc") is True
@@ -176,7 +184,7 @@ def test_omarchy_sync_clears_builtin_selection(monkeypatch) -> None:
     """After a live sync, the next theme key starts at the first built-in."""
     live = _live_palette()
     theme = OmarchyTheme(live, "live", Path("colors.toml"), "1")
-    monkeypatch.setattr("agentic_av.tty.load_omarchy", lambda: theme)
+    monkeypatch.setattr("clangor_visualis_machina.tty.load_omarchy", lambda: theme)
     session, _, _ = _session(name="carbon")
     carbon = next(i for i, item in enumerate(session.themes) if item.name == "carbon")
     assert session.gallery_index == carbon
@@ -359,7 +367,15 @@ def test_sigterm_restores_the_terminal() -> None:
         env["PYTHONPATH"] = src + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
         env["PYTHONUNBUFFERED"] = "1"
         proc = subprocess.Popen(
-            [sys.executable, "-m", "agentic_av", "play", "--theme", "tungsten", "--no-color"],
+            [
+                sys.executable,
+                "-m",
+                "clangor_visualis_machina",
+                "play",
+                "--theme",
+                "tungsten",
+                "--no-color",
+            ],
             stdin=slave,
             stdout=slave,
             stderr=subprocess.PIPE,

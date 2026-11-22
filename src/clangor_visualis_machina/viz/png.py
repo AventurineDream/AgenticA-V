@@ -13,8 +13,8 @@ from pathlib import Path
 
 import numpy as np
 
-from agentic_av.viz._ascii_shapes import MASKS
-from agentic_av.viz.glyphs import TIERS, Cells
+from clangor_visualis_machina.viz._ascii_shapes import MASKS
+from clangor_visualis_machina.viz.glyphs import TIERS, Cells
 
 
 def rasterize(cells: Cells, *, cell_px: tuple[int, int] = (8, 16)) -> np.ndarray:

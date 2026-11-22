@@ -28,10 +28,10 @@ import numpy as np
 import pyte
 import pytest
 
-from agentic_av import nowplaying
-from agentic_av.catalog import ALBUMS, Album, CatalogEntry, Track
-from agentic_av.library import AlbumError
-from agentic_av.native import (
+from clangor_visualis_machina import nowplaying
+from clangor_visualis_machina.catalog import ALBUMS, Album, CatalogEntry, Track
+from clangor_visualis_machina.library import AlbumError
+from clangor_visualis_machina.native import (
     Ffplay,
     Mpv,
     NativeError,
@@ -41,12 +41,12 @@ from agentic_av.native import (
     movement_signals,
     play_native,
 )
-from agentic_av.nowplaying import Panel, layout, status_parts
-from agentic_av.palette import builtin_palettes
-from agentic_av.tty import _PlayerTerminatedError
-from agentic_av.viz.audio import AudioError, Segment, analyze
-from agentic_av.viz.cover import ArtworkError
-from agentic_av.viz.score import NOTE
+from clangor_visualis_machina.nowplaying import Panel, layout, status_parts
+from clangor_visualis_machina.palette import builtin_palettes
+from clangor_visualis_machina.tty import _PlayerTerminatedError
+from clangor_visualis_machina.viz.audio import AudioError, Segment, analyze
+from clangor_visualis_machina.viz.cover import ArtworkError
+from clangor_visualis_machina.viz.score import NOTE
 
 FOREST = "nurse-log-ground-moves-anyway.html.gz"
 AQUATIC = "drowning-collective-are-we-fish.html.gz"
@@ -65,7 +65,7 @@ NAMES = (b"ONE", b"TWO", b"THREE")
 def _synthetic_analysis(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep playback tests independent of ffmpeg and actual audio payloads."""
     features = analyze(np.zeros((2205, 2), dtype=np.float32))
-    monkeypatch.setattr("agentic_av.native.load_features", lambda *_args: features)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", lambda *_args: features)
 
 
 def _b64(data: bytes) -> str:
@@ -354,7 +354,7 @@ def test_repeat_plays_read_the_score_cache_not_the_archive(
     def no_decompress(_data: bytes) -> bytes:
         raise AssertionError("archive decompressed on a warm cache")
 
-    monkeypatch.setattr("agentic_av.native.gzip.decompress", no_decompress)
+    monkeypatch.setattr("clangor_visualis_machina.native.gzip.decompress", no_decompress)
     assert extract_album(FOREST, tmp_path, source) == first
     assert first.tracks[0].score["events"]["harp"]
 
@@ -789,7 +789,7 @@ def _spawn_sleeper(monkeypatch: pytest.MonkeyPatch) -> list[subprocess.Popen[byt
         spawned.append(real(["sleep", "30"], **kwargs))
         return spawned[-1]
 
-    monkeypatch.setattr("agentic_av.native.subprocess.Popen", fake)
+    monkeypatch.setattr("clangor_visualis_machina.native.subprocess.Popen", fake)
     return spawned
 
 
@@ -852,7 +852,7 @@ def test_sigterm_during_mpv_startup_leaves_no_child(
             raise _PlayerTerminatedError
         real_sleep(seconds)
 
-    monkeypatch.setattr("agentic_av.native.time.sleep", interrupted)
+    monkeypatch.setattr("clangor_visualis_machina.native.time.sleep", interrupted)
     with pytest.raises(_PlayerTerminatedError):
         Mpv(tmp_path / "a.mp3", 0.0)
     assert spawned[0].poll() is not None
@@ -861,8 +861,8 @@ def test_sigterm_during_mpv_startup_leaves_no_child(
 def test_missing_players_raise_a_listener_facing_error(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr("agentic_av.native._mpv_available", lambda: False)
-    monkeypatch.setattr("agentic_av.native._ffplay_available", lambda: False)
+    monkeypatch.setattr("clangor_visualis_machina.native._mpv_available", lambda: False)
+    monkeypatch.setattr("clangor_visualis_machina.native._ffplay_available", lambda: False)
     with pytest.raises(NativeError, match="install mpv or ffplay"):
         _player_for(tmp_path / "a.mp3", 0.0)
 
@@ -873,7 +873,7 @@ def test_movement_signals_share_analysis_and_cache_score(
     """One mix is analyzed with all movement hints; views reset the time base."""
     import numpy as np
 
-    from agentic_av.native import NativeAlbum, TrackData
+    from clangor_visualis_machina.native import NativeAlbum, TrackData
 
     audio = tmp_path / "mix.mp3"
     native = NativeAlbum(
@@ -890,7 +890,7 @@ def test_movement_signals_share_analysis_and_cache_score(
         calls.append((path, segments))
         return analyzed
 
-    monkeypatch.setattr("agentic_av.native.load_features", load)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", load)
     first = movement_signals(native, 0)
     second = movement_signals(native, 1)
     assert movement_signals(native, 1) is second
@@ -905,7 +905,7 @@ def test_movement_signals_share_analysis_and_cache_score(
 def test_movement_signals_cache_audio_error_without_losing_score(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from agentic_av.native import NativeAlbum, TrackData
+    from clangor_visualis_machina.native import NativeAlbum, TrackData
 
     calls = []
 
@@ -913,7 +913,7 @@ def test_movement_signals_cache_audio_error_without_losing_score(
         calls.append(path)
         raise AudioError("ffmpeg missing")
 
-    monkeypatch.setattr("agentic_av.native.load_features", fail)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", fail)
     native = NativeAlbum((TrackData(tmp_path / "audio.mp3", score={"bpm": 84}),), "aquatic")
     features, score = movement_signals(native, 0)
     assert features is None and score.bpm == 84
@@ -957,7 +957,7 @@ def test_paused_tier_redraw_reuses_the_captured_visual_clock(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A held tier change redraws at the displayed instant, not before its visual lead."""
-    from agentic_av import native
+    from clangor_visualis_machina import native
 
     real_stage = native.Stage
     clocks: list[tuple[float, float]] = []
@@ -1022,7 +1022,7 @@ def test_analysis_failure_is_visible_and_audio_still_starts(
     def fail(*_args):
         raise AudioError("ffmpeg unavailable")
 
-    monkeypatch.setattr("agentic_av.native.load_features", fail)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", fail)
     players, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q")
     assert players[0].closed
     assert "analysis unavailable" in frames[0]
@@ -1058,7 +1058,7 @@ def test_analysis_is_single_flight_across_simultaneous_movements(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A next-movement prefetch and foreground open share one cache publication."""
-    from agentic_av.native import NativeAlbum, TrackData
+    from clangor_visualis_machina.native import NativeAlbum, TrackData
 
     entered = threading.Event()
     release = threading.Event()
@@ -1071,7 +1071,7 @@ def test_analysis_is_single_flight_across_simultaneous_movements(
         assert release.wait(2)
         return features
 
-    monkeypatch.setattr("agentic_av.native.load_features", load)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", load)
     album = NativeAlbum((TrackData(tmp_path / "mix.mp3"),) * 2, "coupon")
     first = threading.Thread(target=movement_signals, args=(album, 0))
     second = threading.Thread(target=movement_signals, args=(album, 1))
@@ -1105,7 +1105,7 @@ def test_large_terminal_applies_tier_budget(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The native caller budgets the actual canvas, not just the detection default."""
-    monkeypatch.setattr("agentic_av.native._size", lambda _fd: (300, 80))
+    monkeypatch.setattr("clangor_visualis_machina.native._size", lambda _fd: (300, 80))
     _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q", glyphs="octant")
     assert "quadrant" in frames[0]
 
@@ -1116,7 +1116,7 @@ def test_small_terminal_frames_keep_exit_and_valid_color_transport(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, size: tuple[int, int], mode: str
 ) -> None:
     """Native output remains drawable across short/narrow grids and color modes."""
-    monkeypatch.setattr("agentic_av.native._size", lambda _fd: size)
+    monkeypatch.setattr("clangor_visualis_machina.native._size", lambda _fd: size)
     _, frames = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"q", color_mode=mode)
     assert frames[0].startswith("\x1b[?2026h")
     assert frames[0].endswith("\x1b[?2026l")
@@ -1144,7 +1144,7 @@ def test_background_analysis_never_delays_quit(
             finished.set()
         return features
 
-    monkeypatch.setattr("agentic_av.native.load_features", load)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", load)
     try:
         players, _ = _play(tmp_path, _forest_html(), 1, FOREST_ALBUM, b"", quit_after_frames=2)
         assert started.wait(1)
@@ -1174,7 +1174,7 @@ def test_quit_remains_responsive_while_foreground_analysis_waits_for_prefetch(
                 prefetch_timed_out.set()
         return features
 
-    monkeypatch.setattr("agentic_av.native.load_features", load)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", load)
 
     def switch_then_quit(write_fd):
         os.write(write_fd, b"n")
@@ -1241,7 +1241,9 @@ def test_frame_deadlines_drop_slow_work_without_queued_catchup(
     from types import SimpleNamespace
 
     ticks = iter(index * cost_s for index in range(20))
-    monkeypatch.setattr("agentic_av.native.time", SimpleNamespace(monotonic=lambda: next(ticks)))
+    monkeypatch.setattr(
+        "clangor_visualis_machina.native.time", SimpleNamespace(monotonic=lambda: next(ticks))
+    )
     import select
 
     real_select = select.select
@@ -1251,7 +1253,7 @@ def test_frame_deadlines_drop_slow_work_without_queued_catchup(
         waits.append(timeout)
         return real_select(read, write, error, timeout)
 
-    monkeypatch.setattr("agentic_av.native.select.select", observe)
+    monkeypatch.setattr("clangor_visualis_machina.native.select.select", observe)
     _play(
         tmp_path,
         _forest_html(),
@@ -1358,7 +1360,7 @@ def test_resizing_the_panel_leaves_no_stale_pixels(
         calls.append(len(calls))
         return (80, 24) if len(calls) <= 3 else (100, 24)
 
-    monkeypatch.setattr("agentic_av.native._size", size)
+    monkeypatch.setattr("clangor_visualis_machina.native._size", size)
     _, frames = _play(
         tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=8, color_mode="truecolor"
     )
@@ -1405,7 +1407,7 @@ def test_a_cover_that_fails_verification_is_omitted_with_a_note(
     def refuse(asset: str, sha256: str) -> np.ndarray:
         raise ArtworkError(f"{asset} does not match the approved SHA-256 {sha256}")
 
-    monkeypatch.setattr("agentic_av.native.load_cover", refuse)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_cover", refuse)
     _, frames = _play(tmp_path, _pocket_html(2), 1, POCKET_ALBUM, b"", quit_after_frames=2)
     assert not any("\x1b[2K" in frame for frame in frames)
     screen = _replay(frames, 80, 24)

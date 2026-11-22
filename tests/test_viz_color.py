@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from agentic_av.viz import color
+from clangor_visualis_machina.viz import color
 
 
 def test_linear_exact_transfer_and_dtype():

@@ -4,9 +4,9 @@ bands/, visual-groups/ and albums/ hold the project's canonical record of who ma
 how (docs/spec/band-album-spec.md). This module reads those docs (Markdown with a TOML card) and
 reports every rule the spec makes checkable: card fields, section order, member counts, text limits,
 references between docs, the 3x2 take loop, credits, and the bar arithmetic in notation.py.
-``python -m agentic_av.registry`` runs it over directory roots; tests/test_registry.py runs it in
-CI, so a doc that breaks the spec fails the gate. Stdlib only (tomllib): checking a doc needs
-nothing beyond Python.
+``python -m clangor_visualis_machina.registry`` runs it over directory roots;
+tests/test_registry.py runs it in CI, so a doc that breaks the spec fails the gate. Stdlib only
+(tomllib): checking a doc needs nothing beyond Python.
 """
 
 from __future__ import annotations
@@ -23,8 +23,8 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
-from agentic_av import notation
-from agentic_av.catalog import format_clock
+from clangor_visualis_machina import notation
+from clangor_visualis_machina.catalog import format_clock
 
 KINDS = ("band", "visual-group", "album", "track")
 """Doc kinds, as named in templates/ and validate_template()."""
@@ -1511,7 +1511,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         0 when every doc meets the spec, 1 when any problem was printed.
     """
     parser = argparse.ArgumentParser(
-        prog="python -m agentic_av.registry",
+        prog="python -m clangor_visualis_machina.registry",
         description="Check band, visual group and album docs against docs/spec/band-album-spec.md.",
     )
     parser.add_argument(

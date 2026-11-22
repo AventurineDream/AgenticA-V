@@ -12,9 +12,9 @@ import numpy as np
 import pyte
 import pytest
 
-from agentic_av.catalog import ALBUMS
-from agentic_av.colorutil import contrast_ratio
-from agentic_av.nowplaying import (
+from clangor_visualis_machina.catalog import ALBUMS
+from clangor_visualis_machina.colorutil import contrast_ratio
+from clangor_visualis_machina.nowplaying import (
     Layout,
     album_accent,
     splash,
@@ -22,9 +22,9 @@ from agentic_av.nowplaying import (
     title_card,
     transport,
 )
-from agentic_av.palette import builtin_palettes
-from agentic_av.viz.cover import cover_accent, load_cover, prepare_cover
-from agentic_av.viz.glyphs import Cells
+from clangor_visualis_machina.palette import builtin_palettes
+from clangor_visualis_machina.viz.cover import cover_accent, load_cover, prepare_cover
+from clangor_visualis_machina.viz.glyphs import Cells
 
 _COVERED = [album for album in ALBUMS if album.cover is not None]
 _PALETTE = builtin_palettes()[0]

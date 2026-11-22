@@ -18,14 +18,14 @@ Add `aav icons` with four subcommands: `list` (nine variants with
 descriptions), `pick <variant>` (save the choice and install it), `install`
 (install the saved choice, or the default when none is saved), and `show`
 (saved variant and install state). The choice is saved in
-`$XDG_CONFIG_HOME/agentic-av/icons.toml` as a single `variant` key.
+`$XDG_CONFIG_HOME/clangor-visualis-machina/icons.toml` as a single `variant` key.
 
-On Linux, `install` writes only files this app owns: an
-`agentic-av.desktop` launcher (`Exec` is the `aav` entry point for the
-running installation, `Terminal=true`, `Icon=agentic-av`) under
+On Linux, `install` writes only files this app owns: a
+`clangor-visualis-machina.desktop` launcher (`Exec` is the `aav` entry point for the
+running installation, `Terminal=true`, `Icon=clangor-visualis-machina`) under
 `$XDG_DATA_HOME/applications/`, and the chosen variant's iconset PNGs into
 the freedesktop hicolor theme under `$XDG_DATA_HOME/icons/hicolor/` at
-16/32/64/128/256/512/1024, and the menu-bar template as `agentic-av-menubar`
+16/32/64/128/256/512/1024, and the menu-bar template as `clangor-visualis-machina-menubar`
 at 18/36/54. Desktop and icon caches are refreshed
 best-effort when their tools exist; a missing tool never fails the install.
 The installed variant is identified by content (SHA-256 of the installed
@@ -36,7 +36,7 @@ macOS has no app bundle in this repository, so `install` there reports the
 chosen variant's .icns path and the icon README instead of pretending to
 install; `pick` still saves the choice. The menu-bar template (18/36/54
 PNGs) has no color variants; it is installed alongside the variant as
-`agentic-av-menubar` in the hicolor theme, identically for every variant, so
+`clangor-visualis-machina-menubar` in the hicolor theme, identically for every variant, so
 a future menu-bar consumer can find it by name.
 
 The icon assets stay at `assets/icons/piano-camera-icons-final/` and are
@@ -52,3 +52,5 @@ touches Omarchy or system configuration, and it never overwrites another
 app's files. A macOS app bundle and a menu-bar consumer remain future,
 independently validated choices; the .icns files are already in the repository
 for the bundle, and the menu-bar template is installed for the consumer.
+
+Amended 2026-11-22: identifiers renamed from `agentic-av` to `clangor-visualis-machina` with the project rename.

@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from agentic_av.viz import draw
-from agentic_av.viz.surface import Surface
+from clangor_visualis_machina.viz import draw
+from clangor_visualis_machina.viz.surface import Surface
 
 
 def test_points_conserve_weights_and_bilinear_centroid():

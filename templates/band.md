@@ -1,6 +1,6 @@
 <!-- Band template, spec v1 (docs/spec/band-album-spec.md §1.1, §1.3, §5). Save as
 bands/B-NN-<slug>.md, replace every placeholder, and check it with
-`uv run python -m agentic_av.registry`. Comments like this one are guidance; the validator ignores
+`uv run python -m clangor_visualis_machina.registry`. Comments like this one are guidance; the validator ignores
 them, so you may keep or delete them. -->
 
 # Band Name

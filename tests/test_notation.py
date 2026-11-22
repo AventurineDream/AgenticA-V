@@ -4,7 +4,7 @@ from fractions import Fraction
 
 import pytest
 
-from agentic_av import notation
+from clangor_visualis_machina import notation
 
 
 def abc(body: str, meter: str = "4/4") -> list[str]:

@@ -38,7 +38,7 @@ class Track:
 
 @dataclass(frozen=True, slots=True)
 class CoverArt:
-    """A bundled album cover packaged under ``agentic_av/artwork``.
+    """A bundled album cover packaged under ``clangor_visualis_machina/artwork``.
 
     Attributes:
         asset: JPEG basename. Basename only; the loader joins it to the package.
@@ -60,7 +60,7 @@ class Album:
             for every bundled album.
         title: Album title.
         duration_s: Album duration in seconds.
-        asset: Gzip HTML filename under ``agentic_av/albums``. Basename only.
+        asset: Gzip HTML filename under ``clangor_visualis_machina/albums``. Basename only.
         tracks: Movements in performance order.
         cover: Bundled cover art, creator-selected or agent-proposed (see the module
             header), or None when the album has no bundled image.

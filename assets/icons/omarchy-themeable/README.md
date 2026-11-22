@@ -5,7 +5,7 @@ The art is the approved v2.2 creature; only colours change.
 
 ## Install (per user, no sudo)
 
-    unzip piano-camera-omarchy-themeable.zip && cd omarchy-themeable
+    cd assets/icons/omarchy-themeable   # from the repository root
     ./install.sh                      # icon name "piano-camera"
     ./install.sh --name <IconName>    # if the app's .desktop file says Icon=<IconName>
 

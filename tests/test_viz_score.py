@@ -5,7 +5,7 @@ import math
 import numpy as np
 import pytest
 
-from agentic_av.viz.score import NOTE, Score, normalize_track
+from clangor_visualis_machina.viz.score import NOTE, Score, normalize_track
 
 
 def test_score_queries_and_half_open_boundaries():

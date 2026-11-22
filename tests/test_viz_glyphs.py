@@ -5,8 +5,8 @@ import unicodedata
 import numpy as np
 import pytest
 
-from agentic_av.viz._ascii_shapes import SAMPLE_WEIGHTS, SHAPES
-from agentic_av.viz.glyphs import TIERS, fit
+from clangor_visualis_machina.viz._ascii_shapes import SAMPLE_WEIGHTS, SHAPES
+from clangor_visualis_machina.viz.glyphs import TIERS, fit
 
 
 @pytest.mark.parametrize("name", TIERS)
@@ -154,7 +154,7 @@ def test_clips_and_preserves_input(tier):
 
 
 def test_srgb_transfer_and_mono_determinism():
-    from agentic_av.viz.glyphs import _srgb
+    from clangor_visualis_machina.viz.glyphs import _srgb
 
     values = np.array([0, 0.0031308, 0.01, 0.18, 0.5, 1], dtype=np.float32)
     expected = np.rint(

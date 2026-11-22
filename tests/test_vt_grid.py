@@ -2,10 +2,10 @@
 
 import pyte
 
-from agentic_av.paint import FrameRequest, compose, render_ansi
-from agentic_av.palette import builtin_palette, builtin_palettes
-from agentic_av.show import Show
-from agentic_av.tty import _terminal_frame
+from clangor_visualis_machina.paint import FrameRequest, compose, render_ansi
+from clangor_visualis_machina.palette import builtin_palette, builtin_palettes
+from clangor_visualis_machina.show import Show
+from clangor_visualis_machina.tty import _terminal_frame
 
 WIDTH = 80
 HEIGHT = 24

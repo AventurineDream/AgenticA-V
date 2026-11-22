@@ -6,10 +6,10 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from agentic_av.viz import preview
-from agentic_av.viz.audio import SILENT
-from agentic_av.viz.scene import Movement
-from agentic_av.viz.score import Score
+from clangor_visualis_machina.viz import preview
+from clangor_visualis_machina.viz.audio import SILENT
+from clangor_visualis_machina.viz.scene import Movement
+from clangor_visualis_machina.viz.score import Score
 
 
 def _source(duration=4.0):
@@ -67,7 +67,7 @@ def test_bench_reports_individual_pipeline_times(capsys):
 
 
 def test_safety_streams_entire_duration_with_real_signal_samples(monkeypatch, capsys):
-    import agentic_av.viz.safety as safety
+    import clangor_visualis_machina.viz.safety as safety
 
     times, samples = [], []
 

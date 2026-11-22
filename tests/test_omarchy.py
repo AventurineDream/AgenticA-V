@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from agentic_av.omarchy import generation_token, load_omarchy, slugify
-from agentic_av.palette import PaletteError
+from clangor_visualis_machina.omarchy import generation_token, load_omarchy, slugify
+from clangor_visualis_machina.palette import PaletteError
 
 FIXTURE = Path(__file__).parent / "fixtures" / "omarchy"
 

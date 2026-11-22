@@ -1,4 +1,4 @@
-# Terminally Agentic A/V
+# ClangorVisualisMachina
 
 A terminal album library and visual player, with multiple palettes and live Omarchy theme sync.
 
@@ -27,7 +27,7 @@ uv run aav demo
 | Run tests | `uv run pytest` |
 | Lint | `uv run ruff check` |
 | Format | `uv run ruff format .` |
-| Check band/album docs | `uv run python -m agentic_av.registry` |
+| Check band/album docs | `uv run python -m clangor_visualis_machina.registry` |
 | Full gate | `uv run ruff format --check && uv run ruff check && uv run pytest` |
 
 ### Library controls
@@ -58,7 +58,7 @@ per second. Slow frames are dropped rather than queued. Reduced motion uses
 0.22× picture time and gentler reactivity. `--no-color` preserves geometry with
 ordered monochrome dithering; cursor positioning remains necessary in the TTY.
 
-See the [scene guide](docs/visuals.md) for all 37 movements and preview commands.
+See the [scene guide](docs/visuals.md) for all 49 movements and preview commands.
 The regional flash meter is a conservative regression heuristic, not a
 certification of flash safety; use reduced/still motion as needed.
 
@@ -94,9 +94,9 @@ uv run aav icons install    # install the saved variant (or the default)
 uv run aav icons show       # saved variant and install state
 ```
 
-On Linux, `install` writes `~/.local/share/applications/agentic-av.desktop` (which launches `aav play` in a terminal) and the chosen variant's iconset PNGs into `~/.local/share/icons/hicolor/` (plus the menu-bar template as `agentic-av-menubar` at 18/36/54), then refreshes the desktop and icon caches when their tools exist. Only files this app owns are written; no desktop or Omarchy configuration is edited. The choice is saved in `~/.config/agentic-av/icons.toml`.
+On Linux, `install` writes `~/.local/share/applications/clangor-visualis-machina.desktop` (which launches `aav play` in a terminal) and the chosen variant's iconset PNGs into `~/.local/share/icons/hicolor/` (plus the menu-bar template as `clangor-visualis-machina-menubar` at 18/36/54), then refreshes the desktop and icon caches when their tools exist. Only files this app owns are written; no desktop or Omarchy configuration is edited. The choice is saved in `~/.config/clangor-visualis-machina/icons.toml`.
 
-macOS has no app bundle in this repository, so `install` there reports the chosen variant's .icns path instead of installing; the picker still saves the choice. The menu-bar template has no color variants and no consumer in this repository yet, so it is not installed.
+macOS has no app bundle in this repository, so `install` there reports the chosen variant's .icns path instead of installing; the picker still saves the choice. The menu-bar template has no color variants, and nothing in this repository uses the installed copy yet.
 
 Color frames sample the field twice per cell. `aav gallery` prints one stage frame for each built-in theme.
 
@@ -104,25 +104,27 @@ A show TOML file requires `title`, positive `duration` in seconds, and a non-emp
 
 ## Bands and albums
 
-Every band, visual group, album and track is a Markdown doc with a TOML card, written to the [band and album spec](docs/spec/band-album-spec.md) from the [templates](templates/). `uv run python -m agentic_av.registry` checks every doc in `bands/`, `visual-groups/` and `albums/` and prints `path:line: message` for each problem.
+Every band, visual group, album and track is a Markdown doc with a TOML card, written to the [band and album spec](docs/spec/band-album-spec.md) from the [templates](templates/). `uv run python -m clangor_visualis_machina.registry` checks every doc in `bands/`, `visual-groups/` and `albums/` and prints `path:line: message` for each problem.
 
 To make an album, fill in the Commission block at the top of [prompts/swarm.md](prompts/swarm.md), paste the band and visual group docs into it, and paste the whole file into any AI chat or agent. The reply holds every track doc and the album doc; save each at its `File:` path and run the validator. The [worked test](docs/spec/worked-test/README.md) shows one track per band made this way.
 
 ## Layout
 
-- `src/agentic_av/` — CLI, album catalog, palettes, abstract field programs, renderer, and TTY loop.
-- `src/agentic_av/albums/` — authorized public album HTML archives.
-- `src/agentic_av/artwork/` — the bundled A-02 cover JPEGs, hash-checked on load.
-- `src/agentic_av/registry.py`, `notation.py` — the band/album doc validator and its notation checks.
+- `src/clangor_visualis_machina/` — CLI, album catalog, palettes, abstract field programs, renderer, and TTY loop.
+- `src/clangor_visualis_machina/albums/` — authorized public album HTML archives.
+- `src/clangor_visualis_machina/artwork/` — the bundled A-01 and A-02 cover JPEGs, hash-checked on load.
+- `src/clangor_visualis_machina/registry.py`, `notation.py` — the band/album doc validator and its notation checks.
 - `bands/`, `visual-groups/`, `albums/` — band, visual group, album and track docs.
 - `templates/`, `prompts/` — doc templates and the swarm prompt.
+- `assets/icons/` — the piano-camera app icon set and the Omarchy themeable icon kit.
 - `tests/` — isolated color, Omarchy, layout, clock, CLI, library, input, and band/album doc tests.
-- `docs/` — architecture and decisions.
+- `tools/` — the glyph-shape generator and the git pre-commit hook installer.
+- `docs/` — architecture, decisions, the scene guide, and spikes.
 - `docs/plans/` — project roadmap.
 
 ## Documentation
 
-See [docs/README.md](docs/README.md) for the documentation map. Project tracking: `10_Projects/Active/Terminally Agentic AV.md` in the project's vault.
+See [docs/README.md](docs/README.md) for the documentation map and [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution policy. Project tracking: `10_Projects/Active/Terminally Agentic AV/Terminally Agentic AV.md` in the project's vault (the vault keeps the project's earlier name). Repository: <https://github.com/AventurineDream/ClangorVisualisMachina>.
 
 ## License
 

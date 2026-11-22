@@ -5,9 +5,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from agentic_av.viz.scene import Movement, Scene
-from agentic_av.viz.score import Score
-from agentic_av.viz.stage import Stage
+from clangor_visualis_machina.viz.scene import Movement, Scene
+from clangor_visualis_machina.viz.score import Score
+from clangor_visualis_machina.viz.stage import Stage
 
 
 class RecordingScene(Scene):
@@ -45,7 +45,7 @@ def _stage(monkeypatch):
         scenes.append(scene)
         return scene
 
-    monkeypatch.setattr("agentic_av.viz.stage.build_scene", factory)
+    monkeypatch.setattr("clangor_visualis_machina.viz.stage.build_scene", factory)
     stage = Stage(12, 5, tier="octant", color_mode="truecolor")
     stage.open(_movement(), None, None)
     return stage, scenes

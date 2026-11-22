@@ -1,6 +1,6 @@
 """CLI environment detection, theme listing, and preview dispatch."""
 
-from agentic_av.cli import color_mode, main
+from clangor_visualis_machina.cli import color_mode, main
 
 
 def test_color_mode_honors_no_color_and_terminal_capabilities() -> None:
@@ -91,7 +91,7 @@ def test_glyph_tier_reaches_library_without_overriding_auto_environment(monkeypa
         seen.append(kwargs["glyphs"])
         return 0
 
-    monkeypatch.setattr("agentic_av.library.run_library", library)
+    monkeypatch.setattr("clangor_visualis_machina.library.run_library", library)
     assert main(["play", "--glyphs", "ascii", "--theme", "void"]) == 0
     assert main(["play", "--theme", "void"]) == 0
     assert seen == ["ascii", "auto"]

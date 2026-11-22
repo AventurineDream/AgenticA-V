@@ -1,7 +1,7 @@
 <!-- Track template, spec v1 (docs/spec/band-album-spec.md §1.5–§1.9, §8, §9). Save as
 albums/B-NN-<band-slug>/A-NN-<album-slug>/tracks/NN-<slug>.md. Write it top to bottom: passes,
 composition, both recording rounds, band decision, mastery, then visuals. The title is chosen after
-the band decision. Check it with `uv run python -m agentic_av.registry`. -->
+the band decision. Check it with `uv run python -m clangor_visualis_machina.registry`. -->
 
 # Track Title
 

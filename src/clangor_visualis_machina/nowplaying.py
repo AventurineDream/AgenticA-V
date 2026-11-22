@@ -24,12 +24,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from agentic_av.colorutil import contrast_ratio, mix, normalize_hex, to_hex
-from agentic_av.paint import Cell, _ansi_color, _single_column, _text_row, render_ansi
-from agentic_av.palette import Palette
-from agentic_av.tty import _terminal_frame
-from agentic_av.viz.cover import render_cover
-from agentic_av.viz.glyphs import Cells
+from clangor_visualis_machina.colorutil import contrast_ratio, mix, normalize_hex, to_hex
+from clangor_visualis_machina.paint import Cell, _ansi_color, _single_column, _text_row, render_ansi
+from clangor_visualis_machina.palette import Palette
+from clangor_visualis_machina.tty import _terminal_frame
+from clangor_visualis_machina.viz.cover import render_cover
+from clangor_visualis_machina.viz.glyphs import Cells
 
 # Cover panel: two margin columns before it and two gap columns after it, at most
 # 40% of the width. It shrinks to fit that share and the caption, but is omitted

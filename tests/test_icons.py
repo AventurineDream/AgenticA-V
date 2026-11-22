@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from agentic_av.cli import main
-from agentic_av.icons import (
+from clangor_visualis_machina.cli import main
+from clangor_visualis_machina.icons import (
     _VARIANT_BODY,
     _VARIANT_PLATE,
     DEFAULT_VARIANT,
@@ -30,7 +30,7 @@ from agentic_av.icons import (
     variant_dir,
     variant_names,
 )
-from agentic_av.palette import PaletteError, palette_from_omarchy
+from clangor_visualis_machina.palette import PaletteError, palette_from_omarchy
 
 
 def _xdg(tmp_path: Path) -> dict[str, str]:
@@ -75,7 +75,7 @@ def test_unknown_variant_rejected() -> None:
 def test_load_variant_falls_back_on_bad_file(tmp_path: Path) -> None:
     env = _xdg(tmp_path)
     assert load_variant(env=env) == DEFAULT_VARIANT
-    target = Path(env["XDG_CONFIG_HOME"]) / "agentic-av" / "icons.toml"
+    target = Path(env["XDG_CONFIG_HOME"]) / "clangor-visualis-machina" / "icons.toml"
     target.parent.mkdir(parents=True)
     target.write_text('variant = "nope"\n', encoding="utf-8")
     assert load_variant(env=env) == DEFAULT_VARIANT
@@ -89,23 +89,27 @@ def test_pick_saves_preference_and_installs(tmp_path: Path) -> None:
     result = pick_variant("red-orange", env=env, data_home=data, refresh=False)
     assert result.variant == "red-orange"
     assert load_variant(env=env) == "red-orange"
-    assert (Path(env["XDG_CONFIG_HOME"]) / "agentic-av" / "icons.toml").read_text(
+    assert (Path(env["XDG_CONFIG_HOME"]) / "clangor-visualis-machina" / "icons.toml").read_text(
         encoding="utf-8"
     ) == 'variant = "red-orange"\nfollow_theme = false\n'
     desktop = result.desktop_path
-    assert desktop == data / "applications" / "agentic-av.desktop"
+    assert desktop == data / "applications" / "clangor-visualis-machina.desktop"
     text = desktop.read_text(encoding="utf-8")
     assert "Exec=" in text and text.split("Exec=")[1].splitlines()[0].endswith("aav play")
     assert "TryExec=" in text and text.split("TryExec=")[1].splitlines()[0].endswith("aav")
     assert "Terminal=true" in text
-    assert "Icon=agentic-av" in text
+    assert "Icon=clangor-visualis-machina" in text
     assert len(result.icon_paths) == 7
     for size in (16, 32, 64, 128, 256, 512, 1024):
-        installed = data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av.png"
+        installed = (
+            data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "clangor-visualis-machina.png"
+        )
         assert installed in result.icon_paths
         assert installed.is_file()
     source = variant_dir("red-orange") / "AppIcon-1024.png"
-    installed_1024 = data / "icons" / "hicolor" / "1024x1024" / "apps" / "agentic-av.png"
+    installed_1024 = (
+        data / "icons" / "hicolor" / "1024x1024" / "apps" / "clangor-visualis-machina.png"
+    )
     assert installed_1024.read_bytes() == source.read_bytes()
     assert installed_variant(env=env, data_home=data) == "red-orange"
 
@@ -126,9 +130,13 @@ def test_install_replaces_previous_variant(tmp_path: Path) -> None:
     env = _xdg(tmp_path)
     data = Path(env["XDG_DATA_HOME"])
     pick_variant("red-orange", env=env, data_home=data, refresh=False)
-    first = (data / "icons" / "hicolor" / "1024x1024" / "apps" / "agentic-av.png").read_bytes()
+    first = (
+        data / "icons" / "hicolor" / "1024x1024" / "apps" / "clangor-visualis-machina.png"
+    ).read_bytes()
     pick_variant("blue-green", env=env, data_home=data, refresh=False)
-    second = (data / "icons" / "hicolor" / "1024x1024" / "apps" / "agentic-av.png").read_bytes()
+    second = (
+        data / "icons" / "hicolor" / "1024x1024" / "apps" / "clangor-visualis-machina.png"
+    ).read_bytes()
     assert first != second
     assert installed_variant(env=env, data_home=data) == "blue-green"
 
@@ -202,7 +210,12 @@ def test_install_also_installs_menubar_template(tmp_path: Path) -> None:
     }
     for size, filename in expected.items():
         installed = (
-            data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av-menubar.png"
+            data
+            / "icons"
+            / "hicolor"
+            / f"{size}x{size}"
+            / "apps"
+            / "clangor-visualis-machina-menubar.png"
         )
         assert installed in result.menubar_paths
         assert installed.is_file()
@@ -337,7 +350,7 @@ def test_install_writes_scalable_svg(tmp_path: Path) -> None:
     env = _xdg(tmp_path)
     data = Path(env["XDG_DATA_HOME"])
     result = pick_variant("mono-dark", env=env, data_home=data, refresh=False)
-    svg = data / "icons" / "hicolor" / "scalable" / "apps" / "agentic-av.svg"
+    svg = data / "icons" / "hicolor" / "scalable" / "apps" / "clangor-visualis-machina.svg"
     assert result.svg_path == svg
     assert svg.is_file()
     assert svg.read_bytes() == (variant_dir("mono-dark") / "AppIcon.svg").read_bytes()
@@ -348,7 +361,9 @@ def test_install_removes_stale_unmanaged_sizes(tmp_path: Path) -> None:
     data = Path(env["XDG_DATA_HOME"])
     stale_paths = []
     for size in (22, 24, 48):
-        stale = data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av.png"
+        stale = (
+            data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "clangor-visualis-machina.png"
+        )
         stale.parent.mkdir(parents=True)
         stale.write_bytes(b"stale")
         stale_paths.append(stale)
@@ -357,7 +372,9 @@ def test_install_removes_stale_unmanaged_sizes(tmp_path: Path) -> None:
     for stale in stale_paths:
         assert not stale.exists()
     for size in (16, 32, 64, 128, 256, 512, 1024):
-        assert (data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av.png").is_file()
+        assert (
+            data / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "clangor-visualis-machina.png"
+        ).is_file()
 
 
 def test_sync_followed_icon_installs_and_skips_when_current(tmp_path: Path) -> None:
@@ -368,7 +385,7 @@ def test_sync_followed_icon_installs_and_skips_when_current(tmp_path: Path) -> N
     resolved = sync_followed_icon(env=env, data_home=data, refresh=False, state_dir=state)
     assert resolved == "mono-dark"
     assert installed_variant(env=env, data_home=data) == "mono-dark"
-    target = data / "icons" / "hicolor" / "1024x1024" / "apps" / "agentic-av.png"
+    target = data / "icons" / "hicolor" / "1024x1024" / "apps" / "clangor-visualis-machina.png"
     mtime = target.stat().st_mtime_ns
     resolved = sync_followed_icon(env=env, data_home=data, refresh=False, state_dir=state)
     assert resolved == "mono-dark"

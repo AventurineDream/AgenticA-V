@@ -22,8 +22,8 @@ from importlib.resources import files
 import numpy as np
 from PIL import Image
 
-from agentic_av.viz.encode import FrameEncoder
-from agentic_av.viz.glyphs import TIERS, fit
+from clangor_visualis_machina.viz.encode import FrameEncoder
+from clangor_visualis_machina.viz.glyphs import TIERS, fit
 
 # sRGB byte -> linear light; a gather is far cheaper than the power curve per pixel.
 _CODES = np.arange(256, dtype=np.float64) / 255
@@ -74,7 +74,7 @@ def decode_cover(data: bytes, sha256: str) -> np.ndarray:
 
 
 def load_cover(asset: str, sha256: str) -> np.ndarray:
-    """Read one packaged cover from `agentic_av/artwork` and decode it.
+    """Read one packaged cover from `clangor_visualis_machina/artwork` and decode it.
 
     Args:
         asset: JPEG basename, as recorded in the catalog.
@@ -87,7 +87,7 @@ def load_cover(asset: str, sha256: str) -> np.ndarray:
         ArtworkError: The file is unreadable, altered, or not a JPEG.
     """
     try:
-        data = files("agentic_av").joinpath("artwork", asset).read_bytes()
+        data = files("clangor_visualis_machina").joinpath("artwork", asset).read_bytes()
     except OSError as error:
         raise ArtworkError(f"cover {asset} is unreadable: {error}") from error
     return decode_cover(data, sha256)

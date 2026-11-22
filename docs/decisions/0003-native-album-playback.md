@@ -19,3 +19,5 @@ Enter plays the movement in the terminal. `o` keeps the browser page as an optio
 ## Consequences
 
 Native playback needs mpv or ffplay on PATH. Without either, the library shows a note, and `o` still works. The first play of an album decodes about 23–55 MB of MP3 into the cache and shows a loading line; later plays reuse the cache. The original player's radio layout (now-playing, scope, queue, and transport boxes), volume keys, and album keys were not ported. Playback is the full-frame scene plus a status line, which keeps state, clock, and `q back` visible at 80 columns. The bundled archives stay read-only, and the public-scope rules in decision 0002 are unchanged.
+
+Amended 2026-11-22: the library's `o` browser shortcut has since been removed (see CHANGELOG), so Enter's native playback is the only album path; ADR 0004 replaced the faithful glyph port described above.

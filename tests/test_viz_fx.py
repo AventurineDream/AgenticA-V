@@ -5,9 +5,9 @@ import math
 import numpy as np
 import pytest
 
-from agentic_av.viz import fx
-from agentic_av.viz.draw import Flow
-from agentic_av.viz.surface import Surface
+from clangor_visualis_machina.viz import fx
+from clangor_visualis_machina.viz.draw import Flow
+from clangor_visualis_machina.viz.surface import Surface
 
 
 @pytest.mark.parametrize("dt", [1 / 20, 1 / 60])

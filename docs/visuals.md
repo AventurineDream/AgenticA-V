@@ -1,7 +1,7 @@
 # Native scene guide
 
 Native album art is a new numpy-painted interpretation, not a port of the web
-player or the former terminal glyph scenes. The 37 movements across six albums
+player or the former terminal glyph scenes. The 49 movements across eight albums
 share album-specific materials and palettes. Audio bands and instrument notes move geometry; seeds
 keep repeat renders deterministic. Quiet passages and missing analysis retain
 composed scenes rather than substituting fabricated signals.
@@ -97,8 +97,8 @@ Seeded compositions remain visible without analysis, and Stage preserves exact h
 6. **The Shape That Stays:** braided routes return around an opening of restrained amber.
 
 ```bash
-uv run python -m agentic_av.viz.preview undertow 1 --at 60 --out /tmp/undertow.png
-uv run python -m agentic_av.viz.preview undertow 6 --motion still --sheet 4 --out /tmp/estuary.png
+uv run python -m clangor_visualis_machina.viz.preview undertow 1 --at 60 --out /tmp/undertow.png
+uv run python -m clangor_visualis_machina.viz.preview undertow 6 --motion still --sheet 4 --out /tmp/estuary.png
 ```
 
 ## Coupon Seance — *Buy One, Haunt One Free*
@@ -156,11 +156,11 @@ refresh the composition. Playback targets 30 fps; held transport targets 5 fps.
 The dedicated native preview is separate from the abstract `aav preview`:
 
 ```bash
-uv run python -m agentic_av.viz.preview coupon 1 --at 12,60 --out /tmp/coupon.png
-uv run python -m agentic_av.viz.preview forest 2 --sheet 6 --size 190x45 --out /tmp/rain.png
-uv run python -m agentic_av.viz.preview rooms 3 --tier half --bench
-uv run python -m agentic_av.viz.preview aquatic 6 --live --from 144
-uv run python -m agentic_av.viz.preview coupon 4 --safety
+uv run python -m clangor_visualis_machina.viz.preview coupon 1 --at 12,60 --out /tmp/coupon.png
+uv run python -m clangor_visualis_machina.viz.preview forest 2 --sheet 6 --size 190x45 --out /tmp/rain.png
+uv run python -m clangor_visualis_machina.viz.preview rooms 3 --tier half --bench
+uv run python -m clangor_visualis_machina.viz.preview aquatic 6 --live --from 144
+uv run python -m clangor_visualis_machina.viz.preview coupon 4 --safety
 ```
 
 Movement numbers are one-based. Preview uses real cached extraction, score, and

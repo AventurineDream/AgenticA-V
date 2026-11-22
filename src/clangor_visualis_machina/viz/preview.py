@@ -1,6 +1,6 @@
 """Preview real bundled movements through the same Stage pipeline as playback.
 
-Run ``python -m agentic_av.viz.preview coupon 1 --sheet 6 --out sheet.png``.
+Run ``python -m clangor_visualis_machina.viz.preview coupon 1 --sheet 6 --out sheet.png``.
 Extraction/analysis use native caches; PNGs, benchmarks, and sequential safety scans never
 retain a movie in memory. Live mode restores TTY attributes and handlers on every exit.
 """
@@ -23,8 +23,8 @@ from pathlib import Path
 
 import numpy as np
 
-from agentic_av.catalog import ALBUMS, movement_duration_s
-from agentic_av.native import NativeError, extract_album, movement_signals
+from clangor_visualis_machina.catalog import ALBUMS, movement_duration_s
+from clangor_visualis_machina.native import NativeError, extract_album, movement_signals
 
 from .audio import Features
 from .caps import budget_tier, cell_aspect, detect_tier

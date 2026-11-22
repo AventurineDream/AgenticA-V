@@ -1,7 +1,7 @@
 """Small TOML show description used by the CLI and the bundled abstract demo.
 
 The show format contains only reusable metadata and program IDs. Authorized
-album HTML lives under ``agentic_av/albums`` and is not referenced by shows.
+album HTML lives under ``clangor_visualis_machina/albums`` and is not referenced by shows.
 TOML decoding is strict to catch typos early.
 """
 
@@ -80,7 +80,7 @@ def load_show(path: Path) -> Show:
 
 def demo_show() -> Show:
     """Load the bundled media-free demo reel."""
-    resource = files("agentic_av").joinpath("demo/reel.toml")
+    resource = files("clangor_visualis_machina").joinpath("demo/reel.toml")
     try:
         data = tomllib.loads(resource.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as error:

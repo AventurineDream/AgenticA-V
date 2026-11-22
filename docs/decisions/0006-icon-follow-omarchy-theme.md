@@ -21,7 +21,7 @@ showing after a pick. The install contract needs to cover the scalable icon.
 
 ## Decision
 
-Add a `follow_theme` preference to `$XDG_CONFIG_HOME/agentic-av/icons.toml`
+Add a `follow_theme` preference to `$XDG_CONFIG_HOME/clangor-visualis-machina/icons.toml`
 (default false; existing files gain the key on their next save). `aav icons
 follow` turns follow on and installs the live theme's variant; `aav icons
 pick <variant>` turns follow off and installs the manual choice; `aav icons
@@ -62,7 +62,7 @@ from the installed one (a poll must not rewrite files):
   turns follow off) takes effect mid-session.
 
 `install` now also writes the variant's `AppIcon.svg` to
-`hicolor/scalable/apps/agentic-av.svg` and removes stale copies of this
+`hicolor/scalable/apps/clangor-visualis-machina.svg` and removes stale copies of this
 app's icon at the sizes it never writes (22/24/48). Both are files this
 app owns; no desktop, Omarchy, or system configuration is touched, and
 `aav icons install` keeps its 0005 meaning (install the saved choice).
@@ -81,3 +81,5 @@ when Fog's dedicated files arrive. Open for Aven: whether lavender-rain
 should get a dedicated file (its lavender accent currently loses to
 mono-dark's neutral plate/body distances), and whether `aav icons install`
 should stay saved-variant-only while follow is on.
+
+Amended 2026-11-22: identifiers renamed from `agentic-av` to `clangor-visualis-machina` with the project rename.

@@ -11,7 +11,7 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from agentic_av.viz.audio import (
+from clangor_visualis_machina.viz.audio import (
     ANALYSIS_REVISION,
     FPS,
     SAMPLE_RATE,
@@ -204,7 +204,7 @@ def test_cache_hit_skips_decode_and_changed_segments_invalidate(tmp_path, monkey
     audio = tmp_path / "music.mp3"
     audio.write_bytes(b"audio")
     decode = Mock(return_value=_clicks(duration=3))
-    monkeypatch.setattr("agentic_av.viz.audio.decode_pcm", decode)
+    monkeypatch.setattr("clangor_visualis_machina.viz.audio.decode_pcm", decode)
     first = load_features(audio, (Segment(0, 3, 120),))
     second = load_features(audio, (Segment(0, 3, 120),))
     assert decode.call_count == 1
@@ -223,7 +223,7 @@ def test_concurrent_cache_publication_and_corruption_recovery(tmp_path, monkeypa
     audio = tmp_path / "mix.mp3"
     audio.write_bytes(b"audio")
     decode = Mock(return_value=_clicks(duration=2))
-    monkeypatch.setattr("agentic_av.viz.audio.decode_pcm", decode)
+    monkeypatch.setattr("clangor_visualis_machina.viz.audio.decode_pcm", decode)
     (tmp_path / f"mix-a{ANALYSIS_REVISION}.npz").write_bytes(corrupt)
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = list(pool.map(load_features, (audio, audio)))
@@ -240,7 +240,7 @@ def test_decoder_uses_no_shell_and_stereo_float_output(monkeypatch):
             [], 0, np.zeros((10, 2), dtype="<f4").tobytes(), b""
         )
     )
-    monkeypatch.setattr("agentic_av.viz.audio.subprocess.run", run)
+    monkeypatch.setattr("clangor_visualis_machina.viz.audio.subprocess.run", run)
     pcm = decode_pcm(Path("name with ; shell.mp3"))
     assert pcm.shape == (10, 2) and pcm.dtype == np.float32
     args, kwargs = run.call_args
@@ -254,7 +254,9 @@ def test_decoder_uses_no_shell_and_stereo_float_output(monkeypatch):
     "error", [FileNotFoundError(), subprocess.CalledProcessError(1, "ffmpeg", stderr=b"bad file")]
 )
 def test_decoder_failures_are_nonfatal_analysis_errors(monkeypatch, error):
-    monkeypatch.setattr("agentic_av.viz.audio.subprocess.run", Mock(side_effect=error))
+    monkeypatch.setattr(
+        "clangor_visualis_machina.viz.audio.subprocess.run", Mock(side_effect=error)
+    )
     with pytest.raises(AudioError):
         decode_pcm(Path("missing.mp3"))
 

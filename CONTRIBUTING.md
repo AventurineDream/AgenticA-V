@@ -1,6 +1,6 @@
 # Contributing
 
-Terminally Agentic A/V accepts code contributions by invitation only. Code
+ClangorVisualisMachina accepts code contributions by invitation only. Code
 contributions are closed by default: communicate before opening a pull request,
 and proceed only if the project owner is interested. The project owner directs the
 main branch.

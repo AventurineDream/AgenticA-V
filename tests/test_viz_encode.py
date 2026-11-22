@@ -5,10 +5,10 @@ import re
 import numpy as np
 import pytest
 
-from agentic_av.colorutil import to_xterm256
-from agentic_av.viz.encode import FrameEncoder, _quantize, displayed_cells
-from agentic_av.viz.glyphs import TIERS, Cells, fit
-from agentic_av.viz.png import rasterize
+from clangor_visualis_machina.colorutil import to_xterm256
+from clangor_visualis_machina.viz.encode import FrameEncoder, _quantize, displayed_cells
+from clangor_visualis_machina.viz.glyphs import TIERS, Cells, fit
+from clangor_visualis_machina.viz.png import rasterize
 
 
 def _parse(data):

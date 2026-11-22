@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agentic_av.colorutil import mix, normalize_hex
+from clangor_visualis_machina.colorutil import mix, normalize_hex
 
 
 class PaletteError(ValueError):

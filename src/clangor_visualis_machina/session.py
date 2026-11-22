@@ -11,10 +11,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agentic_av.omarchy import OmarchyTheme
-from agentic_av.palette import Palette
-from agentic_av.show import Show
-from agentic_av.transport import Playhead
+from clangor_visualis_machina.omarchy import OmarchyTheme
+from clangor_visualis_machina.palette import Palette
+from clangor_visualis_machina.show import Show
+from clangor_visualis_machina.transport import Playhead
 
 # 0.22x is slow enough to read as reduced motion and fast enough that a
 # passage still changes. Scale playhead deltas, never absolute position:

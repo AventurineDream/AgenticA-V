@@ -16,12 +16,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from agentic_av.catalog import Album, CatalogEntry, Track
-from agentic_av.library import _TTY
-from agentic_av.native import NativeAlbum, TrackData, play_native
-from agentic_av.palette import builtin_palettes
-from agentic_av.tty import _PlayerTerminatedError
-from agentic_av.viz.audio import analyze
+from clangor_visualis_machina.catalog import Album, CatalogEntry, Track
+from clangor_visualis_machina.library import _TTY
+from clangor_visualis_machina.native import NativeAlbum, TrackData, play_native
+from clangor_visualis_machina.palette import builtin_palettes
+from clangor_visualis_machina.tty import _PlayerTerminatedError
+from clangor_visualis_machina.viz.audio import analyze
 
 
 @pytest.mark.parametrize("terminate", [False, True], ids=["quit", "sigterm"])
@@ -48,8 +48,8 @@ def test_native_frame_over_pty_restores_terminal(
     entry = CatalogEntry(album, track)
     extracted = NativeAlbum((TrackData(tmp_path / "fake.mp3", scene="root"),), "forest")
     features = analyze(np.zeros((2205, 2), dtype=np.float32))
-    monkeypatch.setattr("agentic_av.native.extract_album", lambda *_args: extracted)
-    monkeypatch.setattr("agentic_av.native.load_features", lambda *_args: features)
+    monkeypatch.setattr("clangor_visualis_machina.native.extract_album", lambda *_args: extracted)
+    monkeypatch.setattr("clangor_visualis_machina.native.load_features", lambda *_args: features)
     closed = threading.Event()
 
     class Player:

@@ -7,11 +7,11 @@ macOS .icns. A separate ``menubar/`` template image has no color variants;
 macOS tints it, and there is no menu-bar consumer in this repository yet.
 
 The picker is the ``aav icons`` command. It records the user's variant in
-``$XDG_CONFIG_HOME/agentic-av/icons.toml`` and, on Linux, installs the chosen
-set as the app's icon: an ``agentic-av.desktop`` launcher plus the iconset
+``$XDG_CONFIG_HOME/clangor-visualis-machina/icons.toml`` and, on Linux, installs the chosen
+set as the app's icon: a ``clangor-visualis-machina.desktop`` launcher plus the iconset
 PNGs in the freedesktop hicolor theme under ``$XDG_DATA_HOME``, the variant's
 ``AppIcon.svg`` as the scalable hicolor icon, and the menu-bar template as
-``agentic-av-menubar`` at 18/36/54. Only files this app owns are written; no
+``clangor-visualis-machina-menubar`` at 18/36/54. Only files this app owns are written; no
 desktop or Omarchy configuration is edited. macOS has no app bundle in this
 repository, so install there reports the .icns location instead of
 pretending to install.
@@ -34,9 +34,9 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from agentic_av.colorutil import parse_hex, relative_luminance
-from agentic_av.omarchy import OmarchyTheme, load_omarchy
-from agentic_av.palette import Palette
+from clangor_visualis_machina.colorutil import parse_hex, relative_luminance
+from clangor_visualis_machina.omarchy import OmarchyTheme, load_omarchy
+from clangor_visualis_machina.palette import Palette
 
 DEFAULT_VARIANT = "default"
 
@@ -226,7 +226,7 @@ def config_path(*, env: dict[str, str] | None = None, path: Path | None = None) 
     """
     if path is not None:
         return path
-    return _config_home(env) / "agentic-av" / "icons.toml"
+    return _config_home(env) / "clangor-visualis-machina" / "icons.toml"
 
 
 @dataclass(frozen=True, slots=True)
@@ -453,13 +453,13 @@ def desktop_path(*, env: dict[str, str] | None = None, data_home: Path | None = 
         data_home: Optional XDG data home override, primarily for tests.
     """
     home = data_home if data_home is not None else _data_home(env)
-    return home / "applications" / "agentic-av.desktop"
+    return home / "applications" / "clangor-visualis-machina.desktop"
 
 
 def _hicolor_path(size: int, *, env: dict[str, str] | None, data_home: Path | None) -> Path:
     """Return the hicolor destination for one icon size."""
     home = data_home if data_home is not None else _data_home(env)
-    return home / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av.png"
+    return home / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "clangor-visualis-machina.png"
 
 
 def _digest(path: Path) -> str:
@@ -514,7 +514,12 @@ def installed_menubar(
         size
         for size in _MENUBAR_HICOLOR
         if (
-            home / "icons" / "hicolor" / f"{size}x{size}" / "apps" / "agentic-av-menubar.png"
+            home
+            / "icons"
+            / "hicolor"
+            / f"{size}x{size}"
+            / "apps"
+            / "clangor-visualis-machina-menubar.png"
         ).is_file()
     )
 
@@ -572,7 +577,7 @@ def install(
 ) -> InstallResult:
     """Install a variant as the app icon on Linux and return what was written.
 
-    Writes the ``agentic-av.desktop`` launcher, the variant's iconset PNGs,
+    Writes the ``clangor-visualis-machina.desktop`` launcher, the variant's iconset PNGs,
     and the variant's ``AppIcon.svg`` as the scalable hicolor icon into the
     hicolor theme. The scalable SVG matters because docks prefer it when
     present; an install that skipped it could leave a stale SVG on screen
@@ -614,32 +619,32 @@ def install(
     home = data_home if data_home is not None else _data_home(env)
     apps_dir = home / "applications"
     icons_dir = home / "icons" / "hicolor"
-    desktop = apps_dir / "agentic-av.desktop"
+    desktop = apps_dir / "clangor-visualis-machina.desktop"
     apps_dir.mkdir(parents=True, exist_ok=True)
     desktop.write_text(
         "[Desktop Entry]\n"
         "Type=Application\n"
-        "Name=Agentic A/V\n"
+        "Name=ClangorVisualisMachina\n"
         "Comment=Terminal album library and visual player\n"
         f"Exec={_quote(str(launcher))} play\n"
         f"TryExec={_quote(str(launcher))}\n"
         "Terminal=true\n"
-        "Icon=agentic-av\n"
+        "Icon=clangor-visualis-machina\n"
         "Categories=AudioVideo;Player;\n",
         encoding="utf-8",
     )
     written: list[Path] = []
     for size, relative in _HICOLOR_PNGS.items():
-        target = icons_dir / f"{size}x{size}" / "apps" / "agentic-av.png"
+        target = icons_dir / f"{size}x{size}" / "apps" / "clangor-visualis-machina.png"
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / relative, target)
         written.append(target)
-    svg_target = icons_dir / "scalable" / "apps" / "agentic-av.svg"
+    svg_target = icons_dir / "scalable" / "apps" / "clangor-visualis-machina.svg"
     svg_target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(source / "AppIcon.svg", svg_target)
     removed_stale: list[Path] = []
     for size in _STALE_UNMANAGED_SIZES:
-        stale = icons_dir / f"{size}x{size}" / "apps" / "agentic-av.png"
+        stale = icons_dir / f"{size}x{size}" / "apps" / "clangor-visualis-machina.png"
         try:
             stale.unlink()
         except FileNotFoundError:
@@ -652,7 +657,7 @@ def install(
         source_file = icon_root(root=root) / "menubar" / relative
         if not source_file.is_file():
             continue
-        target = icons_dir / f"{size}x{size}" / "apps" / "agentic-av-menubar.png"
+        target = icons_dir / f"{size}x{size}" / "apps" / "clangor-visualis-machina-menubar.png"
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_file, target)
         menubar_written.append(target)

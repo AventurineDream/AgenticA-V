@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from agentic_av.viz import color
-from agentic_av.viz.surface import Surface
+from clangor_visualis_machina.viz import color
+from clangor_visualis_machina.viz.surface import Surface
 
 
 @pytest.mark.parametrize("sub_w,sub_h", [(2, 4), (2, 3), (2, 2), (1, 2)])

@@ -1,18 +1,18 @@
 <!--
-One-shot swarm prompt for Terminally Agentic AV albums, spec v1 (docs/spec/band-album-spec.md).
+One-shot swarm prompt for ClangorVisualisMachina albums, spec v1 (docs/spec/band-album-spec.md).
 
 How to use it: fill in the Commission block, paste the band and visual group docs into their fences
 (or write NEW and a seed), then paste this whole file into any AI chat or agent as one message. If the
 reply stops before END OF OUTPUT, answer "continue". Save the album's "File:" block at its path in the
-AgenticA-V repository and the track files in that album folder's tracks/ folder, then run
-`uv run python -m agentic_av.registry`.
+ClangorVisualisMachina repository and the track files in that album folder's tracks/ folder, then run
+`uv run python -m clangor_visualis_machina.registry`.
 
 Maintainers: the four templates in section 6 are verbatim copies of templates/*.md, and
 tests/test_registry.py fails when they drift. Change the spec, the templates, the validator and this
 prompt together.
 -->
 
-# Terminally Agentic AV — album swarm
+# ClangorVisualisMachina — album swarm
 
 ## Commission
 
@@ -61,7 +61,7 @@ Nothing below this line needs editing.
 
 ## 1. Your job
 
-You are the Terminally Agentic AV swarm: every member of the band, every member of the visual group,
+You are the ClangorVisualisMachina swarm: every member of the band, every member of the visual group,
 and the album's mastering engineer. Make the album this commission asks for and reply with its
 files. A strict validator checks every file against the rules below, and people will read and listen
 to what the files describe, so the music has to be good and the format exact. There is no revision
@@ -419,7 +419,7 @@ header exactly as it is.
 ````markdown
 <!-- Band template, spec v1 (docs/spec/band-album-spec.md §1.1, §1.3, §5). Save as
 bands/B-NN-<slug>.md, replace every placeholder, and check it with
-`uv run python -m agentic_av.registry`. Comments like this one are guidance; the validator ignores
+`uv run python -m clangor_visualis_machina.registry`. Comments like this one are guidance; the validator ignores
 them, so you may keep or delete them. -->
 
 # Band Name
@@ -500,7 +500,7 @@ and no rows. -->
 ````markdown
 <!-- Visual group template, spec v1 (docs/spec/band-album-spec.md §1.2, §1.3, §1.8, §6). Save
 as visual-groups/V-NN-<slug>.md, replace every placeholder, and check it with
-`uv run python -m agentic_av.registry`. A visual group has two or three members. -->
+`uv run python -m clangor_visualis_machina.registry`. A visual group has two or three members. -->
 
 # Visual Group Name
 
@@ -571,7 +571,7 @@ Description paragraph.
 <!-- Album template, spec v1 (docs/spec/band-album-spec.md §1.4–§1.9, §7). Save as
 albums/B-NN-<band-slug>/A-NN-<slug>/album.md, next to a tracks/ folder of track docs. Write it last,
 after every track's band decision, mastery and visuals: the title comes after the music. Check it
-with `uv run python -m agentic_av.registry`. -->
+with `uv run python -m clangor_visualis_machina.registry`. -->
 
 # Album Title
 
@@ -658,7 +658,7 @@ One line of at most 160 characters, as the player's library shows it.
 <!-- Track template, spec v1 (docs/spec/band-album-spec.md §1.5–§1.9, §8, §9). Save as
 albums/B-NN-<band-slug>/A-NN-<album-slug>/tracks/NN-<slug>.md. Write it top to bottom: passes,
 composition, both recording rounds, band decision, mastery, then visuals. The title is chosen after
-the band decision. Check it with `uv run python -m agentic_av.registry`. -->
+the band decision. Check it with `uv run python -m clangor_visualis_machina.registry`. -->
 
 # Track Title
 
