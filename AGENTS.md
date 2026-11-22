@@ -51,7 +51,7 @@ uv sync --group dev
 
 ## Boundaries
 
-Do not add private band content or choose a code/media license on Aven's behalf. The docs in `bands/`, `visual-groups/` and `albums/` are public by design: fictional personas, rosters and process records only; keep private notes, reviews in progress and unreleased album material out of them. Do not edit Omarchy configuration from this repository. Do not overwrite the bundled album archives. Avoid compatibility aliases that hide a changed CLI contract.
+Do not add private band content or choose a code/media license on Aven's behalf. The docs in `bands/`, `visual-groups/` and `albums/` are public by design: fictional personas, rosters and process records, including each album's commission (direction and reviews). Keep private notes and unfinished reviews out of them. Do not edit Omarchy configuration from this repository. Do not overwrite the bundled album archives. Avoid compatibility aliases that hide a changed CLI contract.
 
 ## Repository map
 
